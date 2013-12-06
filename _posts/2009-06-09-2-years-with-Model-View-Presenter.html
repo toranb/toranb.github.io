@@ -1,0 +1,114 @@
+---
+layout: post
+title:  "2 years with Model View Presenter"
+date:   2009-06-09 6:00:00
+categories: blog archive
+---
+
+<p>Just about 2 years ago a co-worker of mine introduced me to the great <a href='http://blog.jpboodhoo.com/' target='_blank'>JP Boodhoo</a>, but more specifically he got me interested in writing more maintainable software.  Before this moment, I was writing very data centric applications based around a few monolithic methods.  I know what you’re thinking, 'Why am I reading this guys blog again?' -but stay with me.  Even though I was writing terrible software, I soon found my passion for writing good software.  I look back now and realize that the reason I became so obsessed with writing good software, was that anything worth doing is worth doing well.  And to be clear, before this point I was not doing anything well.  </p>
+
+<p>I mention the great JP Boodhoo because he is one of the brightest minds in our industry.  He started writing and speaking about one topic in particular that got me interested in writing better software, Presentation Patterns.  Specifically, the Model View Presenter design pattern.  </p>
+
+<p>I think the first reason that MVP got me excited was that it was 'something new and shiny' (the usual fault of any geek).  But beyond that it opened my eyes to this crazy concept that was 'maintainability'.  Before this point, I never thought about the next developer who would take over the system I was working on.  What I could do to save them rework when they needed to reverse a decision I had made during my early years of slinging code.</p>
+
+<p>The MVP pattern has since been retired and broken into <a title='Supervising Presenter' href='http://www.martinfowler.com/eaaDev/SupervisingPresenter.html' target='_blank'>Supervising Controller</a> and <a title='Passive View' href='http://www.martinfowler.com/eaaDev/PassiveScreen.html' target='_blank'>Passive View</a>.  I seemed to gravitate toward the passive view implementation because it helped me to achieve 'cleaner' separation in that my view was 100% UI agnostic.</p>
+
+<p>When learning this pattern during the summer of 2007, I was much more interested in the 'how' at first.  But as the journey marched forward, I soon learned the 'why' - separation of concerns.  I discovered this concept and found that it allowed me to focus on a fewer 'category' of things in each class/method -thus I typically made less errors and could jump into a class and ramp up quicker to get things done. </p>
+
+<p>I avoided the event driven implementation that <a href='http://www.haacked.com/' target='_blank'>Phil Haack</a> blogged about because I found it harder to follow.  Instead I would manually hookup each user interface event to the presenter method associated.</p>
+
+<p>One of the concepts that I had never seen before in ASPNET was this idea of 'interface based programming'.  Interfaces represent an abstract idea or contract, not the specific implementation.  This way, if you program against the abstraction you can swap out the implementation with almost no effort.  At first I thought to myself 'what is this academic crap about abstractions/etc' - but in practice I have found this to allow for very loosely coupled components.  And the more flexible your system is- the better (if you like to reduce your pain at work -that is)</p>
+
+<p>The first place I needed to apply this interface stuff was at the view level.  With the MVP pattern, the only responsibility of the 'view' is to format the model for the end user.  But to put this in simple terms for web developers - html/css/javascript ONLY. </p>
+
+<p>Now I might be alone here, but when I left PHP to start developing software on the .NET platform I found the code-behind to be a very strange concept.  I found it very easy to dump in the kitchen sink because it felt like the convention webforms was built around (that should have been my first indication, but hindsight is always 20/20 right?)  But the more junk I threw into the code-behind, the more duplication started to show up.  But more than anything the mess was starting to get out of hand when systems grew over time. (everything was tightly coupled to the aspnet implementation- and anything tied to the UI technology is a bad thing as this changes more than anything else we work with)</p>
+
+<p>Getting back to the MVP implementation, this idea of view represents how the model will appear for the end user.  But the key is to think UI agnostic.  So instead of input.value for example- string / integer.  Instead of checkbox - boolean.  Instead of GridView - List(Of T).  This was the hardest part to grok because it felt like the most work early on (and as we all know, early on when you see zero benefit it is hard to get excited about extra work)</p>
+
+<p>So in this example, let’s take a simple Northwind CRUD app -</p>
+
+<p>My detail UI might have a product name, Unit Price, Discontinued.  To represent this as an interface you might have the following:</p>
+
+{% highlight c# linenos %}
+public interface IProductView
+{
+   
+    string Name { get; set; }
+    string UnitPrice { get; set; }
+    bool Discontinued { get; set; }
+}
+{% endhighlight %}
+
+<p>With this interface declared, we now need to find a way to implement these properties in such a way that we can talk w/ the aspnet web page so our presenter can do the 'middle man' work required to pass along the user action to the model.</p>
+
+<p>What did not seem obvious to me at first was that the UI class we need information from, should implement this interface because it has the values needed to pass along to the presenter.  So the page you need information from will need to implement the interface like so:</p>
+
+{% highlight c# linenos %}
+public partial class _Default : System.Web.UI.Page, IProductView
+{
+    public string Name {
+        get { return txtName.value; }
+        set { txtName.value = value; }
+    }
+
+    public string UnitPrice {
+        get { return txtUnitPrice.value; }
+        set { txtUnitPrice.value = value; }
+    }
+
+    public bool Discontinued {
+        get { return chkDiscontinued.checked; }
+        set { chkDiscontinued.checked = value; }
+    }
+}
+{% endhighlight %}
+
+<p>The next thing we need to do is create the actual presenter class itself.  But to hookup the events between the view (aspx + aspx.vb) we need to new up this presenter in the OnInit method of the code behind file.</p>
+
+{% highlight c# linenos %}
+public partial class _Default : System.Web.UI.Page, IProductView
+{
+   
+    private ProductPresenter _Presenter;
+   
+    protected override void OnInit(System.EventArgs e)
+    {
+        base.OnInit(e);
+        _Presenter = new ProductPresenter(this);
+    }
+
+}
+{% endhighlight %}
+
+<p>You will notice something different in the constructor above, the single argument is the code-behind as it represents the IView class we declared above.  This will allow our presenter class to access to all the properties on it (the view itself)</p>
+
+<p>But as we alter this, the presenter class needs to have the constructor altered to accept a type of IView.  Again, we do not care about the implementation of this interface -but any class used in this context must implement the interface specified.</p>
+
+{% highlight c# linenos %}
+public class ProductPresenter
+{
+   
+    private IProductView _View;
+   
+    public ProductPresenter(IProductView View)
+    {
+        _View = View;
+    }
+}
+{% endhighlight %}
+
+<p>The above took me far too long to fully understand, but after I got my head around it all the benefits of smaller more cohesive methods and classes started to take hold.</p>
+
+<p>The final hookup work needed is in the code-behind again- when you handle a click event for example (the submit event on a button) - you simply pass along the action to the presenter method you want to do the work between the view and the model.</p>
+
+{% highlight c# linenos %}
+public partial class _Default : System.Web.UI.Page, IProductView
+{
+    private void btnAssign_ServerClick(object sender, System.EventArgs e)
+    {
+        mPresenter.Assign();
+    }
+}
+{% endhighlight %}
+
+<p>Now I am leaving out the model down development implementation, along with how to handle grid view sorting /pagination and drop down lists (cross UI that is).  I plan to touch on these in a future post, as this entry is looking rather long.</p>

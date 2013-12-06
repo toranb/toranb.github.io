@@ -1,0 +1,25 @@
+---
+layout: post
+title:  "How to unit test your handlebars helper with jasmine"
+date:   2013-02-11 6:00:00
+categories: blog archive
+---
+
+<p>Over the last few months I've been playing around with the <a href='http://handlebarsjs.com/'>handlebars</a> javascript templating library. One thing I like about handlebars is the pure simplicity of the library. At it's core, each handlebars template is a javascript function that takes an object and returns a string.</p>                                                                                                                      
+<p>I recently finished a small handlebars project and found that despite the logicless approach, you might need to write your own helper to accomplish something the library does not offer by default.</p>
+
+<p>For example, out of the box the if statement allows you to say if something is defined or undefined. Beyond this you can't directly compare attributes on the object being passed in.</p>
+
+<p>Lets assume for the moment you need this feature (for better or worse). You can extend handlebars by writing your own helper.</p>
+
+<div data-gist=4754121><script src='https://gist.github.com/toranb/4754121.js'></script></div>
+
+<p>In the javascript snippet above I implemented a simple if / equal helper that lets you compare attributes in the current templates context.</p>
+
+<p>Before this moment I didn't have much of a need to unit test my templates directly because they were essentially logicless. But this if /equal template is a clear violation of that idea and should have some testing around it to understand how it works / verify it still works when we change it / etc.</p>
+
+<p>I decided to write a simple jasmine unit test that would prove the conditional works as expected. I have verified this unit test works with both the <a href='https://github.com/mhevery/jasmine-node'>jasmine-node</a> and <a href='https://github.com/toranb/jasmine-phantom-node'>jasmine-phantom-node</a> test runners. If you want a full blown example of the jasmine-phantom-node version you can find it in the <a href='https://github.com/toranb/jasmine-phantom-node/tree/master/examples'>examples directory</a>.</p>
+
+<script src='https://gist.github.com/toranb/4754124.js'></script>
+
+<p>Hopefully the example above will get someone else unit testing their handlebars templates!</p>

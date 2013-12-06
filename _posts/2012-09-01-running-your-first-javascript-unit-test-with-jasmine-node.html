@@ -1,0 +1,42 @@
+---
+layout: post
+title:  "Running your first javascript unit test with jasmine-node"
+date:   2012-09-01 6:00:00
+categories: blog archive
+---
+
+<p>I joined a small software company last year to see what type of awesome a team of focused and talented developers could create. The product we work on is web based and for the first time in almost 2 years I found myself writing javascript again. If you had asked me about javascript 5 years ago I would have said something snarky like <i>seriously ... javascript</i>.</p>
+
+<p>But something was different this time around, instead of throwing alerts around to see how stuff worked the team I joined was writing unit tests with this awesome library called <a href='http://pivotal.github.com/jasmine/'>jasmine</a>. And for the first time in my professional software career this amazing thing happend ... <b>I wasn't afraid to change my javascript code</b>. Unlike my past javascript experience where I would write some code and <i>pray</i> no one would ever need to modify it, I could freely modify it and within a few seconds know if any behavior had changed.</p>
+
+<p>Since the tests had to run against some type of javascript vm I just assumed we would need to open a browser and kick off the tests with each change. But thankfully <b><i>I</i></b> didn't establish how the team would be running unit tests. We instead run all our javascript unit tests from the command line with the help of a simple npm package called jasmine-node.</p>
+
+<p>To install jasmine-node you will first need to have a recent version of node installed (assuming you want to run these tests on your local developer machines that is).</p> 
+
+<p>For anyone running OSX I'd recommend using brew because it works and it's low friction.</p>
+
+<div data-gist=3584754><script src='https://gist.github.com/toranb/3584754.js'></script></div>
+
+<p>For anyone running Ubuntu I'd just pull down my chef recipe for <a href='https://github.com/toranb/ubuntu-development-machine'>developer machines</a> and run the installer. This recipe could also be used on your ci server if you want to run these tests with each checkin (jenkins support is a cake walk because it's a simple command line utility).<p>
+
+<div data-gist=3621567><script src='https://gist.github.com/toranb/3621567.js'></script></div>
+
+<p>Now that you have node installed you will need to install the jasmine-node package using npm. In the past I would have installed this globally but it's usually not a good idea to install anything globally. Instead we will keep this in your local directory to isolate yourself from the global node /npm code on the system.</p>
+
+<blockquote>npm install jasmine-node</blockquote>
+
+<p>If the above fails you might need to run it as sudo depending on how you installed node + npm on your system. After the install is complete you will notice a directory called node_modules was added to your project (add this to the .gitignore as it shouldn't be added to source control in any way).</p>
+
+<p>If you are working on a team like I am you will want to checkin a simple file called 'packages.json' that looks like the below. That way other developers who don't yet have jasmine-node installed can just pull down the repository and do 'npm install'</p>
+
+<div data-gist=3584452><script src='https://gist.github.com/toranb/3584452.js'></script></div>
+
+<p>Now you should have everything you need installed to write your first javascript unit test. Create a new js test file (be sure it has .spec.js as the extension so the test runner can find it /run it correctly).</p>
+
+<div data-gist=3591456><script src='https://gist.github.com/toranb/3591456.js'></script></div>
+
+<p>Because the jasmine-node test runner actually lives inside the node_modules folder we installed earlier with npm, we can either point to it or create a symlink to run it shorthand (I prefer the symlink myself).</p>
+
+<blockquote>sudo ln -sf ~/projects/yourapphere/node_modules/jasmine-node/bin/jasmine-node /usr/local/bin/jasmine-node</blockquote>
+
+<p>Now you can run the javascript unit test we added above with node and jasmine-node using the simple command 'jasmine-node hello.spec.js'</p>

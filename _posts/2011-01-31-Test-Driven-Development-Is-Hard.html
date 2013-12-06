@@ -1,0 +1,62 @@
+---
+layout: post
+title:  "Test Driven Development Is Hard"
+date:   2011-01-31 6:00:00
+categories: blog archive
+---
+
+<p>I've been practicing <a href='http://en.wikipedia.org/wiki/Test-driven_development'>test driven development</a> for over 3 years now and I still find it challenging.  Almost anyone can write a half decent unit test after the fact, but only the best developers know how to make great decisions throughout a project test-first.  And it's this ability to make quality decisions consistently that I struggle with day to day.  I openly admit this because I feel it takes a solid 10+ years to master any technique, especially one that requires a great deal of thought like tdd.  It's a design activity after all and in my experience most developers simply don't know how to design anything unless you consider a handful of copy/paste commands to be great software development.  </p>
+
+<p>I decided to write out the concepts I find difficult when doing test driven development and how I work through them to achieve higher code quality on a daily basis.  If you currently design your software test-first I hope something below will strike a chord with you.</p>
+
+<h3>How to determine at what scope I should write a test</h3>
+
+<p>One of the most difficult parts of tdd is knowing how high or low you should be working, and when. Imagine that you are working on a team that has a business analyst writing detailed <a href='http://blog.scottbellware.com/2008/12/acceptance-tests.html'>acceptance tests</a> for each new feature. This feature is not overly complex, but it does make a lot of assumptions about how the system works. I would attempt to understand the requirements and work through them at a low level, but having such a high level test in place can make it seem like you have the only test you need.  Though in reality, you will be missing out on all the <a href='http://toranbillups.com/blog/archive/2010/04/22/How-test-first-development-changed-my-life'>benefits</a> of true test-first development.</p>
+
+<p>For starters, when the first bug appears and all you have is a broken acceptance test it will be much more time consuming to find the defect. But if you had broken that single feature down into several smaller tasks, you could have test driven each step along the way to capture the behavior found in the system. That way when a defect shows up, you know the exact method that is causing the problem without spending any time in the debugger. A wise person once told me that debugging isn't necessarily a bad thing, but when you start debugging entire systems to find a single defect, you might be working too hard. And I prefer to work smarter, not harder.</p>
+
+<p>Secondly, you are missing all the design benefits provided when developing test-first. The best thing about adopting tdd has been the ability to get quick feedback from tests that let me know if I'm moving in the right direction.  This approach helps me learn about each design decision in real time. So as I make a mistake and a test becomes difficult to write/understand/etc, I can quickly correct it before it becomes costly. Any time I start with a test first, my complexity ends up lower, my methods end up smaller, and my classes more cohesive. In part because with each test added, you gain more confidence to refactor the implementation without fear of breaking the intended behavior when the time comes to clean the code.</p>
+
+<p>With that said, I still find it difficult to get the balance right on a daily basis. What tests provide value at the high level? What tests provide value at the low level? And what features benefit from both a high and low level test?</p>
+
+<p>In retrospect, I've noticed that methods with a great deal of conditional statements can benefit from many low level isolated unit tests. While methods that exercise nothing more than CRUD seem to have better results with higher level acceptance or integration-like tests. The hard part is distinguishing all of this ahead of time....you know, before you spend a full day or week coding something.  Hindsight is 20/2 after all - it's easy to look at something after it has been implemented and make these decisions, but how can you figure this out ahead of time?</p>
+
+<p>I can say from experience that the more you can extract from a given feature, the easier it will be to determine what levels fit which tests. And the only technique I've found effective is to write your tests before the production code. If you can't write a single assert you might be testing too much and there is a good chance you're focal point is higher than it should be. If a test appears to add no real value then you might be starting too low.  You might also find that you write some tests that have no long term value, but in the short term you learned something about how the software works.  The tests themselves will help you determine the right fit in a specific context so put all fear aside and let them.</p>
+
+<h3>Make sure you capture behavior and not implementation details</h3>
+
+<p>When I wrote my first unit test years ago, I remember inspecting how the internals of a method under test worked so I could assert that it worked a certain way. But it turns out that every test I wrote this way broke with even the slightest change, thus making them a huge maintenance burden for the team.</p>
+
+<p>I learned much later on that I should be asserting behavior and not specific details about how the implementation worked. This approach produces test code that is much more resilient- making large scale refactoring efforts less painful. If a test can only assert implementation details, maybe it's too low level and in turn will provide no actual value in the long term.</p>
+
+<p>Remember one of the goals with test driven development is to document the behavior of the system in such a way that you don't miss anything required by the business. But at the same time if another team inherits your project or you upgrade to the next version of some framework / language / etc, the tests shouldn't break unless some actual behavior has changed. If the next developer is forced to modify a test each time they modify the inner workings of production code, you will find that it takes your development team twice as long to get anything done. Now if you legitimately changed the behavior of an object then you will no doubt need to alter the unit test, but this should be expected.</p>
+
+<p>The hardest part with asserting behavior is that something you believe is behavioral might actually be an implementation detail to the next developer coming in cold. Pair programming can help this, but you are both still working at roughly the same level, so you might mix this up regardless.  </p>
+
+<p>Instead the technique I use here is to read each test like a story. If it doesn't make sense, it might not be testing behavior or anything of value to the team. If I'm starting test-first I would try to write it in such a way that reading the test alone provides both context and behavior for the next developer who might be coming onto the project. If I still can't get a story from the test it might be at too low a level, so I'll work at a higher level or write out an acceptance test instead.</p>
+
+<h3>Learning not to over mock</h3>
+
+<p>This problem is tightly coupled to the previous idea, but I felt it was worth a mention solely because of the time I spent rewriting my own tests the first 2 years I was doing tdd.  And if I could stop someone else from repeating any single mistake it would be this one.</p>
+
+<p>When I first started unit testing, I was working with a large legacy project so most of the work was done in test-after fashion. And like anyone testing after the fact, you eventually discover a 'neat' mock object library that makes all the bad stuff in your codebase go away so you can test each object in isolation.</p>
+
+<p>The problem with this approach is that when you are new to unit testing and you just discovered the ability to mock out nearly anything in your project, you will almost certainly go above and beyond the call of duty to mock out methods or classes that provide real behavior essential to the 'story' behind a great unit test. I say this as a word of warning because at the time I felt it was 'fun' and 'exciting' to get 100% coverage and found myself doing anything to reach that magic number. But I soon realized that these tests ended up so brittle that I often had to rewrite them the next time around. Again, just remember these tests will live along side the production code and the less maintenance the better.</p>
+
+<blockquote><p>&#60;disclaimer&#62;I'm not advocating that you never use a mock object in your project. They provide great value when you need to keep a test from reaching into an external system, whether that be a web service, database, filesystem, etc.&#60;/ disclaimer&#62;</p></blockquote>
+
+<p>I now prefer to hand roll my own mocks or stubs instead of using a mock framework. This worked for me because the urge to over-mock went away quickly when I had to write an inner class each time I thought it was necessary to mock something. For others, you might find remembering that 'the test must read like a story' helps to prevent abusive mocking. Whatever the case, just be aware of the cost associated with over-mocking in the long term.  </p>
+
+<h3>Force yourself to write only enough code to make the test pass</h3>
+
+<p>I changed jobs recently, and the first thing I noticed when I started pairing with members on my new team was that a few of the developers wanted the first thing we wrote down to be optimized, tight, DRY, elegant code. But with this approach I end up over thinking everything and often produce something much more complex than if I had just banged out the first thing that would satisfy a simple test case.</p>
+
+<p>After reading the above you might think 'That sounds like the easy part of this tdd thing'. But if you have a history of writing code without tests and over thinking solutions, like I did, you might find the shift in thinking to be difficult. I often find myself adding unnecessary complexity as I get carried away with an idea. And I know I'm not alone here because most of the code I've maintained has been much more complex than it needed to be.</p>
+
+<p>In practice, I've found two ways to avoid this added complexity doing test driven development.  The first way involves paired programming because if you are working with someone else, the hope is they will see the added complexity and suggest a simpler solution instead.  But my favorite technique to prevent unnecessary complexity is the 'Fake it (Til You Make It)' approach introduced by <a href='http://twitter.com/kentbeck'>Kent Beck</a>.  The idea is simple, you don't think through every possible edge case in your head up front but rather let the tests tell you what's needed for each step along the way.  I tend to think of this approach as design by iteration as opposed to the more traditional waterfall 'big design up front'.</p>
+
+<p>If you are interested in doing this yourself, a great <a href='http://butunclebob.com/ArticleS.UncleBob.ThePrimeFactorsKata'>example</a> can be found in 'The Prime Factors Kata' by <a href='http://twitter.com/unclebobmartin'>Bob Martin</a>.  After years of over thinking I've found this method solves real problems in the most direct way.  It also helps me discover missing requirements and usually leads to a great discussion with the business folks as we uncover important details once deemed admissible.</p>
+
+<h3>Conclusion</h3>
+
+<p>Although I'm finding tdd difficult to master, I have noticed that the investment pays great dividends in the form of elegant software that can be extended. And I don't know about you, but any technique that makes my work more enjoyable and provides greater value is well worth the effort!</p>

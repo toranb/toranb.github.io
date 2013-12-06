@@ -1,0 +1,309 @@
+---
+layout: post
+title:  "The Mobile Development Report Card"
+date:   2011-10-06 6:00:00
+categories: blog archive
+---
+
+<style>
+#hor-minimalist-b
+{
+	font-family: ''Lucida Sans Unicode'', ''Lucida Grande'', Sans-Serif;
+	font-size: 12px;
+	background: #fff;
+	width: 550px;
+	border-collapse: collapse;
+	text-align: left;
+}
+#hor-minimalist-b th
+{
+	font-size: 14px;
+	font-weight: normal;
+	color: #039;
+	padding: 10px 8px;
+	border-bottom: 2px solid #6678b1;
+}
+#hor-minimalist-b td
+{
+	border-bottom: 1px solid #ccc;
+	color: #669;
+	padding: 6px 8px;
+}
+#hor-minimalist-b tbody tr:hover td
+{
+	color: #009;
+}
+  </style>
+  
+  <p>I've spent the last 9 months building mobile apps in my spare time. I honestly needed a hobby project that would re-introduce me to the fun side of programming. I found joy in the early <a href='http://developer.apple.com/'>iPhone development</a> I was doing and by the time my <a href='http://www.blueflixapp.com/'>first app</a> was finished I decided it was time to learn another mobile platform.</p>
+
+<p>I kept learning and soon found that I was having fun at the keyboard again. I had finished my first <a href='http://developer.android.com'>Android</a> app and decided to give that <a href='http://developer.windowsphone.com/'>Windows Phone 7</a> thing a shot (despite what others had said about the market). It was about this time that I started to see the 'my iPhone/Android experience' like <a href='http://greensopinion.blogspot.com/2009/07/android-versus-iphone-development.html'>blog</a> <a href='http://whereoscope.wordpress.com/2010/12/07/android-vs-ios-a-developers-perspective/'>posts</a> showing up on <a href='http://news.ycombinator.com/'>Hacker News</a>. </p>
+
+<p>I found these interesting and decided I would write a little about my experience on all 3 platforms. But instead of a simple post about my likes/dislikes, I thought a 'report card' like comparison with a letter grade would give other developers interested in learning mobile a high level view into the platforms from the view of an aging web developer who started on the .NET stack and recently turned to the JVM.</p>
+
+<p>To be clear I'm far from an expert on any of the platforms listed below. At the time I was far more intersted in building a product and having fun again to get caught up in deep SDK hacking so what you see below is simply my thoughts about how the platform felt as a newbie. I could very well be wrong so please feel free to let me know in the comments :)</p>
+  
+  <table id='hor-minimalist-b' style='width:880px;'>
+<tr>
+<td></td>
+<td>iPhone</td>
+<td>Android</td>
+<td>WP7</td>
+</tr>
+<tr>
+<td><a href='#helloworld'>Hello World</a></td>
+<td>A</td>
+<td>D*</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#learningcurve'>Learning Curve</a></td>
+<td>F</td>
+<td>B</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#tddfriendly'>TDD Friendly</td>
+<td>B+</td>
+<td>A</td>
+<td>F</td>
+</tr>
+<tr>
+<td><a href='#navigation'>Navigation</td>
+<td>F</td>
+<td>A</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#globalstate'>Global State</td>
+<td>A</td>
+<td>B+</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#multitasking'>Multi Tasking</td>
+<td>A</td>
+<td>B</td>
+<td>C</td>
+</tr>
+<tr>
+<td><a href='#persistence'>Persistence</td>
+<td>C</td>
+<td>B</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#debugging'>Debugging</td>
+<td>C</td>
+<td>B</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#layout'>Layout</td>
+<td>A</td>
+<td>F</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#images'>Images</td>
+<td>A</td>
+<td>F</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#tooling'>Tooling</td>
+<td>C</td>
+<td>B+</td>
+<td>A*</td>
+</tr>
+<tr>
+<td><a href='#emulation'>Emulation</td>
+<td>A</td>
+<td>F</td>
+<td>A</td>
+</tr>
+<tr>
+<td><a href='#localinstall'>Local Install</td>
+<td>B</td>
+<td>A</td>
+<td>-</td>
+</tr>
+<tr>
+<td><a href='#devicetesting'>Device Testing</td>
+<td>B+</td>
+<td>F</td>
+<td>A-</td>
+</tr>
+<tr>
+<td><a href='#publishing'>Publishing</td>
+<td>F</td>
+<td>A</td>
+<td>B+</td>
+</tr>
+<tr>
+<td><a href='#sales'>Sales</td>
+<td>A</td>
+<td>B-</td>
+<td>B</td>
+</tr>
+</table><br />
+
+<h2><a name='helloworld'>Hello World</a></h2>
+
+<p>Definition: The amount of effort required to get a working app out of the box for someone with zero experience using the platform.</p>
+
+<p><b>iPhone:</b> Even with no experience developing on OSX I found it brain dead simple to get my first iPhone app up and running in the simulator. After downloading and installing Xcode you simply open the IDE and select new view based app, compile and away you go.</p>
+
+<p><b>Android:</b> I hesitate to open with 'don't get me started' but honestly this was the worst experience of all the mobile platforms. I should clarify that I didn't get started with eclipse and didn't want to. I wanted to work with Intellij and build using Maven so my experience might be the exception for Android development. Either way I had one heck of a time trying to get my first project up and running. After I got a working app built I did a <a href='http://toranbillups.com/blog/archive/2011/05/10/Setup-your-Android-development-environment-using-Maven-and-Intellij'>screencast</a> to help others get up and running with Maven and Intellij (hopefully with less pain). I did put an asterisks here because if you are down with using Eclipse this might not be a total failure as it was for me.</p>
+
+<p><b>WP7:</b> Much like the iPhone experience you simply download the tools and away you go</p>
+
+<h2><a name='learningcurve'>Learning Curve</a></h2>
+
+<p>Definition: The amount of effort required to honestly grok the platform and be productive.</p>
+
+<p><b>iPhone:</b> To say the learning curve was steep would be the understatement of the year. To be fair I wasn't an OSX user, had never used Xcode, and I've never written a line of C in my life (unless you count a semester of c++ 7 years ago). It took a good 2 months of writing code daily for 2-4 hours to become productive. I should mention this was by far one of the best learning opportunities I've had in the programming space since college so it wasn't a bad thing (just wanted to be honest about how long it took me to feel productive on the platform)</p>
+
+<p><b>Android:</b> I've been writing java/groovy since January this year so I had some experience with not just the language, but the platform. I didn't incur much of a cost, if any at all when I started coding. I felt super productive out of the box until I hit layout (described in more detail below). </p>
+
+<p><b>WP7:</b> My first real programming gig out of college was writing aspnet web applications. In addition I've spent the better part of my career since then working in c# and .net so I can safely say the learning curve was non existent. I've also done a little with Silverlight 3 so the front-end XAML wasn't a big deal. Productivity started high and remained that way throughout the development process.</p>
+
+<h2><a name='tddfriendly'>TDD Friendly</a></h2>
+
+<p>Definition: The amount of effort required to get your software under test on the platform. (excluding front-end testing)</p>
+
+<p><b>iPhone:</b> When I started writing objective-c last year Xcode 3 didn't ask you if you wanted to create a unit test project along side your production app like it does today in Xcode 4. So I spent a great deal of time trying to figure out how to unit test my code, but with the support coming out of the box now I couldn't help but say this is a decent experience today. I still run into the occasional issue and thrash around a little but it's a decent experience for someone new to the platform.</p>
+
+<p><b>Android:</b> Because I was using Maven this was by far the best experience of all 3 platforms. I just added the junit dependency and away I went.</p>
+
+<p><b>WP7:</b> To say the community and Microsoft itself don't value unit testing would be an unfair statement, but this is how it felt when I started my first WP7 project. For starters if you are using the free tools you aren't allowed to use a plugin like resharper. And because I only write my tests in .net with nunit I'm not sure how you can run tests with just the free tooling. If you decide to pay for a full blown commercial license you can use a plugin like resharper of course, but even with the tooling I had to first find an nunit assembly that was Silverlight friendly, and then work through a few other issues (shown in yet another <a href='http://toranbillups.com/blog/archive/2011/07/24/Test-Driving-My-Windows-Phone-7-App'>screencast</a> I published to help developers who might follow)</p>
+
+<h2><a name='navigation'>Navigation</a></h2>
+
+<p>Definition: The amount of effort required to build a project with multiple views that can be navigated to.</p>
+
+<p><b>iPhone:</b> I found hooking up an app delegate (main controller) for any given project difficult at first. And along these lines I found adding multiple views and having them wired up to this app delegate difficult to get right for the longest time. Looking back most of the pain came from having to write a few lines of code, and then having to drag n drop references around inside the interface builder (UI) tooling. Now that I've been working with the platform for some time this is practically muscle memory but I still find it to be the worst experience across all the mobile platforms currently.</p>
+
+<p><b>Android:</b> To navigate between activities you simply create a new object (intent as it's called) that knows about the current activity and the type you plan to invoke next. Then you start it - done</p>
+
+<p><b>WP7:</b> Although I liked how simple Android made this task look it had nothing on WP7. To jump between pages (views) on the platform you simply ask the Navigation Service to navigate to a given url -done</p>
+
+<h2><a name='globalstate'>Global State</a></h2>
+
+<p>Definition: The amount of effort required to store something globally for use across the application.</p>
+
+<p><b>iPhone:</b> Once you figure out the wonky app delegate wire up process on the platform it's very simple to share global state. Typically I would create a new controller to start up inside the app delegate object during a navigation event and during the init process I would pass any state required for the next view.</p>
+
+<p><b>Android:</b> In android you simply inherit from a base class (Application to be exact) and in doing so you can push/pull state from this object at almost any point. The only thing I didn't like about this passing data between activities directly is that it felt painful so I often used this global class instead (for better or worse)</p>	
+
+<p><b>WP7:</b> Very similar to the Android story here, except you don't need to create your own class. A global class named App already exists and you can push/pull data from this almost anywhere. For small bits of data you could pass along a url like param to share data between controllers, but everything else I just pushed into the app object and pulled it back out inside the next view when I needed it.</p>
+
+<h2><a name='multitasking'>Multitasking</a></h2>
+
+<p>Definition: The amount of effort required to save state and restore the application when a user switches between your app and the next. *(not necessarily the effort to program the app to work well with this paradigm)*</p>
+
+<p><b>iPhone:</b> The reason I gave iPhone the best in class is that you have the option to support or not support multitasking. And if you do support it you don't have to do anything special to keep the global state of your app 'as is' - so the restore process is painless</p>
+
+<p><b>Android:</b> Multitasking on Android is required so if you are cool with this you have no worries. When a user restores the app you shouldn't find any surprises when you attempt to display the view that was just up.</p>
+
+<p><b>WP7:</b> At the time I was working with WP7 you had to explicitly save / restore that state you cared about manually. This wasn't a huge deal but it was painful because the other platforms already do this for you.</p>
+
+<h2><a name='persistence'>Persistence</a></h2>
+
+<p>Definition: The amount of effort required to store something long term and retrieve it (using SQLite for example)</p>
+
+<p><b>iPhone:</b> At the risk of sounding incompetent I have to say my experience with SQLite on the iPhone was more difficult than I had hoped. To this day I'm still afraid (code fear) to touch the binary file that holds the database itself because I never really understood how the darn thing worked. I had no trouble writing SQL statements or getting general data in/out of the database once it was setup correctly, but this is still the #1 area I avoid on the platform today.</p>
+
+<p><b>Android:</b> Aside from a few fragmentation issues (I'll talk about this later) and a ton of incorrect blog posts I found the general SQLite setup easy enough on the platform. The only part of the persistence work that was painful is that the code itself was in java.</p>
+
+<p><b>WP7:</b> When I started building my first WP7 app I was under the impression that I would be releasing after Mango was released so I built my persistence with LINQ to SQL. This experience was by far the best on all platforms. But when I decided to ship a little sooner I had to revert everything to LINQ to XML instead as Mango was still not out and I wanted to get my product in the hands of paying customers. Even this wasn't a painful process as LINQ provides a low friction way of working with XML/SQL/etc.</p>
+
+<h2><a name='debugging'>Debugging</a></h2>
+
+<p>Definition: The experience using a debugger to find problems on the platform.</p>
+
+<p><b>iPhone:</b> In the latest version of Xcode the debugger has improved a great deal. I still don't enjoy the experience because it feels light years away from debugging in modern IDE's like Visual Studio/Intellij. In the future look for a jetbrains product similar to Intellij (but for objective-c) called AppCode. I've been using the beta and if it gets released at an indi dev friendly price point I'll be sure to pick it up and never look back.</p>
+
+<p><b>Android:</b> I've used Intellij exclusively throughout my Android development and love the IDE. The debugging experience is about the only thing that could be improved greatly. Not to say you can't find the state of an object during execution, but once you have used Visual Studio the bar for debugging is a little higher. One big example of this is that I can't drag a break point around in Intellij. Beyond this I'm being a little more critical by saying it just doesn't feel polished. </p>
+
+<p><b>WP7:</b> Hands down the best experience in mobile today. Very polished product built for debugging (after all Microsoft is a product company). The only thing I would ask for (if it's not already available) is the ability to execute a LINQ statement in the debugger.</p>
+
+<h2><a name='layout'>Layout</a></h2>
+
+<p>Definition: The amount of effort required to build a view on the platform.</p>
+
+<p><b>iPhone:</b> When I built my first hello world app for iPhone I remember building the layout by hand in objective-c. This was in part because I was afraid to learn the drag n drop interface builder style of front-end development. I had this misconception from my early webforms days on the Microsoft stack that drag n drop would eventually cause me a great deal of regret. This wasn't the case with interface builder on the iPhone stack. I found the ability to drag a given control on the form and wire it up a time saver long term. The only learning curve was how to wire up the stuff I was dragging around, but even that wasn't much of an issue for view specific work.</p>
+
+<p><b>Android:</b> If I said Android layout was the IE6 of mobile development it still wouldn't fully describe the pain I felt building xml based layouts for the platform. For starters the tool I was using, Intellij, offered no preview of what the xml I was working on would actually looked like on a phone. This made the feedback cycle painful because I would change some xml, push it to the slow emulator (more on the emulator below) and pray it worked. Other tools do exist to help build layouts but to this day I still use an older unsupported tool called DroidDraw to get the general structure in place. Lots of work could be done to improve this process as it's typically the slowest part of the Android development process for me personally.</p>
+
+<p><b>WP7:</b> If you are not familiar with XAML it's yet another XML based markup language of sorts. I found it fairly simple to build even the most complex layouts. In addition the preview tooling inside Visual Studio was rock solid. I never once had something look one way in the preview and another on the phone itself.</p>
+
+<h2><a name='images'>Images</a></h2>
+
+<p>Definition: The level of comfort I had using images in my commercial apps.</p>
+
+<p><b>iPhone:</b> At the time I'm writing this the iPhone has 2 resolutions to support. When you build your images you need 2 versions, one in 326 dpi *(iphone 4 / 4S) and one in 72 dpi for the other iphone models. To get this for free in your app you mark the 72 dpi as foo.png and the 326 dpi as foo@2x.png (the phone takes care of the rest)</p>
+
+<p><b>Android:</b> As someone new to the platform I froze like a deer in the headlights when I noticed a separate layout folder for small/med/large displays. I instead decided not to use custom images for my buttons,etc and just use native buttons with colors (sadly). The app still looked decent when I had finished, but I honestly didn't have enough Android devices to test all the different resolutions. Fragmentation to the max ...</p>
+
+<p><b>WP7:</b> The best part of WP7 is that one resolution exists, so you only need one image and if it looks good on a single phone you are good to go. This was a nice change from the Android development I was doing at the time.</p>
+
+<h2><a name='tooling'>Tooling</a></h2>
+
+<p>Definition: The quality of tooling used to build my first app on each platform.</p>
+
+<p><b>iPhone:</b> I could bash Xcode until the end of time but instead I will say that they are making solid improvements and the product will eventually be something I can use on a daily basis. But to be clear for anyone new to the platform - it still has a long ways to go before I can recommend using it for objective-c development (again much prefer AppCode from jetbrains). From the Xcode 3 days I still fear any automated refactoring in the IDE.</p>
+
+<p><b>Android:</b> As I stated in the above debugging section - Intellij is a rock solid IDE and It's very TDD friendly. I use this at my day job and love it for Android development - nuff said</p>
+
+<p><b>WP7:</b> I put an asterisks next to this grade because if you are using the free tooling it's sorta limited. You can't use any plugins for example - and in my experience this is a HUGE limitation because I personally can't use Visual Studio without Resharper. So if you have the $$ for a professional/ultimate version of Visual Studio 2010 and another $200 for ReSharper this is by far the best tooling for mobile development hands down. If you are stuck with the 'free' tooling I can't say the same ...</p>
+
+<h2><a name='emulation'>Emulation</a></h2>
+
+<p>Definition: The quality of the platforms emulator/simulator (does it match a real device/actual speed of the emulator/etc)</p>
+
+<p><b>iPhone:</b> One of the best parts of developing for the iPhone was how quickly the simulator launches apps. Even though this isn't a direct emulation of the app on native hardware I'm yet to find something that didn't work on the phone but did on the simulator and vice versa (excluding gps like features of course).</p>
+
+<p><b>Android:</b> Worst part of android development next to building layouts. The emulator started with a great idea 'lets match exactly what Android will be like on a phone' - but in practice they sacrificed speed. This effected my development because it caused my feedback cycle to be very long, meaning even the smallest change was painful to verify. In addition I had the emulator cover up a SQLite problem when I was working between 2 physical devices (more on this below). In the end a good work-around for this was to plugin a real phone and use this directly instead of launching the emulator to verify my work.</p>
+
+<p><b>WP7:</b> The simulator is blazing fast so feedback was quick and painless. I was able to test multi-tasking and even gps location code with the new GPS tooling in the Mango SDK. I Never found a single problem between what a phone would render/do vs the simulator I tested with, except on GPS issue. On a real phone you can toggle off the network services and use this to see how your lack-of GPS error handling works. But on the simulator you don't have the option to toggle this setting (caused me some grief as I don't own a real device currently).</p>	
+
+<h2><a name='localinstall'>Local Install</a></h2>
+
+<p>Definition: The ability to install your app on hardware locally (without paying $$ to do so) and the effort required to do this as a n00b</p>
+
+<p><b>iPhone:</b> I started developing for the iPhone when I only had the first generation device. I've been a fan of jailbroken phones for some time and found this process to be easy enough. I didn't want to pay the $99 until I had a great app that would in turn make money so I simply pushed the compiled app over to my phone via scp (more on this technique at <a href='http://stackoverflow.com/questions/37464/iphone-app-minus-app-store#37522'>stackoverflow</a> if you are interested). I did drop the grade here because to pass along your app to a beta tester over the air would require you do 1. spend the $99 or 2. jailbreak their device and scp it over on a local network (and most of my friends don't want to be jailbroken)</p>
+
+<p><b>Android:</b> The best option by far on all the platforms. No need to spend any money (not that $25 is a large amount) - just plugin a phone and push the apk over to see if it works. For beta testers just email them the apk directly (if they have an SD card it can be installed directly -how could this get any better right?) **note does increase the ease in which your app can be pirated sadly so be careful if you do this with people you don't trust</p>
+
+<p><b>WP7:</b> I decided not to rate this category for WP7 because I never owned an actual device. I borrowed a device for 6 days to verify everything was rock solid before I shipped the first 2 apps I built on the platform but because it wasn't my phone I just paid the $99 and opted not to jailbreak it (as I've heard you can). But because I didn't take the time to side-load an app myself I'm not sure about the level of effort required to do so.</p>
+
+<h2><a name='devicetesting'>Device Testing</a></h2>
+
+<p>Definition: The issues I ran into when I tested my apps on a phone directly and how many are required to make sure they were RTM ready.</p>
+
+<p><b>iPhone:</b> Just before I finished my first app Verizon had released the iPhone 4 and I had bought it. Prior to this I had the first generation hardware so for me testing the app on both phones was a non issue (as I had both a 3.x and 4.x phone at the time). Also as I had a device for each supported resolution this helped me prove each app was ready for 3.x and 4.x customers. The only thing I really couldn't test in the simulator (aside from how do they look on each resolution) was gps specific features. In the future I might only support the 4.x devices so testing on a device with iOS 3.x (and older) might be a non-issue.</p>
+
+<p><b>Android:</b> When you talk about physical device testing for Android you have to start with the f-word. Fragmentation to the max sadly. I knew lots of resolutions/versions existed in the wild so I found 2 phones on craigslist for less than $100 to test with. The first was a popular phone I figured tons of people had (the Droid 2) and the other I was unsure of but for $25 I figured it was worth it (the Droid Eris). Both had different versions of Android and both seemed to display things the same (visually anyway). But I did find a few issues programming -one with GPS lookup and the other with my SQLite code. So I fixed these issues and assumed all was well with my app. So after finishing what appeared to be a rock solid v1.0 of my app, I shipped the app in both the (Google) Android Market and the Amazon Android Market. I soon found that my app had 2 other issues when the Amazon Android app store review process started. So I had to call on friends/family to verify and fix the new bugs in question because I couldn't reproduce them on any of the devices I owned. Long story short - it was very very painful to make sure the app looked/functioned exactly the same across all devices.</p>
+
+<p><b>WP7:</b> As I don't own a device I went to craigslist and found someone willing to let me borrow a device for 6 days. I spent $50 and verified a few GPS things as the rest of my development was an exact match with the simulator. The only real issue I had with the simulator as my sole development phone is that persistence is reset once you push a new xap over or re-launch the simulator directly.</p>
+
+<h2><a name='publishing'>Publishing</a></h2>
+
+<p>Definition: The amount of effort required to publish your app in the AppStore/Market/Marketplace</p>
+
+<p><b>iPhone:</b> I still remember almost giving up when it came time to publish my app in the AppStore for the first time. First you had to create a valid cert for this, and another cert for that. Then locally you had to get your project configured correctly to use the distribution cert and build it /etc. Assuming you got all that figured out and pushed the app to the next phase (review) ...good luck. The first time you submit expect a rejection for something. Work through it and keep your spirits high (remember you learned objective-c for this moment). They do a good job of finding everything in 1 go and its usually done within 2 weeks the first time you submit a new app. Updates to an existing app take between 2 and 4 days usually. By far the most complex/painful part of the iOS development experience *(and you thought learning objective-c would be the hardest part)*</p>
+
+<p><b>Android:</b> Very simple process (with the current DRM process I used -not the new licensing model). Put a min Android version in your xml file, add a version or bump it up and build the project. Ask your IDE to take a keystore and build the final apk for the Market. Upload it - done (no review from what I've experienced). One small note about the Amazon Android Market -- don't waste your time. I'm yet to have a single sale here and find that most customers only download this to get the 'free app of the day'.</p>
+
+<p><b>WP7:</b> Change your compile options from debug to release and do a build. Pay the $99 and push your xap into the Marketplace. The review process took about 5 days for a new app. I'm yet to do an update so I'm not sure if it gets better/worse. Overall not a bad process to get your apps in the store.</p>
+
+<h2><a name='sales'>Sales</a></h2>
+
+<p>Definition: The amount of people willing to pay $$ for your app (in my experience)</p>
+
+<p><b>iPhone:</b> By far the most lucrative app market you can be a part of without a doubt. If you have a product be sure to launch on this platform first. Without talking numbers directly I usually have 500% more iPhone sales than Android in the same period. People don't mind paying money for apps and that is a good thing if you like to get paid building apps on the side as I do.</p>
+
+<p><b>Android:</b> A few months ago I would have said stay out of this market altogether. But recently I've seen an upswing in sales that makes me think it just takes time to get off the ground. I actually got into mobile dev in the first place because a good friend of mine make some serious $$ with an Android app that was much needed at the time. I would recommend you build your commercial apps for this market last because the ROI just isn't their yet. That said, the Android market it is still a place you can make money if you have the right app. Also people seem to find apps in this market without much effort (glad Google got that much right).</p>
+
+<p><b>WP7:</b> I've only had my apps in the WP7 Marketplace a few weeks now but I'm happy with sales so far because I know the install base is much smaller. I also have 2 apps that I feel are much needed in the Marketplace today and as with anything you must have a great idea to sell your product (along with some rock solid software to get the word of mouth sales). In general the sense I get is that people on the platform are willing to pay for apps (similar to your average iOS customer).</p>

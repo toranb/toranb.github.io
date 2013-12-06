@@ -1,0 +1,94 @@
+---
+layout: post
+title:  "Teaching python to fifth graders"
+date:   2013-06-30 6:00:00
+categories: blog archive
+---
+
+<p>Last week I had the privilege of introducing a classroom of 5th graders to computer programming. It all started back in March when a co-worker said that her son was interested in game development. And before I knew it, I had volunteered for a job I wasn't qualified for in the slightest.</p>
+
+<p>Now I certainly couldn't manage a classroom of fifth grade students myself so I asked the community for help and found <a href='https://twitter.com/linuxconvert'>Spencer Herzberg</a>. He had more python knowledge than I did and some additional experience as a teaching assistant in college. I told him I was planning a week long course that would transform the kids from consumers to producers of technology. Within just a few minutes I could tell that he was more than excited about the opportunity!</p>
+
+<p>A few weeks later we landed a meeting with the elementary school principal to discuss the details of our programming class. And because this would be our first time in the classroom, we decided to limit the risk and keep the number of student at 8. We also asked the math teacher to nominate the students based on aptitude. We thought this would be another way to help ensure the class was a success.</p>
+
+<p>But before we could ask the kids to sign up, we needed a flyer that would provide the parents with enough information about the class to determine if it was a good fit. The <a href='https://dl.dropboxusercontent.com/u/716525/content/images/2013/flyer.pdf'>flyer</a> turned out great and we had no problem getting the kids (and parents) excited about the class.</p>
+
+<p>One last thing we needed was some swag to get the hype machine rolling at full speed. And what better give-away than a full computer? One of the developers on my team went to Pycon this year and mentioned that <a href='https://twitter.com/jessenoller'>Jesse Noller</a> was willing to sponser anyone who would volunteer to teach kids about python. So we got in touch with Jesse and the <a href='http://www.python.org/psf/'>Python Software Foundation</a> to see about getting a few for the students. To our amazement they agreed to give each of the kids a <a href='http://www.raspberrypi.org/'>raspberry pi</a><p>
+
+<p>So now that we had our location, the kids, the parents and the hype, it was time to build the curriculum (again, something I had ZERO experience with). I bought a copy of the <a href='http://www.amazon.com/Python-Kids-Playful-Introduction-Programming/dp/1593274076'>python for kids book</a> to build a solid foundation for the class but I wanted to get some additional input from Spencer and a few others.</p>
+
+<p>First I met with the 5th grade math teacher to get familiar with the math curriculum. This was a great start because I wanted to incorporate some of the math they were familiar with as part of the class. I found a handful of fun math problems (ie -'finding area of a triangle/square roots/basic algebra') that would be fun to solve in python with the kids. The most interesting part of this meeting was when I learned that kids today think programming is a cool thing to be associated with. It would seem things have changed since I was in school (for the better clearly).</p>
+
+<p>Next I met with a friend of mine who did some student teaching in college, to get her take on how we should present the material to the kids. But not only did she work with kids about this age, she had just started writing software for a living herself so it was a perfect opportunity to see her perspective on learning to program for the beginner. The most eye-opening advice was that she told us we shouldn't plan the entire class ahead of time and execute it. Instead we should have a day worth of material and react to the kids as they learned about the different programming concepts.</p>
+
+<p>Finally I got together with Spencer and we compiled a few days worth of beginner python material to get the class bootstrapped. Finally, I wanted the kids to have a fun project they could build over a few days toward the end of the class, but I didn't have a firm idea just yet (though I was thinking along the lines of 'choose your own adventure')</p>
+
+<p>Not everything went according to plan, but that's what we anticipated. The below is a play-by-play describing what we tried to teach and how we adapted throughout the week.</p>
+
+<h3>Monday</h3>
+
+<p>After everyone had arrived, I started with a few basic introductions and asked each of the kids why they decided to take the class over summer break. Because it was optional, I was curious to see what each of them expected to get out of the class. The majority wanted to learn more about how computers worked and a few wanted to learn about programming specifically.</p>
+
+<p>I explained that a large part of computer programming is problem solving. And because I wanted to gauge the aptitude of the class in a fun way, I decided to start by playing the logic game lightbot. If you haven't played the game it's a great way to spend your afternoon. The game involves telling a robot what direction to move and when to light up blue squares on the board. We started with <a href='http://cache.armorgames.com/files/games/light-bot-20-6061.swf'>lightbot 2.0</a> because it was a little more polished and covered the more complex topics like conditionals/loops/recursion/functions. I wanted to see how far the kids could get before the game went from fun to frustrating.</p>
+
+<p>All of the kids completed the basic levels without any real problems so we moved to conditionals. This proved to be a little more difficult but we let the kids struggle a little to see how they would do when the problems got incrementally harder. After everyone was stuck on the 2nd or 3rd level of conditionals we moved to loops and recursion. This also proved to be difficult but I was hoping the concepts the game introduced would be useful later in the week as we talked more about python.</p>
+
+<p>After a good 45 minutes of lightbot it was time to talk about the editor we would be using the rest of the week called <a href='http://docs.python.org/2/library/idle.html'>IDLE</a>. I had installed python 2.7.4 on all the lab computers a few weeks before to ensure we had everything up and running when it was time for the kids to login.</p>
+
+<p>Within a few minutes I found myself trying to explain variables in the most simple way possible. Like labels for something you want to use in your python program I said, not knowing if this was low level enough. But to my suprise variables didn't seem too strange, so we started building strings and doing simple math with the basic + / * - operators.</p>
+
+<p>I was leading the classroom from a projector at the front of the computer lab and the kids had no problem keeping up. In fact I think we might have gone ahead to quickly that first day. 60 minutes went by and we had covered everything from strings/numbers/lists/loops to conditionals. Looking back that night I initially felt it was a huge mistake because that much content couldn't possibly have been absorbed. But because they followed along I think it was a good foundation for us to build upon the rest of the week.</p>
+
+<h3>Tuesday</h3>
+
+<p>I started the second day off with the original lightbot 1.0 because it let the kids get into the problem solving zone again and I felt it was good to build their confidence before a full day of unknown / trial and error learning. </p>
+
+<p>After a good 20 minutes of lightbot we got back into IDLE and I started a full blown review of python variables by having the kids create a variable for both their first name and last name. Then I had them add those together to get even more comfortable with variables in the language.</p>
+
+<p>Next we got back into the review mode for math operations in python. We did a few simple area problems, and then I introduced the mod operator to help us identify when a number is divisible by 2 to prove if it's an even or odd number.</p>
+
+<p>After all the math fun we started discussing how to group things using the list data type. We went over how to add items/remove items/find specific items by index, and the kids had no problem with the fact that everything was zero-based. This was the beginning of the for-loop discussion that we ended with for the day.</p>
+
+<p>The only regret at the end of the day was that I introduced both lists and tuples (to much for one day). After talking with Spencer we decided to stick with just lists going forward and leave tuples for another class altogether (keep it simple right?).</p>
+
+<h3>Wednesday</h3>
+
+<p>This was the first day we jumped directly into python and the first 45 minutes was more of the same from the previous 2 days. I wanted to repeat the core variables/strings/numbers/math/lists/loops/conditionals concepts over and over again until I really felt the kids had it down.</p>
+
+<p>One technical issue we needed to solve from the previous day involved the REPL not indenting correctly as we started doing bigger functions that had for-loops and conditionals. For some odd reason IDLE wasn't putting the required spacing when we nested scopes and this was causing unnecessary confusion for the kids. We decided the class had outgrown the REPL and it was time for a regular python file instead. This also saved the kids a ton of extra typing when we needed to tweak one small part of the for-loop or conditional (because in the REPL they would need to re-type it over and over again making incremental learning more difficult).
+
+<p>After they had this under control we started writing a few functions to do basic math like add / multiply / is_even / is_odd (avoid divide for now if possible because of the fun divide by zero error). A majority of the class up to this point was still very 'teacher driven' and about 75 minutes in I decided to see if the kids could do it on their own. But quickly I found the kids didn't have enough self discovery / play time with python because when they had a few minutes to create a simple function on their own, it was evident they didn't understand the difference between declaring a function and executing one.</p>
+
+<p>This day was by far the toughest for the kids, and I realized we would need to change things up before the end of the week if the class was to be a success.</p>
+
+<h3>Thursday</h3>
+
+<p>We started out with a good 30 minutes of review covering the usual variables/strings/numbers/etc but I was determined to help the kids get it today and decided to try something different after they got warmed up. We got the kids into groups of 2 and they were tasked with writing a few basic functions that required some knowledge of variables/scope/numbers/strings/functions.</p>
+
+<p>And after a good 30 minutes of pairing it was clear that they had enough of the basics down to write a small function and call it. This was a big moment because the kids had achieved everything on their own this time around. Both Spencer and I made a point to let the kids struggle through the syntax errors on their own. Instead of helping them through it, we felt it would be a good problem solving/team work activity to have them work through it without us.</p>
+
+<p>After the warmup and pairing session it was time to bust out the <a href='http://www.raspberrypi.org/'>raspberry pi</a>. I want to thank both <a href='https://twitter.com/jessenoller'>Jesse Noller</a> and the <a href='http://www.python.org/psf/'>PSF</a> again for donating the computers. The kids, as you can imagine, were extremely excited all week and kept asking us when they would get to see or play with the raspberry pi. Spencer did a quick demo while I got the workstations ready for a simplified vga/keyboard/mouse/power plug n play</p>
+
+<p>After we got all the kids comfortable with powering up the pi, we handed out the computers and let the kids loose. It was one of the best moments of the week without a doubt. They had an absolute blast learning about linux / starting up IDLE / asking about the SD card and why all the LEDS flashed on the board. </p>
+
+<p>(this was our setup in the lab after the all the pi's were powered on - 4 back to back)</p>
+
+<img src='https://dl.dropboxusercontent.com/u/716525/content/images/2013/IntroToPython.jpg' />
+
+<p>Once everyone settled down we started in on the class project. Before the class had started I was planning to do a 'choose your own adventure' like game but in all honesty, I didn't find it challenging or fun. So I decided instead to build a modified battleship game. I took the idea from <a href='http://www.codecademy.com/tracks/python'>codecademy</a> (the python track they offer is 100% free and it's fun).</p>
+
+<p>We spent the last 45 minutes building the very basics of the game and at 11 you could tell not a single kid wanted to leave the classroom. But I promised them we would finish on Friday and they all left excited to return the following day.</p>
+
+<p>This was by far the best day of the class because of all the new and intersting things we played with (including of course the raspberry pi). But we also introduced the while loop (as our game required it). And the kids were really starting to enjoy software development. I heard several of the kids say this was the best class they had ever been a part of (always good to hear when you've never done this before).</p>
+
+<h3>Friday</h3>
+
+<p>I was tempted to jump right back into the game and finish it, but I knew we should spend some time reviewing the usual stuff (including the while loop that we introduced the day before). And surprisingly the kids weren't bored with the repetition so my hope is they found it valuable.</p>
+
+<p>I knew we only needed 30 minutes to finish the game and the parents would be arriving 20 minutes before the end of the class to see the project in action, so I had a little time to show the kids another programming language. I do a lot of javascript these days and decided to cover a few of the language constructs so they would have some confidence learning another language after the class was over.</p>
+
+<p>After we did a little javascript, we got back into IDLE and finished the battleship game. We even added a replay option so the parents could try the game again if they didn't guess the ships location in the 3 tries they were given.</p>
+
+<p>Once all the parents had arrived, I asked them to join the kids for a game of battleship so they could see what we had been up to all week. Each of the kids thanked us and I can honestly say I've never had so much fun. It was one of the most rewarding things I've ever done without question.</p>
+
+<p>To everyone who volunteered their time to help with the project, thank you! I can tell you first hand it made a huge impact on the life of each student. I hope to get another opportunity like this again in the future!</p>

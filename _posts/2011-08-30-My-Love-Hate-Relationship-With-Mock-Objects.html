@@ -1,0 +1,34 @@
+---
+layout: post
+title:  "My Love-Hate Relationship With Mock Objects"
+date:   2011-08-30 6:00:00
+categories: blog archive
+---
+
+<p>I first learned about <a href='http://martinfowler.com/articles/mocksArentStubs.html'>mock objects</a> when I started wrapping unit tests around a <a href='http://www.objectmentor.com/resources/articles/WorkingEffectivelyWithLegacyCode.pdf'>legacy system</a> back in 2007. In the context these mock objects helped me isolate tricky behavior that I wouldn't have otherwise been able to test. </p>
+
+<p>I still remember spending a great deal of time learning about the various mock frameworks available for .net. Strangely enough this was also the time I became obsessed with <a href='http://codebetter.com/davelaribee/2009/11/13/code-coverage-what-is-it-good-for/'>code coverage metrics</a>. And like a perfect storm these two concepts pulled my attention toward writing a test 'just to write a test'.</p>
+
+<p>After the project ended I remember thinking to myself</p> 
+
+<blockquote><p>wow this testing stuff is awesome, heck I was able to test everything in that darn system!</p></blockquote>
+
+<p>It wasn't long after this triumphant moment that a co-worker had to make a slight modification to that legacy code base. And just minutes after reviewing the change it was clear the tests I had written didn't help the development process in any way. In fact it looked as if all new feature development would take twice as long because each test would need to be rewritten as the mocks I riddled all over the code had made the tests extremely brittle.</p>
+
+<p>So from what I considered a 'learning opportunity' I took away this notion of mocks causing more harm than good. I came to this conclusion because of my own (mentor-less) experience writing unit tests after the implementation was already in the wild.</p>
+
+<p>And in the test-after sense I was feeling a lot of pain around mocks not because mock objects are intrinsically bad, but because the code itself was rotten. You start to see this pattern emerge when you adopt true test-first practices and it's a sign that you need to refactor. But in my early test-after experience I didn't understand this pain point so I never refactored enough to improve the design of the legacy system I happened to be working on.</p>
+
+<p>At this point the problem I had with mock objects was that when I tried to refactor the code under test each test itself had to be rewritten because the test knew very explicit details about the implementation. So when the implementation changed it caused the tests to fail for no good reason. And the more I learned about test-first development the more importance I placed on 'tests should know what, not how'</p>
+
+<p>This caused me to reflect on how I was writing my test code and I had decided that the #1 goal (at the time) was <a href='http://langrsoft.com/blog/2008/07/realities-of-test-after-development-aka.html'>regression testing</a>. So with this I decided to avoid using mocks altogether in hopes that my implementation could be refactored without having to worry about brittle tests.</p>
+
+<p>During the year that followed I spread a great deal of negativity about mock objects. I rarely wrote a mock object and when I did need some form of mock/stub to help me isolate behavior I hand rolled it to prevent what I called 'mock abuse' or 'overmocking'.</p>
+
+<p>But earlier this year I started to see a strange pattern emerge in my production code. No longer did I see dependencies mixed in with logical statements, instead classes either delegated to a dependency or they performed a calculation of sorts directly.</p>
+
+<p>With this new pattern in my implementation I soon found my test code easier to read because classes were smaller and did just one thing. It was at this point that I noticed a shift in what I valued about tdd. It was moving from regression testing to the <a href='http://toranbillups.com/blog/archive/2011/06/14/Test-Driven-Development-Is-A-Design-Activity'>design process</a>. (not to say that regression testing is worthless)</p>
+
+<p>So with this revelation (ah-ha moment if you wish) I began looking at the delegation classes I was writing. These classes had gone without any tests up to this point because I refused to write a mock object for 'interaction' based testing. Beyond the dogma that was a sickness all its own I realized that if I was writing these 'delegation heavy' controller like classes the mocks would tell me when I'm adding to many dependencies. So I put aside this blind hatred of mocks and embraced the test friction as a symptom of 'it's time to refactor'. </p>
+
+<p>When I look back at my own 'love/hate' relationship with mock objects it's hard not to ask the question 'what's your relationship with mock objects like today?'</p>

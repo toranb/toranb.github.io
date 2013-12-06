@@ -1,0 +1,38 @@
+---
+layout: post
+title:  "My first MVC application goes to production"
+date:   2009-08-19 6:00:00
+categories: blog archive
+---
+
+<p>Over the past few years I have invested a great deal of time learning <a href='http://www.jeremydmiller.com/ppatterns/Default.aspx?Page=MainPage&AspxAutoDetectCookieSupport=1' target='_blank'>presentation patterns</a> because I feel they help to provide a cleaner programming model for GUI driven systems.  In addition to the separation of concerns, you also get increased testability and increased maintainability for large scale systems.</p>
+
+<p>With the recent release of the <a href='http://www.asp.net/mvc/' target='_blank'>Model View Controller</a> framework from Microsoft I thought it was time to make a paradigm shift and learn a new pattern.  The <a href='http://www.microsoft.com/downloads/details.aspx?FamilyID=53289097-73ce-43bf-b6a6-35e00103cb4b&displaylang=en' target='_blank'>1.0 release</a> of the MVC Framework was available on March 17th and to be honest, before the RTM/RTW release I did not look at it much.  Not because I am against community feedback, but instead because I had no time to work with beta and ctp releases during my current project.</p>
+
+<p>I started my last project back in November of 2008 and it was intended to be a simple forms over data application but as they usually do, the business wanted to add some behavior to the system.  And with any web application that I wanted to unit test, I started with the usual model view presenter <a href='http://toranbillups.com/blog/archive/2009/06/09/2-years-with-Model-View-Presenter' target='_blank'>implementation</a>.  But after the 1.0 release of the MVC Framework I thought it would be a worthy proof of concept to see what type of application this new framework was good for.</p>
+
+<p>I soon found that the webforms model had me thinking about web development in a very unconventional way.  When I typically requested HTML, XML or JSON for any <a href='http://en.wikipedia.org/wiki/Ajax_%28programming%29' target='_blank'>AJAX</a> like functionality, I had to work around the page life cycle (and this added a ton of unneeded complexity).</p>
+
+<p>Looking back now it is clear that what I enjoyed most about the MVC approach, was that it fit my style of web development.  Let me explain - see I prefer to do a lot of AJAX like requests and manipulate the client side dynamically.  With webforms you would need to create a new HTTP Handler or ASMX service to get a simple url to request XML/JSON/HTML.  Or if you decide to stick with the usual ASPX + Codebehind you have to suffer the pain of the page lifecycle.  The nice thing about MVC is that you simply create a new function in your controller and call it directly - done.</p>
+
+<p>But in addition to fitting my style of development I wanted to mention a few things I really liked about this new framework.</p>
+
+<ul>
+
+<li><b>No code behind!</b> - This was always a nasty mix of view and behavior that ended up as one un maintainable nightmare</li>
+
+<li><b>Much less work/code than something like passive view</b> but you get all the same benefits (separation of concerns/testability/maintainability)</li>
+
+<li><b><a href='http://www.dimecasts.net/Casts/CastDetails/72' target='_blank'>Update Model</a></b> A very cool way to have aspnet map a form post coming in to the properties on your entity. One line of code instead of the usual - object.property = request.form('magicstrings') over and over again</li>
+
+<li><b><a href='http://www.asp.net/learn/mvc/tutorial-14-vb.aspx' target='_blank'>Action Filters</a></b> A simple way to do AOP like programming - write a filer and attach it via attribute to any controller action to do some type of work before the action occurs.</li>
+
+<li><b>It is still ASP.NET</b> so calm down the 80% who fear anything new</li>
+
+<li><b>Increased control over the markup generated / clean urls</b></li>
+
+</ul>
+
+<p>Not to turn this post into the usual 'anti-webforms' rant, but for me the only thing MVC 1.0 lacked was support for sorting and paging tabular data.  Beyond this I cannot think of any reason to use webforms ever again.  And to be clear if you want this type of functionality, the <a href='http://www.codeplex.com/MVCContrib' target='_blank'>MVC contrib</a> project has a grid like control.  But as I enjoy the jQuery stuff, I went with a new (and excellent) client side plugin for this functionality - <a href='http://www.trirand.com/blog/' target='_blank'>JQGrid</a>.</p>
+
+<p>Although the project I mentioned here was decent sized, I have worked on a few small projects since and don't miss webforms in the slightest.</p>

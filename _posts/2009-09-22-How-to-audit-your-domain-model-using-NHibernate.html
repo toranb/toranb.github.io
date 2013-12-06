@@ -1,0 +1,151 @@
+---
+layout: post
+title:  "How to audit your domain model using NHibernate"
+date:   2009-09-22 6:00:00
+categories: blog archive
+---
+
+<p>One of the biggest hurdles I faced when learning <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> centered around the requirement that I had to audit any change in state of the domain model.  Typically the audit occurs when some entity is created, updated or deleted inside the application.  The requirement for my previous project was to insert a record of the previous object state with a timestamp and user id of the person making the change.</p>
+
+<p>At first glance I was looking for NHibernate to facilitate this audit process so I wouldn't have to write a separate mapping file and object just to persist the data.  But after almost 3 weeks of thrashing I learned that the best way to approach this problem is to do the insert manually (outside the scope of NHibernate).  But how could I tell NHibernate that I wanted to insert this audit data?</p>
+
+<p>This was provided through something called an <a href='http://ayende.com/Blog/archive/2009/04/29/nhibernate-ipreupdateeventlistener-amp-ipreinserteventlistener.aspx' target='_blank'>event listener</a>.  Before NHibernate 2.x this was known as an interceptor, but the idea is the same.  You need a way to tap into the events that are happening around the NHibernate session.  For the purpose of audit I only needed to leverage the 'post-commit-update/insert/delete' event listener.</p>
+
+<p>So to get started you first need to create a class that NHibernate will call after each update/insert/delete.  This class must implement each interface for the specific event listener required.</p>
+
+{% highlight c# linenos %}
+    public class AuditEventListener : IPostDeleteEventListener, IPostInsertEventListener, IPostUpdateEventListener
+    {
+
+        public void OnPostDelete(NHibernate.Event.PostDeleteEvent @event)
+        {
+            var entityToAudit = @event.Entity as IEntityToAudit;
+
+            if (entityToAudit != null)
+            {
+                entityToAudit.Auditor.AuditDelete();
+            }
+        }
+
+        public void OnPostInsert(NHibernate.Event.PostInsertEvent @event)
+        {
+            var entityToAudit = @event.Entity as IEntityToAudit;
+
+            if (entityToAudit != null)
+            {
+                entityToAudit.Auditor.AuditInsert();
+            }
+        }
+
+        public void OnPostUpdate(NHibernate.Event.PostUpdateEvent @event)
+        {
+            var entityToAudit = @event.Entity as IEntityToAudit;
+
+            if (entityToAudit != null)
+            {
+                entityToAudit.Auditor.AuditUpdate();
+            }
+        }
+
+    }
+{% endhighlight %}
+
+<p>Each method in the above will first verify that the entity is one that should be audited, and if so call a method specific to the type of audit being done.  Notice we have a few dependencies here though.  So to get started, create a new interface that will tell NHibernate that the entity is audit friendly.  The nice thing about this approach is that it's explicit for the reason that you want some control over what gets audited in your application.</p>
+
+{% highlight c# linenos %}
+    public interface IEntityToAudit
+    {
+        IAuditor Auditor
+        {
+            get;
+            set;
+        }
+    }
+{% endhighlight %}
+
+If you create the above interface, you can now implement it on your domain objects that require an audit.  In the below code, I implement the IAuditor interface and give it a concrete class that will do the audit work required.  Notice for testability that I have included some constructor injection because if you test this class you don't want an audit record inserted (unless you are doing some type of integration test I suppose).
+
+{% highlight c# linenos %}
+public class User : BusinessBase<User>, IEntityToAudit
+{
+	private IAuditor mUserAudit;
+
+    public User()
+    {
+        mUserAudit = new UserAudit(this);
+    }
+   
+    public User(IAuditor UserAudit)
+    {
+        mUserAudit = UserAudit;
+    }
+	
+	public virtual IAuditor Auditor {
+    get { return mUserAudit; }
+    set { mUserAudit = value; }
+}
+}
+{% endhighlight %}
+
+The below is the interface that your concrete class will implement.  Notice this interface is what the AuditEventListener class will call methods on.
+
+{% highlight c# linenos %}
+    public interface IAuditor
+    {
+        void AuditInsert();
+        void AuditUpdate();
+        void AuditDelete();
+    }
+{% endhighlight %}
+
+Next you need to write the actual class that does the insert work.  The below is one example of what this concrete class might look like.
+
+{% highlight c# linenos %}
+public class UserAudit : IAuditor
+{
+   private User mUser;
+   
+    public UserAudit(User User)
+    {
+        mUser = User;
+    }
+	
+    public void AuditDelete()
+    {
+        InsertUserAudit('Delete');
+    }
+   
+    public void AuditInsert()
+    {
+        InsertUserAudit('Insert');
+    }
+   
+    public void AuditUpdate()
+    {
+        InsertUserAudit('Update');
+    }
+   
+    private void InsertUserAudit(string AuditType)
+    {
+		//do the manual insert here, in this example I call a stored procedure passing all the state data required
+        DatabaseFactory.CreateDatabase().ExecuteNonQuery('usp_Banking_InsertUserAudit', mUser.ID, mUser.FirstName, mUser.LastName, mUser.Address, mUser.City, mUser.State, mUser.Zip, mUser.Phone)
+    }
+}
+{% endhighlight %}
+
+<p>Now that you have the code needed to do the audit, the next step is to add the configuration to let NHibernate know you have a class that should be called by the event listeners.</p>
+
+{% highlight xml linenos %}
+<hibernate-configuration>
+<session-factory>
+		...
+		<listener class='Persistence.Audit.AuditEventListener, MyFramework' type='post-commit-update'/>
+		<listener class='Persistence.Audit.AuditEventListener, MyFramework' type='post-commit-insert'/>
+		<listener class='Persistence.Audit.AuditEventListener, MyFramework' type='post-commit-delete'/>
+	</session-factory>
+</hibernate-configuration>
+{% endhighlight %}
+
+<p>I couldn't finish this post without first saying a big thank you to both <a href='http://unhandled-exceptions.com/blog/' target='_blank'>Steve Bohlen</a> and <a href='http://robtennyson.us/' target='_blank'>Rob Tennyson</a>.  Steve helped push me in the right direction because I spent a lot of time early on trying to tweak my NHibernate mapping files and this was obviously not the best approach.  Then I came across a <a href='http://stackoverflow.com/questions/705943/nhibernate-table-update-event' target='_blank'>question</a> on <a href='http://stackoverflow.com/' target='_blank'>stackoverflow</a> that gave me a bit of hope.  I asked the author for help, in which he replied with the best blog <a href='http://robtennyson.us/post/2009/08/23/NHibernate-Interceptors.aspx' target='_blank'>post</a> to date about this topic.  Although he used NHibernate Interceptors in his post, the port to event listeners was a small task.</p>
+
+<p>As always, the <a href='http://dl.dropbox.com/u/716525/content/downloads/simpleNHibernateV5.zip'>source code</a> for this sample is available for download.  I also included a separate <a href='http://dl.dropbox.com/u/716525/content/downloads/MyFramework.zip'>download</a> for the base class library that contains a few of the reusable classes shown in this post.</p>

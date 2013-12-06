@@ -1,0 +1,74 @@
+---
+layout: post
+title:  "Setup authentication with Devise"
+date:   2010-09-12 6:00:00
+categories: blog archive
+---
+
+<p>So you have a working rails 3 application and you need to apply some type of authentication system?</p>
+
+<h3>Install the gem</h3>
+
+<p>First be sure you are in the directory of your rails aplication.  If so pull down the devise gem</p>
+
+<pre>gem install devise</pre>
+
+<p>Next you need to modify the Gemfile so devise is included. Type gedit Gemfile and add the line below</p>
+
+<pre>gem 'devise'</pre>
+
+<p>Next you need to run the install for bundler</p>
+
+<pre>bundle install</pre>
+
+<p>Next run the full install to get devise setup in your application</p>
+
+<pre>rails generate devise:install</pre>
+
+<p>After this is run you should see a nice 'todo' list from the devise team (shown below).  I will implement each of them below if you haven't already.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/deviseinstalltodo.jpg' alt='devise install todo list'/>
+
+<h3>Setup prerequisites for Devise</h3>
+
+<p>First you need to delete the index.html file found in the public folder.  Next you need to have a controller + action setup to handle the root action.</p>
+
+<pre>rails generate controller Welcome index</pre>
+
+<p>After you setup this controller to handle your root action make sure you add a line in your routes file to hook this up correctly.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/routeswithroot.jpg' alt='routes with root defined'/>
+
+<p>Next you need to add a line to your development.rb file for the mailer default url found under config/environments</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/maileraddition.jpg' alt='flash markup for welcome'/>
+
+<p>You also need to add a notice and alert container if you don't have one already. I'm adding mine to the application.html.erb file found under app/views/layouts</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/flashmarkupwelcome.jpg' alt='flash markup for welcome'/>
+
+<h3>Generate and configure User with Devise</h3>
+
+<p>First you need to run the generate command to add the simple User model for basic authentication</p>
+
+<pre>rails generate devise User</pre>
+
+<p>Next you need to modify the index.html.erb for welcome so you can sign in / sign out</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/welcomemarkup.jpg' alt='welcome markup with sign in'/>
+
+<p>Finally you need to migrate the database so User is setup</p>
+
+<pre>rake db:migrate</pre>
+
+<p>Now if you run the application you should be able to create an account and sign in.  But we haven't restricted anyone just yet ...</p>
+
+<h3>Add the authenticate filter</h3>
+
+<p>In each controller that you need authentication simply add the line below with an optional 'except' param that allows specific actions to be done without authentication.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/controllerauth.jpg' alt='controller auth code'/>
+
+<p>Now you have a fully working authentication setup with rails 3 and devise!</p>
+
+<p>If you want the source for the finished blog application you can download it <a href='http://dl.dropbox.com/u/716525/content/downloads/devise.zip'>here</a></p>

@@ -1,0 +1,103 @@
+---
+layout: post
+title:  "A quick look at IoC With StructureMap"
+date:   2010-03-22 6:00:00
+categories: blog archive
+---
+
+<p>When I first started learning test driven development I found it critical to apply good software practices such as loose coupling and high cohesion.  To get me started with loosely coupled design I found it easy to do constructor injection of any dependencies.  And this technique works great except that you are forced to hard code dependencies all over your system.  And as the software grows and becomes more complex this can be problematic.</p>
+
+<p>One example of this might be a controller class that has a few dependencies.  Each dependency is hard coded and calls into a second constructor that references an interface or abstract base class instead of a concrete object.</p>
+
+{% highlight c# linenos %}
+    public class BlogController : Controller
+    {
+        private readonly IPostRepository PostRepository;
+        private readonly ITagRepository TagRepository;
+        private readonly ICommentRepository CommentRepository;
+		
+		public BlogController() : this(new PostRepository(), new TagRepository(), new CommentRepository())
+		{
+		}
+
+        public BlogController(IPostRepository PostRepository, ITagRepository TagRepository, ICommentRepository CommentRepository)
+        {
+            this.PostRepository = PostRepository;
+            this.TagRepository = TagRepository;
+            this.CommentRepository = CommentRepository;
+        }
+	}
+{% endhighlight %}
+
+<p>But this year I decided to play around with an <a href='http://martinfowler.com/articles/injection.html'>inversion of control</a> (IoC) container to do this dependency injection for me.  And after a little reading I decided to try the latest build of <a href='http://codebetter.com/blogs/jeremy.miller/'>Jeremy Millers'</a> <a href='http://structuremap.github.com/structuremap/index.html'>StructureMap</a>.</p>
+
+<p>The very basic idea behind any IoC container is that you have a hashmap of key value pairs that would be similar to the following: 'when you find this dependency' - 'use this implementation'</p>
+
+<p>So to get started I went out to <a href='http://github.com'>github</a> and downloaded <a href='http://github.com/structuremap/structuremap/downloads'>StructureMap 2.6.1</a>.  I then added this assembly to my project and created a method in my global.asax that would do this key value mapping.</p>
+
+{% highlight c# linenos %}
+    public void SetupStructureMap()
+    {
+        ObjectFactory.Initialize(x =>
+        {
+            x.For<IPostRepository>().Use<PostRepository>();
+            x.For<ITagRepository>().Use<TagRepository>();
+            x.For<ICommentRepository>().Use<CommentRepository>();
+        });
+    }
+{% endhighlight %}
+
+<p>But because I was working with <a href='http://www.asp.net/mvc/'>ASP.NET MVC</a> I ran into one other issue I had to clear up before I could compile and have everything working.  I learned that each controller needs a default parameterless constructor so I had to <a href='http://blog.jorritsalverda.nl/2010/02/09/maintainable-mvc-series-inversion-of-control-container-structuremap/'>copy/paste</a> a simple hack that would allow me to avoid this requirement.</p>
+
+{% highlight c# linenos %}
+    public class StructureMapControllerFactory : DefaultControllerFactory
+    {
+        protected override IController GetControllerInstance(Type controllerType)
+        {
+            if (controllerType == null) return null;
+
+            try
+            {
+                return ObjectFactory.GetInstance(controllerType) as Controller;
+            }
+            catch (StructureMapException)
+            {
+                System.Diagnostics.Debug.WriteLine(ObjectFactory.WhatDoIHave());
+                throw;
+            }
+        }
+    }
+{% endhighlight %}
+
+<p>Now that I had the setup method created to do the mapping along with a workaround for ASP.NET MVC controllers, I could hookup everything in the Application_Start of the global.asax to initialize StructureMap.</p>
+
+{% highlight c# linenos %}
+    protected void Application_Start()
+    {
+        RegisterRoutes(RouteTable.Routes);
+		
+        SetupStructureMap();
+
+        ControllerBuilder.Current.SetControllerFactory(new StructureMapControllerFactory());
+    }
+{% endhighlight %}
+
+<p>With this in place I didn't need to do the double constructor hack with hard coded implementations.  Instead my controller would look something like the below and StructureMap would resolve the dependencies for me.</p>
+
+{% highlight c# linenos %}
+    public class BlogController : Controller
+    {
+        private readonly IPostRepository PostRepository;
+        private readonly ITagRepository TagRepository;
+        private readonly ICommentRepository CommentRepository;
+
+        public BlogController(IPostRepository PostRepository, ITagRepository TagRepository, ICommentRepository CommentRepository)
+        {
+            this.PostRepository = PostRepository;
+            this.TagRepository = TagRepository;
+            this.CommentRepository = CommentRepository;
+        }
+	}
+{% endhighlight %}
+
+<p>I think the only reason for not using an IoC container previously was that I feared it was a lot of extra work but as you can plainly see, it was nothing of the sort.  And with this container in place, I can avoid hard coding dependencies all over my software.</p>

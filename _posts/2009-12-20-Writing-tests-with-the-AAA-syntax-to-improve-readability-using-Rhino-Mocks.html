@@ -1,0 +1,74 @@
+---
+layout: post
+title:  "Writing tests with the AAA syntax to improve readability using Rhino Mocks"
+date:   2009-12-20 6:00:00
+categories: blog archive
+---
+
+<p>When I first started writing automated unit tests I had a lot to learn about <a href='http://www.mockobjects.com/' target='_blank'>mock objects</a>.  And the first mock object framework I started playing around with was <a href='http://www.ayende.com/projects/rhino-mocks.aspx' target='_blank'>Rhino Mocks</a>.</p>
+
+<p>But having to explicitly setup a record and playback step felt like a lot of extra code.  And when you first start writing tests you quickly realize that you will be maintaining more code than ever before.  Not that you won't see a huge return on investment for each test you add to your solution, but with that said the less code you have to write the better.</p>
+
+<p>And for me this came in the form of a new <a href='http://ayende.com/Blog/archive/2008/05/16/Rhino-Mocks--Arrange-Act-Assert-Syntax.aspx' target='_blank'>syntax</a> with the release of Rhino Mocks 3.5.  The new syntax was labeled 'Arrange, Act, Assert' or AAA for short.  With this new syntax you wouldn't need to explicitly wrap anything inside a using block for record or playback.</p>
+
+<p>A simple example that shows the readability improvement using this new syntax can be found below.  In the simple controller action we expect that given a valid blog post the save method of IPostService is called.</p>
+
+{% highlight c# linenos %}
+public ActionResult Archive(int id, FormCollection collection)
+{
+    var ArchivedBlogPost = _PostService.GetPostById(id);
+
+    if (ArchivedBlogPost != null)
+    {
+        //we can assume that the post is updated here ...
+        _PostService.SavePost(ArchivedBlogPost);
+    }
+
+    return View(ArchivedBlogPost);
+}
+{% endhighlight %}
+
+<p>With the previous syntax we might write something like the below.</p>
+
+{% highlight c# linenos %}
+[TestMethod]
+public void SimpleTestShowingRecordReplaySyntax()
+{
+    MockRepository BaseMockRepository = new MockRepository();
+
+    Post ArchivedBlogPost = new Post { ID = 1, Content = 'test' };
+    IPostService PostService = BaseMockRepository.DynamicMock<IPostService>();
+    BlogController Controller = new BlogController(PostService);
+
+    using (BaseMockRepository.Record())
+    {
+        Expect.Call(PostService.GetPostById(1)).Return(ArchivedBlogPost);
+        PostService.Expect(x => x.SavePost(ArchivedBlogPost));
+    }
+
+    using (BaseMockRepository.Playback())
+    {
+        ActionResult Result = Controller.Archive(1, null);
+    }
+}
+{% endhighlight %}
+
+<p>But with the new AAA syntax we could write the same test with less code.  I also found it more natural to express what each fake was doing and why it was needed in the specific test case.</p>
+
+{% highlight c# linenos %}
+[TestMethod]
+public void SimpleTestShowingAAASyntax()
+{
+    Post ArchivedBlogPost = new Post { ID = 1, Content = 'test' };
+    IPostService PostService = MockRepository.GenerateStub<IPostService>();
+    BlogController Controller = new BlogController(PostService);
+
+    PostService.Stub(x => x.GetPostById(1)).Return(ArchivedBlogPost);
+
+    ActionResult Result = Controller.Archive(1, null);
+
+    PostService.AssertWasCalled(x => x.SavePost(ArchivedBlogPost));
+}
+{% endhighlight %}
+
+<p>I always strive for maximum readability in production code, so why not test code?</p>

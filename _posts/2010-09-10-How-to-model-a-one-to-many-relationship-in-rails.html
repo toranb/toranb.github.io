@@ -1,0 +1,50 @@
+---
+layout: post
+title:  "How to model a one-to-many relationship in rails"
+date:   2010-09-10 6:00:00
+categories: blog archive
+---
+
+<p>Finishing the simple blog implementation does require a one-to-many relationship between posts and comments.  So first we need to add the comment object and scaffold out the view/migration/etc.</p>
+
+<h3>Scaffold Comments</h3>
+
+<pre>rails generate scaffold Comment post_id:integer body:text</pre>
+
+<p>Next you need to setup the mysql table for comments</p>
+
+<pre>rake db:migrate</pre>
+
+<p>After you have this complete, you need to modify the comment model found under app/model</p>
+
+<pre>belongs_to :post</pre>
+
+<p>Next you need to modify the post model object found under app/model</p>
+
+<pre>has_many :comments</pre>
+
+<h3>Alter your views to reflect this new relationship</h3>
+
+<p>Add the following to your show.html.erb template found under app/views/posts</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/commentsmarkupshow.jpg' alt='comments markup show'/>
+
+<p>Now in your comments controller modify the create method found under app/controllers</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/commentscontroller.jpg' alt='comments controller'/>
+
+<p>Also add this to the post controller show method to ensure we have a collection of comments for each post to show</p>
+
+<pre>@comments = @post.comments</pre>
+
+<p>And finally alter your routes file to look like the below found under config/routes.rb</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/routes.jpg' alt='blog routes'/>
+
+<p>now fire up the web server and try to add a comment</p>
+
+<pre>rails server</pre>
+
+<p>You should now have a working blog with both a many-to-many and now a one-to-many relationship!</p>
+
+<p>If you want the source for the finished blog application you can download it <a href='http://dl.dropbox.com/u/716525/content/downloads/railsblog.zip'>here</a></p>

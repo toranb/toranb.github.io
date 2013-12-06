@@ -1,0 +1,118 @@
+---
+layout: post
+title:  "How to install Rails 3.0 and Ruby 1.9.2 on Ubuntu"
+date:   2010-09-01 6:00:00
+categories: blog archive
+---
+
+<p><b>Update 04/29/2012</b></p>
+
+<p>If you are running an older version of ubuntu the guide below might still apply, but since the release of Ubuntu 12.04 this install has become a much simpler process. So simple in fact that you can basically do a 'gem install rails --version=3.1'. But since I'm big into automation I've also written a <a href='https://github.com/toranb/ubuntu-development-machine'>script</a> that will produce a working Ubuntu development machine from a fresh install of Ubuntu 12.04. If you run the script you will have a fully functional ruby / python / node development machine.</p>
+
+<p>-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- --</p>
+
+<p>When <a href='http://rubyonrails.org/'>ruby on rails</a> 1.0 was released back in 2005 it was all the rage.  And being someone who was often distracted by the next great web framework I decided to have a look.  So in early 2006 I built a small application to see what all the hype was about. I immediately saw the value of a strongly opinionated framework, something the average asp.net developer like myself didn't know much about at the time.</p>
+
+<p>Fast-forward to August 29th 2010 - <a href='http://weblog.rubyonrails.org/2010/8/29/rails-3-0-it-s-done'>Rails 3.0</a> was released.  Just prior to this release I started looking at the web framework again and because I always strive for the optimal developer experience it meant I would need to quit my windows addiction.  Not that you can't do ruby development on windows, but most of the time it's not worth the pain.</p>
+
+<p>With that said, I paved my development machine and installed <a href='http://www.ubuntu.com/desktop/get-ubuntu/download'>Ubuntu 10.04</a>.  But as I started looking around for a 'how-to' of sorts on installing rails 3 with ruby 1.9.2 I couldn't find a simple guide that got me up and running error free.  Each time I started with a vanilla install of Ubuntu and ended up with what felt like a 'hacked together' development environment.  But last night I decided to give it another try and document the steps needed for someone like me coming in with minimal linux experience.</p>
+
+<h3>Install RVM 1.0.1</h3>
+
+<p>First be sure to do a quick update before you get started.</p>
+
+<pre>sudo apt-get update</pre>
+
+<p>Next install curl and git so we can pull down ruby via rvm</p>
+
+<pre>sudo apt-get install curl git-core</pre>
+
+<p>Next you need to get the tar.gz for rvm 1.0.1</p>
+
+<pre>http://rvm.beginrescueend.com/releases/rvm-1.0.1.tar.gz</pre>
+
+<p>extract the contents and cd into the extracted directory when finished</p>
+
+<pre>tar xvzf rvm-1.0.1.tar.gz</pre>
+
+<p>Once inside the extracted directory run the installer from the command line</p>
+
+<pre>./install</pre>
+
+<p>After this is complete you need to edit your .bashrc file.  First cd ~ and then Type 'gedit .bashrc'.  Put the following at the bottom of the file.</p>
+
+<pre>[[ -s '$HOME/.rvm/scripts/rvm' ]] && source '$HOME/.rvm/scripts/rvm'</pre>
+
+<p>after you complete the above and save your changes, close gedit. Next close your terminal window and re-open it.  Now if you type 'rvm -v' you should see a valid version 1.x</p>
+
+<h3>Install Ruby 1.8.7</h3>
+
+<p>First you need to pull down a few development packages</p>
+
+<pre>sudo apt-get install libruby1.8 zlib1g-dev libssl-dev libreadline5-dev build-essential</pre>
+
+<p>Next you need to install ruby 1.8.7 through rvm</p>
+
+<pre>rvm install ruby-1.8.7</pre>
+
+<p>After this is complete you need to set ruby 1.8.7 as the default for rvm</p>
+
+<pre>rvm use ruby-1.8.7 --default</pre>
+
+<h3>Install rubygems and other dev essentials</h3>
+
+<p>first you need to add the ubuntu-on-rails ppa repository, sometimes they have newer versions of some Ruby components.</p>
+
+<pre>sudo add-apt-repository ppa:ubuntu-on-rails</pre>
+
+<p>After you add this be sure to do another update</p>
+
+<pre>sudo apt-get update</pre>
+
+<p>Next install the essential ruby packages</pre>
+
+<pre>sudo apt-get install ruby rubygems irb ri rdoc rake</pre>
+
+<p>And a few more packages, odds are you will need them anyway</p>
+
+<pre>sudo apt-get install build-essential ruby1.8-dev libopenssl-ruby</pre>
+
+<p>After all the packages above are installed, add the gem path to your global PATH, so that executables new gems can be easily called from the command line. </p>
+
+<pre>export PATH=/var/lib/gems/1.8/bin:$PATH</pre>
+
+<p>After you run the above command, close the terminal window and re-open it.</p>
+
+<h3>Install Sqlite3</h3>
+
+<p>Install the sqlite development packages</p>
+
+<pre>sudo apt-get install sqlite3 libsqlite3-dev</pre>
+
+<p>Install the sqlite gem</p>
+
+<pre>gem install sqlite3-ruby</pre>
+
+<h3>Install Ruby 1.9.2</h3>
+
+<p>Next you need to install ruby 1.9.2 through rvm</p>
+
+<pre>rvm install ruby-1.9.2</pre>
+
+<p>After this is complete you need to set ruby 1.9.2 as the default for rvm.</p>
+
+<pre>
+rvm use ruby-1.9.2 --default
+</pre>
+
+<h3>Install Rails 3.0.0</h3>
+
+<p>Now install rails but be sure you DON'T use sudo</p>
+
+<pre>gem install rails --version 3.0.0</pre> 
+
+<p>After you have both rails 3 and ruby 1.9.2 up and running, install the sqlite gem again.</p>
+
+<pre>gem install sqlite3-ruby</pre>
+
+<p>Now you should have a fully functional rails 3 + ruby 1.9.2 development environment!  You can verify this by doing a simple 'ruby -v' and 'rails -v' from the command line.</p>

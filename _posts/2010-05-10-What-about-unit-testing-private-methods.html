@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "What about unit testing private methods?"
+date:   2010-05-10 6:00:00
+categories: blog archive
+---
+
+<p>When I started <a href='http://www.agiledata.org/essays/tdd.html'>unit testing</a> I spent a great deal of time doing <a href='http://stephenwalther.com/blog/archive/2009/04/08/test-after-development-is-not-test-driven-development.aspx'>test after development</a>.  I started with test after because at the time I didn't know enough about the core testing concepts to drive out functionality <a href='http://toranbillups.com/blog/archive/2010/04/22/How-test-first-development-changed-my-life'>test first</a>.  In hindsight I found that test after development was a great way to learn about the fundamentals of <a href='http://en.wikipedia.org/wiki/Unit_testing'>unit testing</a>, <a href='http://martinfowler.com/articles/mocksArentStubs.html'>mock objects</a> and <a href='http://martinfowler.com/articles/injection.html'>dependency inversion</a>.</p>
+
+<p>So as I started writing these unit tests, I found different situations that I just couldn't write a test for.  And like anyone new to a subject they don't yet understand,  I decided to ask a mentor for help.  And this guidance has helped me grow as a <a href='http://toranbillups.com/blog/archive/2010/01/01/Working-to-be-a-professional-in-the-new-year'>software professional</a> throughout the years.  But I still had a few questions that just never got a direct answer.  And it was these very questions that kept me up at night.  </p>
+
+<p>Possibly the biggest question I've tried to answer was related to unit testing private methods.  In test after development you work to wrap a regression test around methods that you didn't write.  Some of those methods are public so it's easy to create a new instance of the class and execute them.  But others that are private or protected don't provide such easy access.</p>
+
+<p>First I found a nasty <a href='http://www.codeguru.com/csharp/csharp/cs_misc/reflection/article.php/c4257'>reflection</a> based approach that would allow me to keep the method private yet exercise it's behavior.  This wasn't easy to maintain and often I found them of little value.  Other times I would simply ignore the benefits of <a href='http://discuss.joelonsoftware.com/default.asp?design.4.145438.37'>encapsulation</a> and make the method public.</p>
+
+<p>But since all these attempts left me feeling empty inside, I decided to chat with someone at work who had been writing code longer than I had been alive.  He mentioned that if the method is public but it's not on the interface, it's effectively private.  So if I'm truly coding to the <a href='http://en.wikipedia.org/wiki/Interface_based_programming'>interface</a> and not the implementation, I shouldn't worry about these methods being public.</p>
+
+<p>Although this made me feel better, it didn't answer the burning question about when private methods should be tested (or if they should be at all).  This was something I found on my own when I started doing test first development.  What I found is that private methods only came to be during the refactor step of <a href='http://en.wikipedia.org/wiki/Test-driven_development'>test driven development</a>.  And since they were created during the 'clean code' step they were already tested.  In fact if you found a private method in a class that wasn't tested you obviously weren't using it.</p>
+
+<p>Over the last few months I've found that the value you get with regression tests by themselves isn't worth the time to write them in the first place.  The real value is found through test driven development.  You use unit testing to drive out the design of your software.  In this way the software you are building is more <a href='http://en.wikipedia.org/wiki/Coupling_(computer_science)'>loosely coupled</a> making it much easier to change.</p>
+
+<p>Although I still have a few questions surrounding test driven development that are not yet answered, I know that the muscle memory required to know when you should write a test and how to go about it comes from raw experience gained as you practice TDD.  As the craft of software development matures I have a feeling that more and more shops will adopt these engineering practices to aid in the design process.</p>

@@ -1,0 +1,61 @@
+---
+layout: post
+title:  "Modeling inheritance with NHibernate"
+date:   2009-09-21 6:00:00
+categories: blog archive
+---
+
+<p>Following my previous <a href='http://toranbillups.com/blog/archive/2009/09/18/How-to-model-relationships-in-NHibernate' target='_blank'>post</a> about how to model relationships using <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a>, I wanted to show how you can take advantage of another powerful OOP concept: <a href='http://en.wikipedia.org/wiki/Inheritance_(object-oriented_programming)' target='_blank'>inheritance</a>.  Despite the usual <a href='http://haacked.com/archive/2007/12/11/favor-composition-over-inheritance-and-other-pithy-catch-phrases.aspx' target='_blank'>composition over inheritance</a> debate, I would say that at some point you will need to express an inheritance relationship in your <a href='http://en.wikipedia.org/wiki/Domain_model' target='_blank'>domain model</a>.</p>
+
+<p>In this post I will cover one example that I came across when working on a project earlier this year, but to see a complete explanation of all the inheritance techniques with NHibernate be sure to watch session 11 of the <a href='http://summerofnhibernate.com/' target='_blank'>Summer of NHibernate screen cast Series</a> by <a href='http://www.unhandled-exceptions.com/blog/' target='_blank'>Steve Bohlen</a> titled 'Techniques for Modeling Inheritance in the Database'.</p>
+
+<p>To give a little background about the database I was working with when I started learning NHibernate, it was a forms based application with a parent table and 12 child tables.  The idea was simple, normalize out the data that all 12 forms had in common so it wouldn't be repeated in each child table.  This isn't unusual, but what was strange is how the SQL developer decided to express this relationship in SQL Server.  Instead of creating a FK on the parent and linking to the child based on that child table's PK, this developer decided to join these tables based on a single id value.  This value was the PK of both the parent and the child table, but because this was the same value the child table would not have an identity column.  And the parent table wouldn't have a FK column as you already had the id if you needed to get data from any one of the child tables.</p>
+
+<p>To represent this relationship in the application you want a base class that will be inherited by a child class.  So as with anything in NHibernate, you start by altering the xml mapping file.  In this sample I'm working with an account object that represents the parent to both a checking account and savings account.  I thought for brevity this would be a good example to show how easy inheritance is using NHiberante.</p>
+
+<p>First open the Account.hbm.xml file and add a 'joined-subclass' tag.  Next give the table of the child object so NHibernate knows how to do the JOIN.  Also give the full path name to the child object in your application so NHibernate knows where to find it.  Now under this main tag create a new tag 'key' and set the column equal to the SQL column in the child table that will link these objects.  In this case it's simply the ID column that represents the child table primary key.  And finally add a property for each property on the child object that maps to some column in the database as shown below.</p>
+
+{% highlight xml linenos %}
+<?xml version='1.0' encoding='utf-8' ?>
+<hibernate-mapping xmlns='urn:nhibernate-mapping-2.2'>
+  <class name='Banking.Library.Entity.Account, Banking.Library' table='tbl_Banking_Account'>
+    <id name='BaseID' column='ID' type='Int32' unsaved-value='0'>
+      <generator class='native' />
+    </id>
+    <property name='Description' column='Description' type='string' not-null='false' />
+    <property name='Balance' column='Balance' type='decimal' not-null='false' />
+    <property name='UserID' column='UserID' type='Int32' not-null='false' />
+    <many-to-one name='User' class='Banking.Library.Entity.User, Banking.Library'>
+      <column name='UserID' sql-type='int' not-null='false' index='ID'/>
+    </many-to-one>
+    <joined-subclass table='tbl_Banking_CheckingAccount' name='Banking.Library.Entity.CheckingAccount, Banking.Library'>
+      <key column='ID'/>
+      <property name='CheckingInfo' column='CheckingInfo' type='string' not-null='false' />
+      <property name='AdditionalInfo' column='AdditionalInfo' type='string' not-null='false' />
+    </joined-subclass>
+    <joined-subclass table='tbl_Banking_SavingsAccount' name='Banking.Library.Entity.SavingsAccount, Banking.Library'>
+      <key column='ID'/>
+      <property name='SavingsInfo' column='SavingsInfo' type='string' not-null='false' />
+    </joined-subclass>
+  </class>
+</hibernate-mapping>
+{% endhighlight %}
+
+<p>After you have the mapping setup, you need to create a class for each of the child objects and have them inherit from the parent.  In the below class you can see the checking account object inherits from Account and has a property for each one defined in the Account.hbm.xml file (remember these must be marked virtual).  Also Notice that you don't need a mapping file for any child objects because the parent object contains all the information needed to generate the <a href='http://www.codinghorror.com/blog/archives/000275.html' target='_blank'>parameterized SQL</a>.</p>
+
+{% highlight c# linenos %}
+public class CheckingAccount : Account
+{
+    public CheckingAccount() { }
+   
+    public virtual int ID { get; set; }
+   
+    public virtual string CheckingInfo { get; set; }
+   
+    public virtual string AdditionalInfo { get; set; }
+}
+{% endhighlight %}
+
+<p>I will take this opportunity to point out that <a href='http://msdn.microsoft.com/en-us/library/bb386976.aspx' target='_blank'>LINQ to SQL</a> couldn't have modeled this inheritance relationship because the parent table was separate from the child tables.  I learned this during some of my initial research and I'm glad that NHibernate offered the power to model this inheritance relationship with objects being represented in separate tables.</p>
+
+<p>As always, the <a href='http://dl.dropbox.com/u/716525/content/downloads/simpleNHibernateV4.zip'>source code</a> from this post is available for download.</p>

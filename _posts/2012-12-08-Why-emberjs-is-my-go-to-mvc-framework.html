@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "Why ember.js is my go to mvc framework"
+date:   2012-12-08 6:00:00
+categories: blog archive
+---
+
+<p>I've been hacking on <a href='http://emberjs.com/'>ember.js</a> recently in search of the next great paradigm shift. And like anyone adopting a new technology, I first looked around to see what other developers thought about the various mvc frameworks in the wild.</p>
+
+<p>What I found beyond the religion of each framework and it's followers was the commonly asked question 'should I use <a href='http://backbonejs.org/'>backbone</a> or ember' (please don't tell <a href='http://stackoverflow.com/questions/12996823/ember-js-or-backbone-js-for-restful-backend/12999399#12999399'>trek</a> I even hinted about this). The most pragmatic developers would reply to that question with the age old 'what are you doing with the framework/ what does your project need?'</p>
+
+<p>And to be clear you should get some type of context before picking any new technology because they each have a list of pros / cons associated depending on your needs.</p>
+
+<p>But I don't plan to dwell on this question or answer the 'in what situations should I use one over the other' question. Instead what I feel is missing from the conversation around ember and backbone is the 'what type of api do I want to work with on a daily basis' / 'how do I think about client side programming'. When I look at backbone apps in the wild they don't seem much different than what I'm doing today. They have a little more structure than my hand rolled javascript modules but the actual development story is much the same.</p>
+
+<p>One difference between my hand rolled frontends and backbone is that you don't work with jQuery selectors directly. Instead you have a simple abstraction with the $el object (basically a reference to the views DOM element). 
+
+<p>Not a terrible concept if you plan to work the same way we did a few years ago with the added +1 for data-binding. And if I had started with backbone I would have been grateful and thought the other frameworks were all about the same.</p>
+
+<p>But because I started with ember.js (+ ember-data) I found the way I thought about client side development was shifting away from the usual 'html + javascript + jQuery + ajax' glue model to something more elegant. For the first time in my life I was thinking about my javascript app with a 'model first' mindset. Instead of worrying about all the little details about presentation and how I would sync the state in the DOM with my REST backend I just thought about the models and the specific behavior they needed to solve a given problem.</p>
+
+<p>Again this is not intended to be a slam on any of the other mvc frameworks but I found that using ember + ember-data provided me with the same type of api / programming model that I already use on the server side today. And this model is one that I rather enjoy. I prefer to think about behavior and actually enjoy the encapsulation of a rich domain model. And any framework that allows me to work at this level of abstraction is worth a look.</p>

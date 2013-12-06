@@ -1,0 +1,73 @@
+---
+layout: post
+title:  "How to model relationships in NHibernate"
+date:   2009-09-18 6:00:00
+categories: blog archive
+---
+
+<p>The true power of an <a href='http://en.wikipedia.org/wiki/Object-relational_mapping' target='_blank'>object relational mapper</a> is that you can focus on your <a href='http://en.wikipedia.org/wiki/Domain_model' target='_blank'>domain model</a>.  Doing so means the bulk of your development time is spent writing code specific to the business instead of thinking about how to persist and retrieve data from the database.</p>
+
+<p>When I first attempted to do this type of development, I found it to be a difficult shift.  My day felt very different, because instead of writing a ton of repetitive code that I was really good at, I had to work more with the business users.  Speaking about myself in this context, I can say that this experience really allowed me to grow as a software developer.  </p>
+
+<p>Over time I have come to enjoy solving problems within my organization that result in money saved or productivity increased.  It has been my experience that if you can turn requirements into software faster, the business can verify we are on the same page.  This might be my personal bias, but the quicker this feedback the less 'rework' I have to do.  And to be clear, rework is the true bottleneck in software development.  </p>
+
+<p>How often do you build a list of requirements, go off and code up what you 'thought' was asked of your team only to find out that this isn't what they intended.  If you could instead build small parts of the application and show the users to verify you got the requirements correct, it would produce higher quality software that the users actually wanted.</p>
+
+<p>How can using something like <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> increase the speed of this feedback you ask?  At first I thought the answer to this was simply 'we are truly persistence ignorant' and not having to write all that TSQL saves us time.  But the truth is that persistence ignorance isn't the goal here.  Instead we want the ability to work with our business objects without anything getting in the way.  Persistence ignorance helps us do this, but the real power is that I can now see the language my business users speak in my software.</p>
+
+<p>In this post I will show one example of how you can model a relationship between two objects in code.  This will associate a user with an account, but to see more advanced relationship modeling watch session 5 of the <a href='http://summerofnhibernate.com/' target='_blank'>Summer of NHibernate screen cast Series</a> by <a href='http://www.unhandled-exceptions.com/blog/' target='_blank'>Steve Bohlen</a> titled 'Modeling Foreign-Key Relationships in NHibernate'.</p>
+
+<p>So in our example project, we have a bank account that is for a specific user.  To express this in code we need to first add some xml to the Account.hbm.xml file that will reflect the relationship.</p>
+
+{% highlight xml linenos %}
+<?xml version='1.0' encoding='utf-8' ?>
+<hibernate-mapping xmlns='urn:nhibernate-mapping-2.2'>
+  <class name='Banking.Library.Entity.Account, Banking.Library' table='tbl_Banking_Account'>
+    <id name='BaseID' column='ID' type='Int32' unsaved-value='0'>
+      <generator class='native' />
+    </id>
+    <property name='Description' column='Description' type='string' not-null='false' />
+    <property name='Balance' column='Balance' type='decimal' not-null='false' />
+    <property name='UserID' column='UserID' type='Int32' not-null='false' />
+    <many-to-one name='User' class='Banking.Library.Entity.User, Banking.Library'>
+      <column name='UserID' sql-type='int' not-null='false' index='ID'/>
+    </many-to-one>
+  </class>
+</hibernate-mapping>
+{% endhighlight %}
+
+<p>From this xml you can see we added the tag 'many-to-one' that shows the relationship between our account and the user associated.  We need to give it a name that will match the entity that is related, in our case the user object.  Next you need to give it the fully qualified path to the class for that associated object.  And finally you need to tell NHibernate the column that the database has to associate these objects.  In our case the table 'tbl_Banking_Account' has a column named UserID that represents the FK relationship (although you will notice I haven't added a constraint yet in SQL Server).</p>
+
+<p>Next you need to modify the Account class itself to include the User associated.  This is done by simply adding a public property of type 'User'.</p>
+
+{% highlight c# linenos %}
+public class Account : BusinessBase<Account>, IAccount
+{
+    public Account() { }
+   
+    private User mUser;
+    public virtual User User {
+        get { return mUser; }
+        set { mUser = value; }
+    }
+}
+{% endhighlight %}
+
+<p>Now at runtime NHibernate will query the database for the user associated when you ask the Account object for information about the user.  For example:  If you are in the account view and need to print the name of the user, you might do 'Account.User.FirstName'.  Doing this will result in a query behind the scenes that looks like the below:</p>
+
+{% highlight sql linenos %}
+SELECT user0_.ID        as ID3_0_,
+       user0_.FirstName as FirstName3_0_,
+       user0_.LastName  as LastName3_0_,
+       user0_.Address   as Address3_0_,
+       user0_.City      as City3_0_,
+       user0_.State     as State3_0_,
+       user0_.Zip       as Zip3_0_,
+       user0_.Phone     as Phone3_0_
+FROM   tbl_Banking_User user0_
+WHERE  user0_.ID = 1 /* @p0 */
+{% endhighlight %}
+
+<p>This concept is known as lazy loading.  The idea is simple, you might not always want to pull down the entire object graph when you view an Account.  This will save the join when it might not be required.  But if you do need to get at the user related to this account NHibernate will kick off a query behind the scenes for you to retrieve the data.  Now if you don't like this default behavior, simply add a line of configuration to the 'many-to-one' mapping as such: lazy='false'.  Just remember this will tell NHibernate that you want the Account and the User both so a JOIN will be added that might or might not be of concern.</p>
+
+<p>As always, the <a href='http://dl.dropbox.com/u/716525/content/downloads/simpleNHibernateV4.zip'>source code</a> from this post is available for download.</p>

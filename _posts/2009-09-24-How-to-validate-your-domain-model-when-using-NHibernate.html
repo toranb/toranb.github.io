@@ -1,0 +1,166 @@
+---
+layout: post
+title:  "How to validate your domain model when using NHibernate"
+date:   2009-09-24 6:00:00
+categories: blog archive
+---
+
+<p>One of the best things about using <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> is that you can change the state of your objects and the session class will persist these without you having to explicitly ask NHibernate to do so.  The reason this is such a nice feature is that you don't have to think about the database when you are writing your business logic.  This just feels more natural, and not having all that infrastructure code in your domain model increases the maintainability of the software.  </p>
+
+<p>But would this feature ever be problematic?  I found a scenario where one of my users tried to update an entity that didn't have valid state, but because the validation logic was only in my domain model, and not a constraint in the database, NHibernate went ahead and persisted the changes anyway.  So I needed some way to tell NHibernate not to persist an object that was shown to be invalid in the domain model.</p>
+
+<p>The code I will show in this post is specific to the <a href='http://msdn.microsoft.com/en-us/library/cc467894.aspx' target='_blank'>Enterprise Library</a> <a href='http://msdn.microsoft.com/en-us/library/cc309509.aspx' target='_blank'>Validation Application Block</a>, but the idea is generic enough that you could tweak it to work with any validation framework you might be familiar with.  In fact, the validation framework is only used to apply attributes to an entity.  The real work is done in a custom method shown below.</p>
+
+{% highlight c# linenos %}
+    [DataContract()]
+    [HasSelfValidation()]
+    public abstract class BusinessBase<T> : IBusinessBase
+    {
+        private int mModifiedUser;
+        private List<BrokenRule> mBrokenRules;
+        private BrokenRule mRule;
+        private ValidationResults mResults;
+
+        public BusinessBase()
+        {
+
+        }
+
+        public virtual bool IsValid()
+        {
+            mResults = new ValidationResults();
+            Validate(mResults);
+
+            return mResults.IsValid;
+        }
+
+        [SelfValidation()]
+        public virtual void Validate(ValidationResults results)
+        {
+            if (!object.ReferenceEquals(this.GetType(), typeof(BusinessBase<T>)))
+            {
+                Validator validator = ValidationFactory.CreateValidator(this.GetType());
+                results.AddAllResults(validator.Validate(this));
+            }
+            //before we return the bool value, if we have any validation results map them into the 
+            //broken rules property so the parent class can display them to the end user 
+            if (!results.IsValid)
+            {
+                mBrokenRules = new List<BrokenRule>();
+                foreach (Microsoft.Practices.EnterpriseLibrary.Validation.ValidationResult result in results)
+                {
+                    mRule = new BrokenRule();
+                    mRule.Message = result.Message;
+                    mRule.PropertyName = result.Key.ToString();
+                    mBrokenRules.Add(mRule);
+                }
+            }
+        }
+	}
+{% endhighlight %}
+
+<p>The above can be found in the base class that each entity in my domain inherits from.  Basically it provides some simple validation functionality so I don't have to repeat it across the application.  But the idea that would adapt to any validation framework is shown in the foreach.  For any validation error a 'brokenrule' is added to the domain object.  </p>
+
+<p>Before I started using NHibernate, I would simply ask the object if it was valid before I saved it.  This was nice because the validation in the domain model was all that I needed to stop an object from being persisted with invalid state.  </p>
+
+{% highlight c# linenos %}
+public class UserService : IUserService
+    {
+        private IUserRepository _Repository;
+       
+        public UserService() : this(new UserRepository())
+        {
+        }
+       
+        public UserService(IUserRepository Repository)
+        {
+            _Repository = Repository;
+        }
+       
+        public void SaveUser(User User)
+        {
+			if (User.IsValid()) {
+				_Repository.SaveUser(User);
+			}
+        }
+    }
+{% endhighlight %}
+
+<p>But with NHibernate in the mix this approach didn't stop the persistence from happening.  So instead, I now had to figure out a way to stop an entity from being persisted if it had any broken rules.</p>
+
+<p>So again, <a href='http://ayende.com/Blog/archive/2009/04/29/nhibernate-ipreupdateeventlistener-amp-ipreinserteventlistener.aspx' target='_blank'>event listeners</a> to the rescue!  This time around we need to leverage the 'pre-insert/update' event listeners because this is the best place to stop any persistence from happening if an object has invalid state.</p>
+
+{% highlight c# linenos %}
+    public class ValidationEventListener : IPreInsertEventListener, IPreUpdateEventListener
+    {
+
+        public bool OnPreInsert(NHibernate.Event.PreInsertEvent @event)
+        {
+            var entityToInsert = @event.Entity as IBusinessBase;
+
+            if (entityToInsert != null)
+            {
+                if (entityToInsert.BrokenRules != null)
+                {
+                    RollbackTransactionBecauseTheEntityHasBrokenRules();
+                }
+            }
+
+            return false;
+        }
+
+        public bool OnPreUpdate(NHibernate.Event.PreUpdateEvent @event)
+        {
+            var entityToUpdate = @event.Entity as IBusinessBase;
+
+            if (entityToUpdate != null)
+            {
+                if (entityToUpdate.BrokenRules != null)
+                {
+                    RollbackTransactionBecauseTheEntityHasBrokenRules();
+                }
+            }
+
+            return false;
+        }
+
+        private void RollbackTransactionBecauseTheEntityHasBrokenRules()
+        {
+            try
+            {
+                ISession session = SessionBuilderFactory.GetBuilder().CurrentSession;
+
+                if (session != null)
+                {
+                    session.Transaction.Rollback();
+                }
+            }
+            catch (Exception ex)
+            {
+                //this will force a rollback if we don't have a session bound to the current context 
+                throw new NotImplementedException();
+            }
+        }
+    }
+{% endhighlight %}
+
+<p>If the object about to be persisted has any broken rules, rollback the transaction.  The only thing I didn't like about this approach was that if you are in the middle of a large unit of work and one entity is invalid, the entire transaction will be rolledback.  But for my previous application, the only time this was the case is when a user is updating an admin like screen for some CRUD operation.  And in this context the only thing happening in the unit of work was that save anyway.</p>
+
+<p>The final step to get this working is to edit the configuration to let NHibernate know it has some class that needs to be called during the 'pre-update' and 'pre-insert' events.</p>
+
+{% highlight xml linenos %}
+  <hibernate-configuration xmlns='urn:nhibernate-configuration-2.2'>
+    <session-factory>
+	  ...
+      <listener class='Persistence.Validation.ValidationEventListener, MyFramework' type='pre-insert'/>
+      <listener class='Persistence.Validation.ValidationEventListener, MyFramework' type='pre-update'/>
+      <listener class='Persistence.Audit.AuditEventListener, MyFramework' type='post-commit-update'/>
+      <listener class='Persistence.Audit.AuditEventListener, MyFramework' type='post-commit-insert'/>
+      <listener class='Persistence.Audit.AuditEventListener, MyFramework' type='post-commit-delete'/>
+    </session-factory>
+  </hibernate-configuration>
+{% endhighlight %}
+
+<p>One final thought about this approach that I'm still indifferent about is that you must be sure to call the validation method on your domain object to apply any broken rules.  The advantage here is that I was already doing this before I implemented NHibernate so it didn't feel like added work.  But is having to explicitly call 'isValid' the right thing to do?  Or should you instead call this on each object in the 'pre-update/insert' event listener itself?  I decided against that for this project, but it might be appropriate if you don't like to explicitly validate your domain model.</p>
+
+<p>As always, the <a href='http://dl.dropbox.com/u/716525/content/downloads/simpleNHibernateV6.zip'>source code</a> for this sample is available for download.  I also included a separate <a href='http://dl.dropbox.com/u/716525/content/downloads/MyFramework.zip'>download</a> for the base class library that contains the base class shown above.</p>

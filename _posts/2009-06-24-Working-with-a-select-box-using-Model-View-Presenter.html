@@ -1,0 +1,259 @@
+---
+layout: post
+title:  "Working with a select box using Model View Presenter"
+date:   2009-06-24 6:00:00
+categories: blog archive
+---
+
+<p>After a few weeks of research and development, I found it time to implement the MVP pattern in my next project.  As with any new pattern or technique, you quickly come across something more complex.  The first implementation detail that caused me some pain was the select box.<p>
+
+<p>The reason this control was so much different was that before this point, everything in my view was simply a string or integer type.  But the select box was an actual control that had an array or collection like property, selected value, selected index and count property in addition to a clear and add function.  A quick google search on this topic turned up an interesting <a href='http://blog.jpboodhoo.com/DealingWithDropDownListsWithTheMVPPattern.aspx' target='_blank'>post</a> from <a href='http://blog.jpboodhoo.com/' target='_blank'>JP Boodhoo</a> about how he implemented this using the <a href='http://www.martinfowler.com/eaaDev/PassiveScreen.html' target='_blank'>passive view</a> and my first thought was 'whoa- this is a lot of work to get a simple value from the user interface.'</p>
+
+<p>I decided that instead of learning this 'interface' stuff and doing it right the first time, I would have multiple properties for each select box.  So the first iteration looked something like the below:</p>
+
+{% highlight c# linenos %}
+    public interface IProductView
+    {
+        List<Supplier> SupplierCollection { get; set; }
+        int SupplierSelectedIndex { get; set; }
+        string SupplierSelectedValue { get; set }
+        List<Category> CategoryCollection { get; set; }
+        int CategorySelectedIndex { get; set; }
+        string CategorySelectedValue { get; set }
+    }
+{% endhighlight %}
+
+<p>And this seemed to work... so my first project went forward with about three times the necessary code.  In my presenter if I needed a value I would simply ask the view to provide that using the getter on the SelectedValue property, and when I needed to populate it I would call the setter on the List property.  Again this 'worked' so why look to anything else?  Well as this did work, I could not help but feel like this was the wrong way to implement a cross UI technology list box like control.  So I went back to the post by JP and decided to put the time in and learn it.<p>
+
+<p>I found that if I created an interface with the properties I needed to get from the select box, this would allow each UI technology to provide the implementation in the view.  So with the interface below I was able to reduce the amount of noise in my view.<p>
+
+{% highlight c# linenos %}
+    public interface ILookupList
+    {
+        void Add(ILookupDTO dto);
+        void Clear();
+        int Count();
+        int SelectedIndex {
+            get;
+            set;
+        }
+        string SelectedValue {
+            get;
+            set;
+        }
+    }
+{% endhighlight %}
+
+<p>Also you will need to define an interface for ILookupDTO as it will be needed for the above interface</p>
+
+{% highlight c# linenos %}
+    public interface ILookupDTO
+    {
+        string Text { get; set; }
+        string Value { get; set; }
+    }
+{% endhighlight %}
+
+<p>And the final component needed to get this working is a concrete class named 'LookupCollection'.  This will be used in our presenter when we need to bind a collection of elements to our ILookupList implementation in the view.
+{% highlight c# linenos %}
+    public class LookupCollection
+    {
+        private readonly IEnumerable<ILookupDTO> dtos;
+        private ILookupList _List;
+       
+        public LookupCollection(IEnumerable<ILookupDTO> dtos)
+        {
+            this.dtos = dtos;
+        }
+       
+        public void BindTo(ILookupList list)
+        {
+            _List = list;
+           
+            _List.Clear();
+           
+            foreach (ILookupDTO dto in dtos) {
+                _List.Add(dto);
+            }
+        }
+       
+        public int SelectedIndex {
+            get { return _List.SelectedIndex; }
+            set { _List.SelectedIndex = value; }
+        }
+       
+        public string SelectedValue {
+            get { return _List.SelectedValue; }
+            set { _List.SelectedValue = value; }
+        }
+    }
+{% endhighlight %}
+
+<p>But for each UI technology I had to provide a custom class that implemented the ILookupList interface shown above.  The first one shown below is what I used in my webforms implementation.</p>
+
+{% highlight c# linenos %}
+    public class WebLookupList : ILookupList
+    {
+        
+        private readonly ListControl listControl;
+        
+        public WebLookupList(ListControl listControl)
+        {
+            this.listControl = listControl;
+        }
+        
+        public void Clear()
+        {
+            listControl.Items.Clear();
+        }
+        
+        public void Add(Interfaces.ILookupDTO dto)
+        {
+            listControl.Items.Add(new ListItem(dto.Text, dto.Value));
+        }
+        
+        public int Count()
+        {
+            return listControl.Items.Count;
+        }
+        
+        public int SelectedIndex {
+            get { return listControl.SelectedIndex; }
+            set { listControl.SelectedIndex = value; }
+        }
+        
+        public string SelectedValue {
+            get { return listControl.SelectedValue; }
+            set { listControl.SelectedValue = value; }
+       }
+    }
+{% endhighlight %}
+
+<p>The next was used in my WPF implementation</p>
+
+{% highlight c# linenos %}
+    public class WPFLookupList : ILookupList
+    {
+        
+        private readonly ComboBox combobox;
+        
+        public WPFLookupList(ComboBox combobox)
+        {
+            this.combobox = combobox;
+        }
+        
+        public void Add(Interfaces.ILookupDTO dto)
+        {
+            ComboBoxItem item = new ComboBoxItem();
+            item.Content = dto.Text;
+            item.Tag = dto.Value;
+            
+            combobox.Items.Add(item);
+        }
+        
+        public void Clear()
+        {
+            combobox.Items.Clear();
+        }
+        
+        public int Count()
+        {
+            return combobox.Items.Count;
+        }
+        
+        public int SelectedIndex {
+            get { return combobox.SelectedIndex; }
+            set { combobox.SelectedIndex = value; }
+        }
+        
+        public string SelectedValue {
+            get { return combobox.SelectedValue.Tag; }
+            set { combobox.SelectedValue.Tag = value; }
+        }
+    }
+{% endhighlight %}
+
+<p>Next in the view itself you need to return a new object of type specific to your UI technology, passing the UI control into the constructor as shown below.</p>
+
+{% highlight c# linenos %}
+public ILookupList Suppliers {
+	get { return new WebLookupList(ddlSuppliers); }
+}
+
+public ILookupList Categories {
+	get { return new WebLookupList(ddlCategories); }
+}
+{% endhighlight %}
+
+<p>And now instead of 6 properties in our view we have the following</p>
+
+{% highlight c# linenos %}
+    public interface IProductView
+    {
+        ILookupList Suppliers { get; }
+	ILookupList Categories { get; }
+    }
+{% endhighlight %}
+
+<p>In addition to fewer properties, the programming model in the presenter just feels more natural now as you can reference the control directly.  So in the update example below, we need to get the value selected by the user and set the property on our Product object before we save the changes.</p>
+
+{% highlight c# linenos %}
+	public void UpdateProduct()
+        {            
+            if (mView.ID > 0) {
+		Product ProductObject = new Product();
+
+                ProductObject.ID = mView.ID;
+                ProductObject.ProductName = mView.ProductName;
+                ProductObject.QuantityPerUnit = mView.QuantityPerUnit;
+                ProductObject.UnitPrice = mView.UnitPrice;
+                ProductObject.UnitsInStock = mView.UnitsInStock;
+                ProductObject.UnitsOnOrder = mView.UnitsOnOrder;
+                ProductObject.ReorderLevel = mView.ReorderLevel;
+                ProductObject.Discontinued = mView.Discontinued;
+                ProductObject.Supplier.ID = mView.Suppliers.SelectedValue;
+                ProductObject.Category.ID = mView.Categories.SelectedValue;
+                
+                _ProductService.SaveProduct(ProductObject);                
+            }
+        }
+{% endhighlight %}
+
+<p>The only thing I was not happy with was the work needed to populate a select box and set the default selected item.  This just felt like a great deal of code compared to a simple 'mView.Suppliers.BindCollection'.  But to be clear this method is doing a ton of different things (SRP violation I am sure).  We first get a collection of supplier objects, create a new lookupDTO collection and add a blank row to it.  Then we loop through the supplier collection and add each object to the lookupDTO collection.  Next we create a new LookupCollection and call the BindTo function to take the collection and populate the lookuplist implementation.  And finally we set the selected item in the select box if the Product had a supplier associated.</p>
+
+{% highlight c# linenos %}
+        public void PopulateSupplierDDL(Product ProductObject)
+        {
+            List<Supplier> SupplierCollection = _SupplierService.GetSupplierCollection();
+            
+            List<ILookupDTO> SupplierLookupDTO = new List<ILookupDTO>();
+            
+            SupplierLookupDTO.Add(new LookupDTO(' ', 0));
+            
+            foreach (var Supplier in SupplierCollection) {
+                SupplierLookupDTO.Add(new LookupDTO(Supplier.CompanyName, Supplier.ID.ToString()));
+           }
+            
+            LookupCollection LookupCollectionObject = new LookupCollection(SupplierLookupDTO);
+            LookupCollectionObject.BindTo(mView.SupplierCollection);
+            
+            if (ProductObject == null) {
+                return;
+            }
+            
+            if (SupplierCollection == null) {
+                return;
+            }
+            
+            for (i = 0; i <= SupplierCollection.Count - 1; i++) {
+                if (SupplierCollection(i).ID == ProductObject.Supplier.ID) {
+                    LookupCollectionObject.SelectedIndex = (i + 1);
+                    break;
+                }
+            }
+        }
+{% endhighlight %}
+
+<p>What I really liked about this implementation was that it allowed me to build an API for the business that was 100% UI agnostic.  The first example I setup was to use the same class library for both a webforms application and a WPF application.</p>
+
+<p>If you want to investigate further, download the source <a href='http://dl.dropbox.com/u/716525/content/downloads/SelectboxMVPSample.zip'>here</a></p>

@@ -1,0 +1,73 @@
+---
+layout: post
+title:  "Use an object relational mapper to build better software"
+date:   2010-07-10 6:00:00
+categories: blog archive
+---
+
+<p>I still remember the first thought that came into my head when I started using <a href='http://nhforge.org/Default.aspx'>nhibernate</a> last year 'great, now I won't have to write sql anymore'.  I'll admit I wanted nothing to do with sql at the time because I was burned out after being fed a diet of 'stored procs for everything' my entire career.  But dogma in any context is usually harmful.</p>
+
+<p>I currently work with nhibernate everyday so on one hand you could say I got what I always wanted.  But as it turns out, the real benefit of an <a href='http://www.agiledata.org/essays/mappingObjects.html'>ORM</a> is that your team can write object oriented software with low friction.  And the power behind <a href='http://www.amazon.com/Object-Oriented-Software-Construction-Book-CD-ROM/dp/0136291554'>object oriented software construction</a> is that it allows for maximum flexibility throughout the development process.</p>
+
+<p>Over the last few years I've found that I prefer doing <a href='http://en.wikipedia.org/wiki/Domain-driven_design'>complex domain logic</a> inside objects rather than raw sql.  This isn't to say that I'm totally against putting logic inside a stored procedure, but often the work I'm doing just feels more natural inside a rich domain model where I have all the benefits of Object Oriented Programming at my disposal.</p>
+
+<ul>
+<li>Inheritance</il>
+<li>Abstraction</il>
+<li>Encapsulation</il>
+<li>Polymorphism</il>
+</ul>
+
+<p>So what am I talking about exactly?  I've highlighted a few of the benefits below, all of which came from my experience working with complex software in the wild.  But if you are still a skeptic after reading this post, just remember ... <a href='http://blogs.tedneward.com/2006/06/26/The+Vietnam+Of+Computer+Science.aspx'>orm is the Vietnam of computer science</a></p>
+
+<h3>Model inheritance with low friction</h3>
+
+<p>One of the great things about doing object oriented programming is that you are empowered to model things that exist in the real world.  And when you start modeling things you will eventually have the need for <a href='http://en.wikipedia.org/wiki/Inheritance_%28object-oriented_programming%29'>inheritance</a> to represent some type of relationship in your domain model.</p>
+
+<p>Of course if you don't use an ORM it's still possible to leverage inheritance.  It just requires a lot more work on your part.  While working on a project with a complex domain model a few years back, I did just that.  To get inheritance working with my persistence model I had to build a base class per object hierarchy that represented the base repository to perform all database operations for a given type. </p> 
+
+<p>Another constraint on the project was that everything had to be done through a stored procedure.  So inside each base repository I had to first call the base objects 'save' stored procedure, then through an abstract method call the inheriting objects repository 'save' method for the child object.  If you are reading this and think to yourself 'that sounds easy enough' - it certainly took a lot of extra work on my part.  In addition it made things more complex because of this very particular base class behavior that relied on the child repository to have a specific method defined.  Remember why tight coupling and deep inheritance chaining was a 'bad' idea?  Work with this structure a few times and you will find the switch to ORM a breath of fresh air.</p>
+
+<p>So remember that part about low friction?  When you use a good ORM this type of domain modeling isn't just easy, it's the reason these frameworks and tools exist today.  What I enjoy about using nhibernate to model inheritance is that I have several options to choose from and each one is a snap to implement.  If I want to have each child object persisted in a different table, no problem.  If I want all the objects in a single table using a discriminator to define the object type, no problem.  In the application you simply inherit from the parent object, make a small addition to the mapping file and you’re done.  This was not only easy, but it made the code more intuitive for the next person who might be extending the software.</p>
+
+<h3>Working with collections feels more natural</h3>
+
+<p>When I navigate around my object model I find it very natural to do something like Customer.Orders when I want to see all the orders for a particular customer.  With an ORM this is exactly how you would work with a collection out of the box.  </p>
+
+<p>Without an ORM I found a nice way to simulate this behavior, but it involved a strange dependency being added for each object that had a related collection.  So I could still navigate using Customer.Orders but the trade off was that I had to dependency inject a service that knew how to load the related collection.  So for testing simple logic inside my domain object I had to stub out a service dependency and it felt like a lot of extra work.  Not to mention that it was a great deal of code that I was now responsible for maintaining.</p>
+
+<p>One characteristic of great software is loose coupling.  So when you are forced to add a dependency just to get at another related object or collection it raises the complexity and tightly couples your once 'simple' object to something that just isn't necessary when you have an ORM. </p>
+
+<h3>You will have less friction doing incremental development</h3>
+
+<p>When I'm designing a piece of software I want the ability to make small incremental changes.  This allows me to change the software as I learn about the business requirements.  For example, if I want to change the name of a property to better reveal intent it should be a simple rename with resharper or some other refactoring tool.  I shouldn't have to worry about the database in this context directly.</p>
+
+<p>If a small change like this takes a great deal of effort the development team will simply stop making incremental improvements to it.  So as they learn about a more appropriate name for property xyz they will hesitate to make the change because of the friction involved.  And over time if your team isn't improving the software, it's not long before the big rewrite.</p>
+
+<h3>Testing is both simple and cheap with objects</h3>
+
+<p>The type of testing I'm talking about here is <a href='http://pragprog.com/screencasts/v-kbtdd/test-driven-development'>unit testing</a>.  If I have a rule in my domain model like 'a user can't see a button if the invoice total is less than $25' it's easy to test.  I simply create a user object in memory, set the invoice total to something less than $25, verify the button is missing and I'm done.  With a database I would have to create all the dependencies needed to satisfy referential integrity checks.  This is what a database is good for, but in my domain model I just want to verify a business rule.  I'm not trying to verify any persistence rules that might occur in the database.</p>
+
+<p>Another great advantage with testing in memory is that tests run fast.  When tests run fast the development team is much more likely to run them.  They will also run them more frequently so bugs will be found quicker, saving time and money.  If you have to run all your tests against a shared resource like the database or file system, it's likely that they will run slower and the team will eventually stop running them with each small change.  Making even the smallest bug a real pain to find as the codebase grows in size.</p>
+
+<h3>Allow your team to embrace good software practices</h3>
+
+<p>One of the first things a young developer learns about when they start doing software development in the real world is that <a href='http://blog.objectmentor.com/articles/2009/02/12/getting-a-solid-start'>separation of concerns</a> is a good idea.  The general idea is that you don't mix different concerns inside classes or methods because we as software developers can only hold so much in our brain at one time.  Beyond about 7 things we start to lose track and make mistakes.  </p>
+
+<p>One great example of this is using a <a href='http://en.wikipedia.org/wiki/Stored_procedure'>stored procedure</a> for business specific logic.  Inside the SQL (persistence code) you have a bunch of if statements and other logic.  When I'm using a stored procedure it should do only persistence related work.  The same goes for a business object that does a lot of sql like logic.  I want to think about the conditionals that make up the business rules separate from the logic required to persist those objects in the database.</p>
+
+<p>When using an ORM the objects you write are 100% infrastructure free.  This enables a developer who is fixing a logic bug to focus on the object without having to worry about how it’s being persisted.  When you first switch to this model it feels strange because the majority of your time previously was committed to persistence coding.  But after a week of working with objects that don’t have persistence code scattered about you feel more productive and generally make less mistakes because each object now has just one responsibility.</p>
+
+<h3>Writing elegant code is the default</h3>
+
+<p>This point follows the previous because when you start following good development practices the code you write is easier to read.  I've done my share of write-once software development and have since learned that it's very expensive to develop software for a year or more that just can't be maintained (even by the original developer).  </p>
+
+<p>By definition elegant code is something that just flows from the code to your brain without a lot of 'huh?' / 'what now?' like moments.  It should express not just the intent of the software but also the context in which it was written.  If you can produce this type of software, and design it <a href='http://toranbillups.com/blog/archive/2010/04/22/How-test-first-development-changed-my-life'>test-first</a>, the next development team will be able to consume new requirements from the business and turn out results at nearly the same level of productivity that you had writing the first version.</p>
+
+<p>When you are using an ORM you don't have the need for a lot of what I call 'noise' code.  This type of code just clutters up the system and makes it harder to read.  You will also find that having an ORM in place can reduce the number of lines that your team is responsible for maintaining. </p>
+
+<p>I found this out first hand when I refactored an older application built with ado.net to use nhibernate instead.  The code base went from 10K lines of code to around 5500.  This meant I could make changes quicker and find bugs faster because I now had only the necessary code needed to provide business value.</p>
+
+<h3>Conclusion</h3>
+
+<p>So if you started using an ORM this year for data access alone, remember that the true power is found in object oriented software development.  Using an ORM will allow your team to take advantage of this development paradigm with a much lower cost to productivity.</p>

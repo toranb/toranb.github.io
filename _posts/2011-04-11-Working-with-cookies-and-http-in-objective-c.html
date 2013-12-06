@@ -1,0 +1,52 @@
+---
+layout: post
+title:  "Working with cookies and http in objective-c"
+date:   2011-04-11 6:00:00
+categories: blog archive
+---
+
+<p>Almost any website that does something useful these days will require you to login and prove you are who you say you are. After you provide a valid set of credentials the website will pass you a security token called a cookie. This cookie is nothing more than a set of key/value pairs with enough information to let the server know you are already authenticated for this session.</p>
+
+<p>The reason we pass around cookies is that the web is stateless meaning the web server we just made a request to will have no idea who we are when we make the next request.  This token helps the web server persist a session with the user giving the impression that the web is indeed state-ful.</p>
+
+<p>So when I started my first iPhone app last year and realized that I would need to simulate a login over http I assumed some base object would handle all this mess for me. I couldn't have been more wrong, as it turns out you aren't given much of anything out of the box. I soon learned that the only thing my NSURLConnection would pass me is an NSArray of NSHTTPCookie and the rest was up to me.</p>
+
+<p>Extending <a href='http://toranbillups.com/blog/archive/2011/04/10/Submit-data-using-an-http-post-in-objective-c'>part 2</a> of the series where I showed how to create an http POST to send data over the wire, this slightly modified version will assume that after a valid request is received we are going to get some authentication token in return. This token will be an NSArray that we can inspect using NSLog directly.</p>
+
+<p>To start we need to implement another delegate method for NSURLConnection called 'willSendRequest'. I use this method when I'm doing something that has a redirect because inside this function we will see each request go by along with the final response.  So the first implementation we add will simply log each request and response that comes through. </p>
+
+<div data-gist=914727><script src='https://gist.github.com/toranb/914727.js'></script></div>
+
+<p>If you run this using the simulator in Xcode you should see a log entry for the initial http POST, the redirected http GET and finally the http response.  But why implement this method if we only plan to log these you ask? We should expect that during the redirect we will receive a cookie that shows we are a valid user in the system. </p>
+
+<p>To get this cookie from the response we need to reach into the header fields and pull it out manually.  And if this cookie isn't empty we will log it to show the actual value coming down from the server.</p>
+
+<div data-gist=914731><script src='https://gist.github.com/toranb/914731.js'></script></div>
+
+<p>If you now run the application you should see an NSHTTPCookie toString'd that shows a name equal to 'verifiedUser' and value of 'password123'. If you see this you have successfully pulled the cookie out of the response!  From here you can store the cookie in a local property so it can be used later.</p>
+
+<p>Now since each request following will require this cookie to know who we are let's construct a different http POST that will include the cookie along with the form data.</p>
+
+<p>One thing I learned very quickly when I started chaining together multiple requests like this is that each request should live inside it's own object. Aside from the logical 'each object should do only one thing' argument it also helps because of the way our NSURLConnection calls back after each request is fired.  If you have multiple requests going inside a single class, they will all call back to the same delegate methods in your object so you will begin to fork everything with some type of conditional (generally a bad idea as the complexity in your app grows over time).</p>
+
+<p>So for the second request let's just create a new object that is responsible for the http POST containing the previously captured cookie. Also we should declare a method that can be called from within our default view controller to construct the request and send it off. Don't forget to include a parameter for the NSArray of NSHTTPCookie that we captured during the login request. If you feel like I've just rattled off a ton of steps all at once simply pull down the source code from <a href='https://github.com/toranb/HttpWithObjectiveC'>github</a> and you will see I've included 2 different commits for this blog post that help you keep up with a few of the things I don't go into detail about here.</p>
+
+<p>This is a basic copy/paste of our previous http POST setup from inside the 'viewDidLoad' method of our default view controller. Feel free to cleanup the duplication at a later time, but for the sake of this post and keeping things simple for the beginner I won't put much time and effort into keeping the source code DRY during this post.</p>
+
+<div data-gist=914738><script src='https://gist.github.com/toranb/914738.js'></script></div>
+
+<p>After we have the structure in place for the request we can add the cookie by first creating an NSDictionary that will be our place holder during the POST.</p>
+
+<div data-gist=914741><script src='https://gist.github.com/toranb/914741.js'></script></div>
+
+<p>This is used to set a value on request itself 'setAllHTTPHeaderFiends'</p>
+
+<div data-gist=914742><script src='https://gist.github.com/toranb/914742.js'></script></div>
+
+<p>Now that we've added the cookie to our http POST the full blown implementation should look something like the below</p>
+
+<div data-gist=914743><script src='https://gist.github.com/toranb/914743.js'></script></div>
+
+<p>And that's all we need to pass along the http cookie during an http POST. This allowed me to pass the cookie value during each request so I could interact with any website as if my iPhone app was just a browser on a desktop machine.</p>
+
+<p>The full source code for this sample is available on <a href='https://github.com/'>github</a> <a href='https://github.com/toranb/HttpWithObjectiveC'>here</a>.</p>

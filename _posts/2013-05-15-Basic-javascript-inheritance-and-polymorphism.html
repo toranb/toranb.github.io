@@ -1,0 +1,64 @@
+---
+layout: post
+title:  "Basic javascript inheritance and polymorphism"
+date:   2013-05-15 6:00:00
+categories: blog archive
+---
+
+<p>When I first started writing javascript back in 2007 it was for a one-off animation or DOM manipulation. Combine that with not having much experience with the language itself and you end up thinking javascript is purely functional. But javascript also has objects, and it's easy to get started because at the core they are nothing more than key/value pairs (on the surface anyway).</p>
+
+<blockquote>var padawan = {name: 'anakin', age: 9}</blockquote>
+
+<p>After creating my first object I quickly realized I would need a way to construct them consistently. I didn't want each object to have a name and age hard coded, so I decided to look around the javascript community for some type of constructor. And it turns out javascript does have a basic constructor that on the surface is no different than a normal javascript function (same syntax).</p>
+
+<blockquote>var padawan = function(name, age) { this.name = name; this.age = age; }</blockquote>
+
+<p>The only thing you need to be aware of is how you invoke this function. To create a new javascript object when you invoke it you need to use the new keyword like so.</p>
+
+<blockquote>var anakin = new padawan('anakin', 9);</blockquote>
+
+<p>When you use the new keyword, the constructor function will create a new object and set 'this' inside the function to that new object and return it.</p>
+
+<p>Next I needed a way to add behavior to the object I had constructed. Initially you can do something like this.</p>
+
+<div data-gist=5579074><script src='https://gist.github.com/toranb/5579074.js'></script></div>
+
+<p>And if you create a new object you can invoke this method and it returns the correct value. But 2 different things seem broken when I added the method inside the constructor function like this.</p>
+
+<p>First it felt strange that each time I created a javascript object I would be adding a function to the instance. I suppose this felt awkward because in other languages I had a true class to declare the function. And each time I would create an object from this class it would have every method defined in the class itself.</p>
+
+<p>Secondly, beyond the 'javascript does not have classes' problem, it felt incorrect to create a copy of the function when I created the object. For starters it's not efficient because you are creating a location in memory for each object when you really only wanted one copy of that method in the first place. Secondly if you want to modify this implementation you now need to do so on each object you created. Instead I wanted a way to declare this once so I would have just one place to modify it, etc.</p>
+
+<div data-gist=5579132><script src='https://gist.github.com/toranb/5579132.js'></script></div>
+
+<p>The workaround is to add this method to the objects prototype. So what is a prototype and how do you get one? Turns out that every javascript object is created with a special attribute that points to another object. And this link or pointer is called the objects prototype. You can think of it as a way to 'bolt on' additional behavior for any object created with a particular type.</p>
+
+<p>One of the big benefits of using the objects prototype is that we have just one copy of that function for every object we create. So how does the method get invoked then? First the javascript object will ask if it has the property.</p>
+
+<blockquote>anakin.hasOwnProperty('skill');</blockquote>
+
+<p>If this returns false, it will look to the objects prototype next.</p>
+
+<blockquote>anakin.constructor.prototype.hasOwnProperty('skill')</blockquote>
+
+<p>It then finds the method and invokes it as if it was on the instance itself.<p>
+
+<p>So now we have a way to construct objects consistently and bolt on behavior that can be shared across each object we create. But this alone doesn't show how we can reuse code. Say I have a jedi object that will share most of the padawan code above, with a few slight differences. I can start by creating another constructor function with the name jedi, but how do I tell the jedi that it should 'inherit' from my padawan object above?</p>
+
+<div data-gist=5579373><script src='https://gist.github.com/toranb/5579373.js'></script></div>
+
+<p>In the above I show that you can modify the jedi.prototype and using some magic inside Object.create we end up with a new object that has the same prototype as padawan (resulting in shared code -ie the skill method can now be invoked on both objects)</p>
+
+<p>One thing to be aware of is that you need to be careful as this looks identical to classical inheritance, but keep in mind that in javascript both jedi and padawan are sharing that skill method, so its possible to end up with strange results if you begin sharing state on the prototype itself (so just be careful of global state like you would in any other language).</p>
+
+<p>You will also notice that in the constructor above I use a special method 'call' to reuse the padawan constructor logic (so I don't duplicate it essentially). This is a hack that acts like super in a way. The call function allows you to pass in your own object context, so in this case we want to invoke the same constructor as padawan but with the jedi object.</p>
+
+<p>Finally you want to pull everything out of global scope (just a good habit in general I think). You can do this by wrapping each object inside an anonymous function (full example below).</p>
+
+<div data-gist=5578978><script src='https://gist.github.com/toranb/5578978.js'></script></div>
+
+<p>The last example I have shows how you can invoke an existing method on a prototype object (similar to calling super in your basic OOP language). In the dark jedi object below, you can extend the skill method by first calling the jedi skill method and adding 99 to the returned value.</p>
+
+<div data-gist=5589095><script src='https://gist.github.com/toranb/5589095.js'></script></div>
+
+<p>I Hope this example is simple and straightforward enough to get other people comfortable with inheritance and polymorphism in javascript!</p>

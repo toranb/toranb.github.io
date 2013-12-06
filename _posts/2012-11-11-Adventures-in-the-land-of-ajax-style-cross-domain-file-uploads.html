@@ -1,0 +1,62 @@
+---
+layout: post
+title:  "Adventures in the land of ajax-style cross domain file uploads"
+date:   2012-11-11 6:00:00
+categories: blog archive
+---
+
+<p>I've spent the last few weeks getting some exposure to the world of cross domain http and all the joys that come with trying to support it cross browser. After a few weeks of painful thrashing I decided it was time to share a few insights that would have saved our team a great deal of man hours (hindsight is 20/20 after all).</p>
+
+<p>The first challenge we faced was learning how to write javascript that could execute in one domain, while pulling json data from another. If you've ever tried to fire off an ajax request to a remote server you have no doubt seen the cross domain error I'm referring to.</p>
+
+<p>Because executing script from another domain is viewed as a security violation, we needed another way to achieve this cross-domain communication. This is where <a href='http://en.wikipedia.org/wiki/JSONP'>jsonp</a> (json with padding) comes into the picture. Instead of first asking for some json from another domain and then passing that data into a javascript callback the usual way, you need to have the remote server invoke the javascript callback with the json data directly.</p>
+
+<p>So instead of the usual jQuery ajax with an inline callback</p>
+
+<div data-gist=4055719><script src='https://gist.github.com/toranb/4055719.js'></script></div>
+
+<p>You will need to add some type of callback to the query string so your remote server can invoke it directly. My first nieve implementation looked something like the below.</p>
+
+<p>But because I didn't know jQuery offered this type of cross domain solution I manually added a script tag with a src pointing at another domain. The secret is the callback in the query string. This allows your remote server to call back with the text/javascript response (that gets executed immediately on the client side).</p>
+
+<div data-gist=4056421><script src='https://gist.github.com/toranb/4056421.js'></script></div>
+
+<p>One of the problems with the above is that I didn't get to use the familiar $.ajax api, but also I had to define a global callback and manage wiring it up myself. (clearly my first attempt at jsonp was less than ideal). What I learned a few days into the process was that jQuery already supports this in a more elegant way using the jsonp dataType and crossDomain flag.<p>
+
+<div data-gist=4055760><script src='https://gist.github.com/toranb/4055760.js'></script></div>
+
+<p>Now with the client-side in order it was time to modify how the backend returned the data so the above jsonp example would actually work cross domain. With the above example your remote server can't simply return the json data as it traditionally would.
+
+<blockquote>[{'foo':'bar'}]</blockquote>
+
+<p>... because of the cross domain limitation mentioned above. Instead you need to pad the json data using the callback that was passed in the query string .</p>
+
+<blockquote>someRandomCallback([{'foo':'bar'}])</blockquote>
+
+<p>And because we are not returning raw json data anymore, the content-type in your response needs to change from application/json to text/javascript so it will be executed by the browser (as javascript normally would be).</p>
+
+<p>This technique worked well and landed us 90% of the functionality we needed. But it turns out jsonp has one very big limitation, it only works with the http GET verb (not POST sadly). So if you only pass small bits of data that can fit in a query string your off to the races. But the moment you need to pass more data, like doing a multipart http post for example, you can't use jsonp anymore. (like trying to pass a large binary file over the wire)</p>
+
+<p>The new challenge was less blogged about and seemingly difficult to get right cross browser. I should clarify that cross browser in this case means supporting IE8 / Firefox / Chrome (just for clarity).</p>
+
+<p>The first step required that I create a form dynamically and append it to the dom. Not normally an issue but with IE8 I found this had to be done in 2 steps. Normally you could just create a form and assign the id inline.</p>
+
+<div data-gist=4055880><script src='https://gist.github.com/toranb/4055880.js'></script></div>
+
+<p>But for some odd reason this didn't make IE8 happy so instead I had to do the following</p>
+
+<div data-gist=4055876><script src='https://gist.github.com/toranb/4055876.js'></script></div>
+
+<p>Now that I had a form I needed a way to post it cross domain. If I just added a form and tried to post it from one domain to another I'd get the usual cross domain error. One technique my co-worker found that worked was to create an iframe and set the action of this iframe to the endpoint on another domain. Next you append this iframe to the body. Now the form we created dynamically can be appended to the iframe (as we want to do a full http post using this form). You also need to set the target on the form to the iframe itself. If this all feels like a hack that's probably because it is.</p>
+
+<p>One last hack for IE to get the multipart form post working correctly was to set both the 'enctype' and the 'encoding'. Without both of these attributes on the form IE wouldn't actually submit as a multipart form post for some odd reason.</p>
+
+<p>The final client side part of this solution looks something like the below</p>
+
+<div data-gist=4056283><script src='https://gist.github.com/toranb/4056283.js'></script></div>
+
+<p>If you tried the above in chrome and your response coming back had a content type of application/json or text/javascript you didn't have a problem. But the moment you tried this in IE8 or firefox you would get prompted to 'save' the response. We found that if you modify your response content-type to be text/plain or text/html these browsers wouldn't prompt the user. (yet another hack but fortunately it does solve the problem)</p>
+
+<p>One last issue that effects every browser in this custom file upload example is that once the response is returned to the iframe you can't reach into it to parse the response coming back. We had to work around this issue with yet another hack (long polling essentially). We found that once the iframe is used to post the data to another domain you lose access to it from within the parent body (makes sense as it would be a cross domain security violation). This is less of a problem if you can simply 'fire and forget' but if you want to give the user some feedback about when the file is finished uploading you will need to invent some type of long polling solution to tell the client side that the file upload is complete or still streaming.</p>
+
+<p>Looking back it was a painful few weeks, but when you are building an epic workaround like this for something the browser was never intended to support, it's sorta expected.</p>

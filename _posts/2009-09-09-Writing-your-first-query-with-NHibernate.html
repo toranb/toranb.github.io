@@ -1,0 +1,311 @@
+---
+layout: post
+title:  "Writing your first query with NHibernate"
+date:   2009-09-09 6:00:00
+categories: blog archive
+---
+
+<h3>Before you get started</h3>
+
+<p>The first step one should take when learning a tool as powerful as <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a>, is to watch the amazing screen cast series by <a href='http://www.unhandled-exceptions.com/blog/' target='_blank'>Steve Bohlen</a> affectionately named the <a href='http://summerofnhibernate.com/' target='_blank'>Summer of NHibernate screen cast Series</a>.  During this 14 screen cast series, Steve does an amazing job of exploring NHibernate from every possible angle.  This series alone was responsible for my adoption of NHibernate!  Keep up the great work Steve!</p>
+
+<p>From the beginning of this journey, I wanted to be sure that I would see a true return on investment for my time spent learning NHibernate.  Not because I don't enjoy learning new technology for the fun of it, but instead because I find time to be something of a luxury these days.  Along these lines I feel it's very important to set a few goals when learning anything new.  Here are a few of mine:</p>
+
+<ul>
+<li>The final solution must work in my production environment</li>
+
+<li>I couldn't modify the database structure</li>
+
+<li>I couldn't modify the behavior of the system</li>
+
+<li>I can still <a href='http://en.wikipedia.org/wiki/Software_testability' target='_blank'>unit test</a> the system without any additional work</li>
+</ul>
+
+<p>If I was able to meet each one of these goals, I felt it would prove NHibernate as a truly flexible technology that could be adopted by other developers in my organization.  And if this tool could meet these goals I would be able to pass on real value to my customers going forward.</p>
+
+<h3>Unit Of Work</h3>
+
+<p>The first concept I needed to learn was the <a href='http://martinfowler.com/eaaCatalog/unitOfWork.html' target='_blank'>Unit of Work pattern</a>.  The idea is that you begin a new transaction, do some work, and if everything worked as expected you would commit the transaction.  And that entire process represents a single unit of work.  Typically you think of a database in this context because it's all or nothing.  If all the work is completed successfully, you commit.  But if anything happens that would result in error, you rollback.</p>
+
+<p>In the context of web development this typically represents a single call to the web server.  Although you could have each data access call be a transaction itself, I have found that embracing the unit of work concept can provide a better way to do transaction management during complex operations.</p>
+
+<h3>Session + SessionFactory + Configuration</h3>
+
+<p>At runtime each unit of work will be represented by a Session object.  This session object is at the core of NHibernate and has responsibilities such as transaction management, dirty tracking, and everything in-between.  In your web application you might create a session when a new request comes in, start a transaction, allow your software to do its work, and finally commit or rollback based on the success of your applications execution.</p>
+
+<p>But we can't simply instantiate a new session object, instead we need another class to do this for us.  SessionFactory is a class that is very expensive to create because it takes the configuration given for your application and builds out the model so you can work with your objects in a way that appears to be persistence ignorant.  Because this object is very expensive to create we typically want to keep it in memory so that each time a request comes in we only ask it build a session so we can do our work.</p>
+
+<p>As I mentioned above, the SessionFactory object requires some configuration.  This configuration is the mapping of each object to the relational data store as well as some generic NHibernate configuration including: connection string, timeout, batch size, SQL dialect, etc.</p>
+
+<p>By default this configuration would be its own XML file named Hibernate.hbm.xml.  But as one of my goals was to make sure this worked in my production environment, I decided to keep this in my web.config so I could reference the connection string defined in the same document.  In part because we use a special type of encryption utility that will actually encrypt the connection string section.  But I didn't want to modify the behavior of this tool, so instead I have the option to tell NHibernate where I have this connection string information.  In the example below you can see this reference is similar to one made if you use the data access application block.</p>
+
+{% highlight xml linenos %}
+  <hibernate-configuration xmlns='urn:nhibernate-configuration-2.2'>
+    <session-factory>
+      <property name='connection.driver_class'>NHibernate.Driver.SqlClientDriver</property>
+      <property name='connection.connection_string_name'>Banking</property>
+      <property name='adonet.batch_size'>10</property>
+      <property name='show_sql'>false</property>
+      <property name='dialect'>NHibernate.Dialect.MsSql2005Dialect</property>
+      <property name='use_outer_join'>true</property>
+      <property name='command_timeout'>60</property>
+      <property name='query.substitutions'>true 1, false 0, yes 'Y', no 'N'</property>
+      <property name='current_session_context_class'>web</property>
+      <property name='proxyfactory.factory_class'>NHibernate.ByteCode.Castle.ProxyFactoryFactory, NHibernate.ByteCode.Castle</property>
+      <mapping resource='Banking.Library.Account.hbm.xml' assembly='Banking.Library'/>
+      <mapping resource='Banking.Library.User.hbm.xml' assembly='Banking.Library'/>    
+    </session-factory>
+  </hibernate-configuration>
+<connectionStrings>
+    <add name='Banking' providerName='System.Data.SqlClient' connectionString='server=.\SQLEXPRESS;DATABASE=Banking;Trusted_Connection=Yes' />
+  </connectionStrings>
+{% endhighlight %}
+	
+<h3>Mapping your first entity</h3>
+	
+<p>So now that we have the generic configuration setup we need to learn how to map our business entity so NHibernate knows how to persist it.  We are working with a simple entity in this post for brevity.  Our user object might have a class that looks something like the below.  Notice that you must have an empty constructor and each property needs to be marked as Overridable (or virtual in c#)</p>
+
+{% highlight vbnet linenos %}
+    Public Class User
+        Implements IUser
+
+        Public Sub New()
+
+        End Sub
+
+        Private mID As Integer
+        Public Overridable Property ID() As Integer Implements IUser.ID
+            Get
+                Return mID
+            End Get
+            Set(ByVal value As Integer)
+                mID = value
+            End Set
+        End Property
+
+        Private mFirstName As String
+        Public Overridable Property FirstName() As String Implements IUser.FirstName
+            Get
+                Return mFirstName
+            End Get
+            Set(ByVal value As String)
+                mFirstName = value
+            End Set
+        End Property
+
+        Private mLastName As String
+        Public Overridable Property LastName() As String Implements IUser.LastName
+            Get
+                Return mLastName
+            End Get
+            Set(ByVal value As String)
+                mLastName = value
+            End Set
+        End Property
+
+        Private mAddress As String
+        Public Overridable Property Address() As String Implements IUser.Address
+            Get
+                Return mAddress
+            End Get
+            Set(ByVal value As String)
+                mAddress = value
+            End Set
+        End Property
+
+        Private mCity As String
+        Public Overridable Property City() As String Implements IUser.City
+            Get
+                Return mCity
+            End Get
+            Set(ByVal value As String)
+                mCity = value
+            End Set
+        End Property
+
+        Private mState As String
+        Public Overridable Property State() As String Implements IUser.State
+            Get
+                Return mState
+            End Get
+            Set(ByVal value As String)
+                mState = value
+            End Set
+        End Property
+
+        Private mZip As String
+        Public Overridable Property Zip() As String Implements IUser.Zip
+            Get
+                Return mZip
+            End Get
+            Set(ByVal value As String)
+                mZip = value
+            End Set
+        End Property
+
+        Private mPhone As String
+        Public Overridable Property Phone() As String Implements IUser.Phone
+            Get
+                Return mPhone
+            End Get
+            Set(ByVal value As String)
+                mPhone = value
+            End Set
+        End Property
+
+    End Class
+{% endhighlight %}
+
+<p>One convention that NHibernate requires is that your mappings files and your entity classes share the same name.  This means less configuration so it's fine by me!  In the example below we write an xml file named User.hbm.xml</p>
+
+{% highlight xml linenos %}
+<?xml version='1.0' encoding='utf-8' ?>
+<hibernate-mapping xmlns='urn:nhibernate-mapping-2.2'>
+  <class name='Banking.Library.Entity.User, Banking.Library' table='tbl_Banking_User'>
+    <id name='ID' column='ID' type='Int32' unsaved-value='0'>
+      <generator class='native' />
+    </id>
+    <property name='FirstName' column='FirstName' type='string' not-null='false' />
+    <property name='LastName' column='LastName' type='string' not-null='false' />
+    <property name='Address' column='Address' type='string' not-null='false' />
+    <property name='City' column='City' type='string' not-null='false' />
+    <property name='State' column='State' type='string' not-null='false' />
+    <property name='Zip' column='Zip' type='string' not-null='false' />
+    <property name='Phone' column='Phone' type='string' not-null='false' />
+  </class>
+</hibernate-mapping>
+{% endhighlight %}
+
+<p>After you create this xml file be sure to set the property 'build action' to 'embedded resource', and the property 'copy to output directory' to 'copy always'.  This will ensure that the mapping files are available for NHibernate at runtime so the session factory has all the configuration required to build a session object to work with the database.</p>
+
+<h3>Writing your first query</h3>
+
+<p>Now that we have told NHibernate how to configure the SessionFactory we can begin writing our first query.  I will be working with an MVC application here so we can easily test this new functionality.</p>
+    
+{% highlight vbnet linenos %}
+    Function Edit() As ActionResult
+        Dim User As User
+        Dim mSession As ISession
+        Dim mSessionFactory As ISessionFactory
+
+        Dim configuration = New Cfg.Configuration()
+
+        configuration.Configure('C:\Documents and Settings\User\My Documents\Visual Studio 2008\Projects\Banking\Banking.Test\app.config')
+
+        mSessionFactory = configuration.BuildSessionFactory()
+
+        mSession = mSessionFactory.OpenSession()
+
+        Try
+            mSession.BeginTransaction()
+
+            'do our first query
+            User = mSession.Get(Of User)(1)
+
+            mSession.Transaction.Commit()
+        Catch ex As Exception
+            mSession.Transaction.Rollback()
+        Finally
+            mSession.Close()
+        End Try
+
+        Return View(User)
+    End Function
+{% endhighlight %}				
+		
+<p>Now you can see in code where we need a configuration file to create a session factory.  And we need a session factory to create the session that will act as our unit of work.</p>
+
+<p>After the session factory creates a session object, we begin a transaction and ask NHibernate to go out to the database and get us a user based on a specific id.  But does it work as we expected?  Let's write a unit test quick to see if we get a populated user object from this controller action.</p>
+
+{% highlight vbnet linenos %}
+    <TestMethod()> _
+    Public Sub Should_Query_User_By_Id()
+        Dim Controller As UserController = New UserController()
+
+        Dim Result As ViewResult = Controller.Edit()
+
+        Dim Model As User = DirectCast(Result.ViewData.Model, User)
+
+        Assert.AreEqual(Model.ID, 1)
+        Assert.AreEqual(Model.FirstName, 'Toran')
+        Assert.AreEqual(Model.LastName, 'Billups')
+        Assert.AreEqual(Model.Address, '1016 Cameron')
+        Assert.AreEqual(Model.City, 'Burlington')
+        Assert.AreEqual(Model.State, 'IA')
+        Assert.AreEqual(Model.Zip, '52601')
+        Assert.AreEqual(Model.Phone, '3199995555')
+    End Sub
+{% endhighlight %}
+
+<p>If you run this test, assuming your database is setup correctly, it should pass with flying colors.</p>
+
+<h3>Writing your first query with LINQ</h3>
+
+<p>Now that we know how to get a single object based on id, how can we get a collection of objects based on some criteria?  This is where the power of <a href='http://weblogs.asp.net/scottgu/archive/2007/05/19/using-linq-to-sql-part-1.aspx' target='_blank'>LINQ</a> comes in handy.</p>  
+
+<p><a href='http://ayende.com/Blog/archive/2009/07/26/nhibernate-linq-1.0-released.aspx' target='_blank'>LINQ to NHibernate</a> was released in July and I have never looked back.  Before this project was available you had to use either HQL (a query language for objects) or the criteria API that ships with NHIbernate.  Both of these would be great if LINQ wasn't around, but after you write your first LINQ query it's hard to go back to magic strings or some custom API for query logic.</p>
+
+<p>In our next controller action we are asking NHibernate to return a list of users with the state of 'IA' .</p>
+
+{% highlight vbnet linenos %}
+    Function Index() As ActionResult
+        Dim UserList As List(Of User)
+        Dim mSession As ISession
+        Dim mSessionFactory As ISessionFactory
+
+        Dim configuration = New Cfg.Configuration()
+
+        configuration.Configure('C:\Documents and Settings\User\My Documents\Visual Studio 2008\Projects\Banking\Banking.Test\app.config')
+
+        mSessionFactory = configuration.BuildSessionFactory()
+
+        mSession = mSessionFactory.OpenSession()
+
+        Try
+            mSession.BeginTransaction()
+
+            'do our first query using LINQ to NHibernate
+            Dim query As IQueryable(Of User) = From Item In mSession.Linq(Of User)() _
+                                               Select Item
+
+            query = query.Where(Function(x) x.State.Equals('IA'))
+
+            UserList = query.ToList()
+
+            mSession.Transaction.Commit()
+        Catch ex As Exception
+            mSession.Transaction.Rollback()
+        Finally
+            mSession.Close()
+        End Try
+
+        Return View(UserList)
+    End Function
+{% endhighlight %}
+
+<p>If you look at the query we asking the LINQ provider for NHibernate to get all users from the database with a state of 'IA'.  But does it work?  Let's write a test to verify this code does what we asked it to.</p>
+
+{% highlight vbnet linenos %}
+    <TestMethod()> _
+    Public Sub Should_Query_User_Collection_Using_LINQ()
+        Dim Controller As UserController = New UserController()
+
+        Dim Result As ViewResult = Controller.Index()
+
+        Dim Model As IEnumerable(Of User) = DirectCast(Result.ViewData.Model, IEnumerable(Of User))
+
+        Assert.AreEqual(Model.Count, 1)
+        Assert.AreEqual(Model(0).ID, 1)
+        Assert.AreEqual(Model(0).FirstName, 'Toran')
+        Assert.AreEqual(Model(0).LastName, 'Billups')
+        Assert.AreEqual(Model(0).Address, '1016 Cameron')
+        Assert.AreEqual(Model(0).City, 'Burlington')
+        Assert.AreEqual(Model(0).State, 'IA')
+        Assert.AreEqual(Model(0).Zip, '52601')
+        Assert.AreEqual(Model(0).Phone, '3199995555')
+    End Sub
+{% endhighlight %}
+
+<p>And again if you run this test, assuming your database is setup correctly, it should pass with flying colors. </p>
+
+<p>I hope this helped someone get up and running with NHibernate.  If you want to investigate further, download the source <a href='http://dl.dropbox.com/u/716525/content/downloads/simpleNHibernate.zip'>here</a>.</p>

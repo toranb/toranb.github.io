@@ -1,0 +1,98 @@
+---
+layout: post
+title:  "Setup your first Xcode project with unit testing in mind"
+date:   2010-12-04 6:00:00
+categories: blog archive
+---
+
+<p>A year ago I spoke with a friend of mine who was doing <a href='http://www.apple.com/iphone/'>iPhone</a> development and after a few minutes I got the false impression that you had to pay $99 to even start writing code for the platform.  But it turns out you can register with apple for free and with this you get all the tools needed to start building real software for the iPhone.</p>
+
+<p>So I decided to write a short 'how to' post that would list the steps needed to write your first objective-c application with Xcode.  First you need to <a href='http://developer.apple.com/programs/register/'>signup</a> as a developer on the apple site, again this is 100% FREE.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/appleregister.jpg' alt='Register' style='width: 550px; height: 411px;'/>
+
+<p>Once you are registered, login and navigate to the downloads section. At the time I'm writing this <a href='http://developer.apple.com/technologies/tools/xcode.html'>Xcode</a> 3 is the current stable build up for download.  Find the most recent version of Xcode available and download it.  Xcode is the IDE that apple provides developers to write objective-c, but to be clear you can do this development in any editor you wish.</p>
+
+<p>After you pull this down install it.  Just take the defaults, no special configuation is needed.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/installingxcode.jpg' alt='Install Xcode' style='width: 550px; height: 411px;'/>
+
+<p>If you are new like me and don't know where to launch Xcode from the first time, navigate to the root of your system drive and go into the 'Developer' folder. Once inside this folder go into the 'Applications' folder and you should see the Xcode application - launch it or add it to the dock and launch it.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/xcode.jpg' alt='Open Xcode' style='width: 550px; height: 411px;'/>
+
+<p>Once this is up and running select 'Create a new Xcode project'. For the sake of this hello world app select the option 'view-based application' and then click the 'choose' button.  Next give your new project a name and click save.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/newxcodeproject.jpg' alt='Create New Xcode Project' style='width: 550px; height: 411px;'/>
+
+<p>This demo application will be a little different than most 'hello world' iPhone apps - we want to start by creating a <a href='http://en.wikipedia.org/wiki/Unit_testing'>unit test</a> instead of pushing code to a device.</p>
+
+<p>To get started we will need to create a Test specific target in Xcode.  I tend to think of this as another project of sorts that will build our test classes and run the unit tests.  You should see a 'Targets' navigation item, right click this and select 'add new target'.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/newtesttarget.jpg' alt='Add New Test Target' style='width: 550px; height: 411px;'/>
+
+<p>Click 'Coca Touch' on the left navigation. Then select 'Unit Test Bundle' and click next. Then give the target a name and click finish. I usually name it the same as my production app + 'Test' so I can keep them straight.</p>
+
+<p>Next from the build menu change the Base SDK from iOS Device 4.1 to iOS Simulator 4.0.  The reason we change this is that in my short experience test driving objective-c it won't build correctly unless it's running 4.0 (don't ask why - still not sure to be honest).</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/changebasesdk.jpg' alt='Change Base SDK' style='width: 550px; height: 411px;'/>
+
+<p>Next select the other target (the one for production code) and click the 'info' button. In the build dialog change the Base SDK from iOS Device 4.1 to iOS Simulator 4.0 just as we did for the test target above.</p>
+
+<p>Next go up to the production project and right click the 'Frameworks' folder and select 'Add Existing Frameworks'</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/addtestingframework.jpg' alt='Add Existing Framework' style='width: 550px; height: 411px;'/>
+
+<p>Click 'Add Other' and navigate to your root /Developer/Library/Frameworks/ inside this directory double click the folder named 'SenTestingKit.Framework'</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/addsentestingframework.jpg' alt='Add Sen Testing Kit Framework' style='width: 550px; height: 411px;'/>
+
+<p>Next right click the top root item and select 'add => new group' and give this folder a name.</p>
+
+<p>Then you need to right click this new folder/group and select 'add => new file'.  In the left navigation select 'Cocoa Touch Class'</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/addtestfile.jpg' alt='Add The Test File' style='width: 550px; height: 411px;'/>
+
+<p>On the right you should now see 'Objective-C test case class' select this and save it with a name (SampleUnitTest.m was good enough for this demo). Make sure you unselect the default target and pick your test target instead.  Also be sure to unselect the 'generate .h file' because we don't explicitly need these in different physical files for unit testing alone.  If you later decide that you need to distribute a binary you might need a separate .h file.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/addthefirsttestfile.jpg' alt='Create First Unit Test' style='width: 550px; height: 411px;'/>
+
+<p>The default template file we will be starting with should look something like the below. Just remove any extra code generated by Xcode.</p>
+
+{% highlight objc linenos %}
+#import <SenTestingKit/SenTestingKit.h>
+
+@interface SampleUnitTest : SenTestCase {
+
+}
+- (void) testString;
+
+@end
+
+@implementation SampleUnitTest
+
+- (void) testString
+{ 
+  STAssertEquals(@'hi', @'hi', @'The strings do not match');
+}
+
+@end
+{% endhighlight %}
+
+<p>Now we need to build the production target so make sure the drop down shows it selected w/ debug option (make sure you only Build - not Build and run). The keyboard shortcut for this is (apple key) + b </p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/buildoptionsforproduction.jpg' alt='Production Build Options' style='width: 550px; height: 411px;'/>
+
+<p>Next switch the target and do a build of the test target, again just a build not build and run.</p>
+
+<img src='http://dl.dropbox.com/u/716525/content/images/buildoptionsfortesting.jpg' alt='Test Build Options' style='width: 550px; height: 411px;'/>
+
+<p>You should get 'Build succeeded (2 errors, 1 warning)' - this is normal but unexpected ... (wish I knew why this happened).</p>
+
+<p>Quit xcode and reopen your project</p>
+
+<p>This time when you do a build of the test target you should get a simple 'Build succeeded' w/out any errors or warnings.</p>
+
+<p>I also did a short screen capture of these steps for anyone who wants this in video format.  The machine I recorded this on didn't have audio so it's just the steps listed above in action.  You can stream or download <a href='http://dl.dropbox.com/u/716525/content/video/xcode/setupxcodeforunittesting.mp4'>this</a> mp4 directly.</p>
+
+<p>In the next post I'll walk through actually writing a true unit test and the objective-c code needed to get it passing.  I just wanted to show how one might get the initial project up and running with a test target along side the production build.</p>

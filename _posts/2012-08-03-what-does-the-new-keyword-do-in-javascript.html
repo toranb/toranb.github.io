@@ -1,0 +1,28 @@
+---
+layout: post
+title:  "What does the new keyword do in javascript?"
+date:   2012-08-03 6:00:00
+categories: blog archive
+---
+
+<p>When I started (re)learning javascript earlier this year, one of the first things I tried to do was create a 'class' like structure using only a basic function.</p>
+
+<p>I quickly found that you can create a class-like-object the same way you create a function (because classes don't exist in the language). But what I found interesting is that depending on who you ask ... some people use the 'new' keyword when they do this and some people don't. So I decided to find out why this new keyword was so important.
+
+<p>In the first example I create a human using the new keyword and then I try to print the property that is set at the time the object is constructed.
+
+<div data-gist=3252318><script src='https://gist.github.com/toranb/3252318.js'></script></div>
+
+<p>That works like you would expect, but what if we leave off the new keyword?</p>
+
+<div data-gist=3252324><script src='https://gist.github.com/toranb/3252324.js'></script></div>
+
+<p>This time around it blew up when we tried to print the property because 'this' was 'undefined' for some odd reason. It turns out that the new keyword actually provides some context for the function as it's executed. We can simulate this (long hand) using the apply function. First you pass in the context manually (the human object), next you pass in the array of arguments that will be passed to the function as it's invoked.</p>
+
+<div data-gist=3252333><script src='https://gist.github.com/toranb/3252333.js'></script></div>
+
+<p>You can achieve the same result using the call function, the only difference is that instead of an array for the second param you can pass in any number of arguments and they will be passed along to the function as it's invoked.</p>
+
+<div data-gist=3252402><script src='https://gist.github.com/toranb/3252402.js'></script></div>
+
+<p>So next time you think about leaving off the 'new' keyword ... think about the context you are leaving out</p>

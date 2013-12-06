@@ -1,0 +1,78 @@
+---
+layout: post
+title:  "How to install pip, virtualenv and django on ubuntu"
+date:   2011-12-22 6:00:00
+categories: blog archive
+---
+
+<p>I recently started developing on linux again, but this time I'm doing <a href='http://python.org/'>Python</a> professionally. And with any new platform, you learn how to setup your development machine on day one. Initially I just installed Python 2.x and started writing code without a care in the world. But it turns out most of the real-world Python developers are working with this thing called <a href='http://pypi.python.org/pypi/virtualenv'>virtualenv</a>. </p>
+
+<p>The short version -virtualenv allows you to silo a development python environment from system Python. So without further ado -the steps below will get you up and running from a fresh install of Ubuntu 11.10</p>
+
+<p>This install assumes you are a normal (non root) user who has sudo access to install packages (but please don't do something like sudo -i before starting this install)</p>
+
+<blockquote><p>sudo apt-get update</p></blockquote>
+
+<blockquote><p>sudo apt-get install python-setuptools python-dev build-essential git-core -y</p></blockquote>
+
+<blockquote><p>sudo easy_install pip</p></blockquote>
+
+<blockquote><p>sudo pip install virtualenv</p></blockquote>
+
+<blockquote><p>sudo pip install virtualenvwrapper</p></blockquote>
+
+<p>At this step type pwd **to make sure this is your home dir -ie /home/toranb. If you are not cd ~/ and you should be.</p>
+
+<blockquote><p>mkdir ~/virtualenvs</p></blockquote>
+
+<blockquote><p>echo 'export WORKON_HOME=~/virtualenvs' >> ~/.bashrc</p></blockquote>
+
+<blockquote><p>echo 'source /usr/local/bin/virtualenvwrapper.sh' >> ~/.bashrc</p></blockquote>
+
+<blockquote><p>echo 'export PIP_VIRTUALENV_BASE=~/virtualenvs' >> ~/.bashrc</p></blockquote>
+
+<blockquote><p>source ~/.bashrc</p></blockquote>
+
+<p>The above is a great start, but if you want to use the best Python editor known to man keep going. If you don't want a bulky IDE or you just don't have the hardware to run it, install vim the right way as the vanilla install of ubuntu won't have anything installed.</p> 
+
+<blockquote><p>sudo apt-get install vim vim-scripts vim-doc vim-latexsuite vim-gui-common vim-gnome -y</p></blockquote>
+
+<p>If you decided to install the Pycharm editor -it requires the JDK so let's get started!</p>
+
+<blockquote><p>sudo apt-get install openjdk-7-jdk -y</p></blockquote>
+
+<p>Next go <a href='http://www.jetbrains.com/pycharm/download/'>download</a> Pycharm from jetbrains. Once this is finished cd into your downloads directory</p>
+
+<blockquote><p>cd ~/Downloads/</p></blockquote>
+
+<blockquote><p>tar xvzf [name of the tar.gz]</p></blockquote>
+
+<p>Now cd into that new directory after the extraction is finished.</p>
+
+<blockquote><p>cd bin</p></blockquote>
+
+<blockquote><p>./pycharm.sh</p></blockquote>
+
+<p>Now you have a full python stack so lets create our first virtualenv and install django! (back to the terminal)</p>
+
+<blockquote><p>mkvirtualenv blog</p></blockquote>
+
+<p>This will create a new virtualenv (very minimal install). To install django use pip.</p>
+
+<blockquote><p>pip install django</p></blockquote>
+
+<p>Now you can develop, install other packages using pip,etc (go to town people!)</p>
+
+<p>If you want to get out/off your virtualenv use this command</p>
+
+<blockquote><p>deactivate</p></blockquote>
+
+<p>If you want to jump back on the virtualenv we just created and installed django use this command</p>
+
+<blockquote><p>workon blog</p></blockquote>
+
+<p>And finally if you want to remove the virtualenv altogether</p>
+
+<blockquote><p>rmvirtualenv blog</p></blockquote>
+
+<p>Now you should have a fully functional Python/Pip/Virtualenv/Django development environment!</p>
