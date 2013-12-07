@@ -1,3 +1,4 @@
 name: Paradigm Shift
 markdown: redcarpet
 pygments: true
+permalink: /blog/archive/:year/:month/:day/:title/
