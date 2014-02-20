@@ -1,0 +1,28 @@
+---
+layout: post
+title:  "Beware invalid html in your ember.js app"
+date:   2014-02-16 06:00:00
+categories: blog archive
+---
+
+<p>A few months back I tried to upgrade one of our first ember.js projects from RC7 to 1.0. But after the upgrade I noticed a unique re-render bug when I would switch between 2 different sub-views.</p>
+
+<img style="width: 628px;" src='https://dl.dropboxusercontent.com/u/716525/content/images/2014/Broken.gif' />
+
+<p style="margin-top: -45px;">After a few failed attempts I put it on the bottom of my priority list and moved on. But last week I noticed a similar error in our latest ember.js app when we forgot to add a closing div element. I immediately realized that handlebars wasn't playing nice with invalid html.</p>
+
+<p>So I went back to the ember.js RC7 project and started looking through each template until I found this self closing div.</p>
+
+<blockquote>
+  &lt;div style="clear:both;" /&gt;
+</blockquote>
+
+<p>It turns out a self closing div is valid xhtml but not valid html (resulting in the re-render behavior). After I modified the div, the strange re-render bug disappeared.</p>
+
+<blockquote>
+  &lt;div style="clear:both;"&gt;&lt;/div&gt;
+</blockquote>
+
+<img style="padding-top: 20px; width: 628px;" src='https://dl.dropboxusercontent.com/u/716525/content/images/2014/Working.gif' />
+
+<p>I'm not sure if this invalid html bug is documented anywhere but I felt it was worth a blog post either way.</p>
