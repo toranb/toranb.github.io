@@ -1,0 +1,27 @@
+---
+layout: post
+title:  "Building Ember App Kit-Lite preface"
+date:   2014-04-07 06:00:00
+categories: blog archive
+---
+
+<p>Last year <a href="https://twitter.com/stefanpenner">Stefan Penner</a> launched <a href="https://github.com/stefanpenner/ember-app-kit">Ember App Kit</a> as an experimental project to help the community build a common foundation for ambitious projects built with ember.js. I loved the concept and personally couldn't thank Stef and the community enough for paving the way forward with this amazing project.</p>
+
+<p>With that said, I didn't adopt it for any personal or work projects because I never fully understood how it all worked. In particular, the Gruntfile itself always seemed like the most complex configuration file I'd ever seen. To be clear, I can still appreciate the work and experience that went into building that file.</p>
+
+<p>And because I found this project extremely helpful, I decided the community would benefit from a fresh step-by-step blog series showing how to build up a Gruntfile like this from scratch. I hope to give others some insight into each decision that is made along the way.</p>
+
+<p>The long term solution will be something official like <a href="https://github.com/stefanpenner/ember-cli">ember-cli</a> but until this is stable/polished/etc I think this series will prove valuable. It might also help teams who had trouble upgrading EAK take another stab at it with fresh eyes.</p>
+
+<p>I plan to cover the following for those who might be interested</p>
+
+<ul>
+<li>Basic concatenation</li>
+<li>Handlebars template precompilation</li>
+<li>The es6-module-transpiler</li>
+<li>Opinionated Project Structure</li>
+<li>Testem integration</li>
+<li>How to run a single QUnit test or module</li>
+<li>Writing unit tests</li>
+<li>What makes integration test setup/teardown unique</li>
+</ul>
