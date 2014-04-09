@@ -1,0 +1,26 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 1"
+date:   2014-04-08 06:00:00
+categories: blog archive
+---
+
+<p>Let me quickly introduce the sample application that we will be upgrading throughout this blog series.</p>
+
+<div style="background-color: black">
+  <img height="250px;" src="https://dl.dropboxusercontent.com/u/716525/content/images/2014/tree.png" />
+</div>
+
+<p>To pull down the static assets I've included bower in the package.json file. To install this in your local directory you can simply type "npm install". The npm install has a post-install hook that will invoke "bower install" to pull down jquery/handlebars/ember locally. These static assets will be stored in the js/vendor folder once bower completes (if you prefer to modify this update the .bowerrc file).</p>
+
+<p>The javascript application itself is very basic and can be found in the js/app.js file. It's nothing more than a "/" route that returns a list of hard coded people.</p>
+
+<div data-gist=10222859><script src='https://gist.github.com/toranb/10222859.js'></script></div>
+
+<p>We include all of the static assets and the above app.js file in the root index.html file. In addition to these static js files, I've also included the handlebars templates with a basic html table that adds a table row for each person in the array.</p>
+
+<div data-gist=10223421><script src='https://gist.github.com/toranb/10223421.js'></script></div>
+
+<p>If you already completed the npm install/bower install steps from above, you can run the python script by typing "./bin/server" from the root of the project. This should host the static directory so you can view the running app at localhost:3000</p>
+
+<p>Now that we have a working application, we can introduce grunt and the other eak-lite concepts.</p>
