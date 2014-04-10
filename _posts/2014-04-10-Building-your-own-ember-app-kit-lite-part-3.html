@@ -1,0 +1,30 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 3"
+date:   2014-04-10 06:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://www.toranbillups.com/blog/archive/2014/04/08/Building-your-own-ember-app-kit-lite-part-2/">previous post</a> we added the grunt task runner and configured our concat plugin to combine all of our javascript assets into a single file.</p>
+
+<p>In this post we need to remove the hard coded templates from index.html and add them as individual handlebars files so we can precompile them and pass them into the concat function. The first step is to add grunt-ember-template-compiler to the package.json and npm install it.<p>
+
+<div data-gist=10341866><script src='https://gist.github.com/toranb/10341866.js'></script></div>
+
+<p>The next step is to add the task to the Gruntfile and define it with a few options.</p>
+
+<div data-gist=10341828><script src='https://gist.github.com/toranb/10341828.js'></script></div>
+
+<p>At the top of the file we load the grunt-ember-template-compiler task. Below the concat definition we add a few options to the emberhandlebars task, including the files we expect to pass into the compiler (**/*.handlebars in this case) along with a single filename we assign to the compiled output.</p>
+
+<p>Next we need to add the compiled template output to our concat task as we expect the final deps.min.js to include our newly compiled templates. Finally at the bottom of the file we need to add this emberhandlebars task to the "local" task definition (just before we invoke the concat step).</p>
+
+<p>Now that we have the task runner configured, open the index.html and remove the script tags for the handlebars templates themselves. Then create a new folder under js named "templates" and add a .handlebars file for each of the templates.</p>
+
+<div style="background-color: black">
+  <img height="250px;" src="https://dl.dropboxusercontent.com/u/716525/content/images/2014/part3tree.png" />
+</div>
+
+<p>Now that our grunt build includes our precompiled templates we can move to the migration from globals to ES6.</p>
+
+<p>If you want to follow along on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> has a commit for each part in the series</p>
