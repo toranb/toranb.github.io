@@ -13,17 +13,19 @@ categories: blog archive
 
 <div data-gist=10440138><script src='https://gist.github.com/toranb/10440138.js'></script></div>
 
-<p>Next we need to load the npm module in the Gruntfile.js and add a specific transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "js" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). Next the src defines that type of files the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific directory (js/dist/transpiled/app/)</p>
+<p>Next we need to load the npm module in the Gruntfile.js and add the transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "js" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). Next the src defines that type of files the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific directory (js/dist/transpiled/app/)</p>
 
 <div data-gist=10440107><script src='https://gist.github.com/toranb/10440107.js'></script></div>
 
-<p>Because this transpile task will modify the js code we need to update the concat task to use the transpiled js files (instead of the app.js file directory). One other thing you might notice is that we've moved the app.js file into a specific folder under js (named app in this case).</p>
+<p>Because this transpile task will modify the js code we need to update the concat task to use the transpiled js files (instead of the app.js file as it was previously). One other thing you might notice is that we've moved the app.js file into a specific folder under js (named app in this case).</p>
 
 <div data-gist=10440494><script src='https://gist.github.com/toranb/10440494.js'></script></div>
 
-<p>In the above concat you will see that we also included 2 new files to help us manage the transpiled output. The first is the loader.js file (essentially it provides the define funtion so we can load the amd modules on demand). Next we include the ember resolver to help us lookup modules based on the name/type/path.</p>
+<p>In the above concat you will see that we also included 2 new files to help us manage the transpiled output. The first is the loader.js file (essentially it provides the define funtion so we can load the amd modules on demand). We also include the ember resolver to help us lookup modules based on the name/type/path.</p>
 
-<p>Because file paths are important we need to restructure the app.js into several files in specific paths. First create a file named router.js that will encapsulate the routes for each view.</p>
+<p>Because file paths are important we need to restructure the original app.js file into several files in specific folders. First create a file named router.js that will encapsulate the routes for each view.</p>
+
+<p>If this is your first time with ES6 you will notice that we export the Router as "default" at the bottom of the file. This allows other modules to "import" it when needed.</p>
 
 <div data-gist=10440572><script src='https://gist.github.com/toranb/10440572.js'></script></div>
 
