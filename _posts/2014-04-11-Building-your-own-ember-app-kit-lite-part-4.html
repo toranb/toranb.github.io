@@ -9,31 +9,31 @@ categories: blog archive
 
 <p>In this post we need to make the biggest change in the entire series. We will migrate from globals to es6 modules using the <a href="https://github.com/joefiorini/grunt-es6-module-transpiler">grunt-es6-module-transpiler</a> to turn out <a href="http://en.wikipedia.org/wiki/Asynchronous_module_definition">AMD modules</a> (as this will work in modern browsers today).</p>
 
-<p>The first step is to npm install the npm module itself after adding it to the package.json file.</p>
+<p>The first step is to install the npm module itself after adding it to the package.json file.</p>
 
 <div data-gist=10440138><script src='https://gist.github.com/toranb/10440138.js'></script></div>
 
-<p>Next we need to load the npm module in the Gruntfile.js and add the transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "js" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). Next the src defines that type of files the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific directory (js/dist/transpiled/app/)</p>
+<p>Next we need to load the npm module at the top of our Gruntfile.js and add the transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "example" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). Next the src defines that type of files the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific output directory.</p>
 
 <div data-gist=10440107><script src='https://gist.github.com/toranb/10440107.js'></script></div>
 
-<p>Because this transpile task will modify the js code we need to update the concat task to use the transpiled js files (instead of the app.js file as it was previously). One other thing you might notice is that we've moved the app.js file into a specific folder under js (named app in this case).</p>
+<p>Because this transpile task will modify the js code we need to update the concat task to use the transpiled output (instead of the app.js file as it was previously). One other thing you might notice is that we've moved the app.js file into a folder under js (named app in this case).</p>
 
 <div data-gist=10440494><script src='https://gist.github.com/toranb/10440494.js'></script></div>
 
 <p>In the above concat you will see that we also included 2 new files to help us manage the transpiled output. The first is the loader.js file (essentially it provides the define funtion so we can load the amd modules on demand). We also include the ember resolver to help us lookup modules based on the name/type/path.</p>
 
-<p>Because file paths are important we need to restructure the original app.js file into several files in specific folders. First create a file named router.js that will encapsulate the routes for each view.</p>
+<p>Because file names/paths are important in ember, we need to restructure the original app.js file into several files under folders with specific names. First create a file named router.js that will encapsulate the routes for each view.</p>
 
 <p>If this is your first time with ES6 you will notice that we export the Router as "default" at the bottom of the file. This allows other modules to "import" it when needed.</p>
 
 <div data-gist=10440572><script src='https://gist.github.com/toranb/10440572.js'></script></div>
 
-<p>Next we need to put the person model in its own file under a models directory.</p>
+<p>Next we need to put the person model in its own file under the models directory.</p>
 
 <div data-gist=10440620><script src='https://gist.github.com/toranb/10440620.js'></script></div>
 
-<p>Now comes the fun part, we need to put the people route in its own file under the routes directory. But notice at the top, we need to import the Person model that we created earlier.</p>
+<p>Now comes the fun part, we need to put the people route in its own file under the routes directory. But because this module needs access to the Person object we need to import it directly.</p>
 
 <div data-gist=10440699><script src='https://gist.github.com/toranb/10440699.js'></script></div>
 
