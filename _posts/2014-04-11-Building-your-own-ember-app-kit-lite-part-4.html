@@ -1,0 +1,54 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 4"
+date:   2014-04-10 06:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://www.toranbillups.com/blog/archive/2014/04/09/Building-your-own-ember-app-kit-lite-part-3/">previous post</a> we added handlebars precompilation to our grunt pipeline.</p>
+
+<p>In this post we need to make the biggest change in the entire series. We will migrate from globals to es6 modules using the <a href="https://github.com/joefiorini/grunt-es6-module-transpiler">grunt-es6-module-transpiler</a> to turn out <a href="http://en.wikipedia.org/wiki/Asynchronous_module_definition">AMD modules</a> (as this will work in modern browsers today).</p>
+
+<p>The first step is to npm install the npm module itself after adding it to the package.json file.</p>
+
+<div data-gist=10440138><script src='https://gist.github.com/toranb/10440138.js'></script></div>
+
+<p>Next we need to load the npm module in the Gruntfile.js and add a specific transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "js" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). Next the src defines that type of files the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific directory (js/dist/transpiled/app/)</p>
+
+<div data-gist=10440107><script src='https://gist.github.com/toranb/10440107.js'></script></div>
+
+<p>Because this transpile task will modify the js code we need to update the concat task to use the transpiled js files (instead of the app.js file directory). One other thing you might notice is that we've moved the app.js file into a specific folder under js (named app in this case).</p>
+
+<div data-gist=10440494><script src='https://gist.github.com/toranb/10440494.js'></script></div>
+
+<p>In the above concat you will see that we also included 2 new files to help us manage the transpiled output. The first is the loader.js file (essentially it provides the define funtion so we can load the amd modules on demand). Next we include the ember resolver to help us lookup modules based on the name/type/path.</p>
+
+<p>Because file paths are important we need to restructure the app.js into several files in specific paths. First create a file named router.js that will encapsulate the routes for each view.</p>
+
+<div data-gist=10440572><script src='https://gist.github.com/toranb/10440572.js'></script></div>
+
+<p>Next we need to put the person model in its own file under a models directory.</p>
+
+<div data-gist=10440620><script src='https://gist.github.com/toranb/10440620.js'></script></div>
+
+<p>Now comes the fun part, we need to create a route folder and nest the people.js file in it. But notice at the top, we need to import the Person model that we created earlier.</p>
+
+<div data-gist=10440699><script src='https://gist.github.com/toranb/10440699.js'></script></div>
+
+<p>Finally we need to update the app.js file to include the resolver we added to our Gruntfile.js above. We also need to provide a matching modulePrefix (this must match what we put in the moduleName of our transpile task)</p>
+
+<div data-gist=10440759><script src='https://gist.github.com/toranb/10440759.js'></script></div>
+
+<p>The project is growing a little as we created a single file per class. It should look something like the below now.</p>
+
+<div style="background-color: black">
+  <img height="250px;" src="https://dl.dropboxusercontent.com/u/716525/content/images/2014/step4-tree.png" />
+</div>
+
+<p>The very last step is to create the app in our index.html file (because the app.js only defines app now, instead of creating it as we did when everything was global).</p>
+
+<div data-gist=10440865><script src='https://gist.github.com/toranb/10440865.js'></script></div>
+
+<p>Now that our grunt build includes a transpile step we can move onto jshint!</p>
+
+<p>If you want to follow along on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> has a commit for each part in the series</p>
