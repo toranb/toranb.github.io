@@ -13,7 +13,7 @@ categories: blog archive
 
 <div data-gist=10440138><script src='https://gist.github.com/toranb/10440138.js'></script></div>
 
-<p>Next we need to load the npm module at the top of our Gruntfile.js and add the transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "example" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). Next the src defines that type of files the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific output directory.</p>
+<p>Next we need to load the npm module at the top of our Gruntfile.js and add the transpile task with a few options. The first option is the type and in this instance we decided to use amd. Next we declare the module name by using a specific prefix of "example" (this can be anything as long as it matches what you tell ember in the app.js file). The third is a section named "files" where you specify the current working directory (in this case js/app). The src attribute defines the specific type of file that the transpiler will pull from the working directory (in this case we want all javascript files even if they are in a directory). And finally we want to dump the transpiled js code to a specific output directory.</p>
 
 <div data-gist=10440107><script src='https://gist.github.com/toranb/10440107.js'></script></div>
 
