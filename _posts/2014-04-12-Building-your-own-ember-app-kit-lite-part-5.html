@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 5"
+date:   2014-04-12 06:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://www.toranbillups.com/blog/archive/2014/04/09/Building-your-own-ember-app-kit-lite-part-4/">previous post</a> we migrated from globals to modules using the es6 module transpiler.</p>
+
+<p>At this point the Grunt configuration has grown, but we are missing a critical part of the build process. To help find errors/mistakes quickly during the development process, we need to add <a href="http://www.jshint.com/docs/">JSHint</a></p>
+
+<p>The first step is to install the npm module itself after adding it to the package.json file.</p>
+
+<div data-gist=10541373><script src='https://gist.github.com/toranb/10541373.js'></script></div>
+
+<p>Next we need to load the npm module at the top of our Gruntfile.js and add the jshint task with a few options. The first is what files should the linter look at, and in this case we want any js file under the app directory. The next option is to tell jshint we are using ES6 (to ignore the import statements).</p>
+
+<div data-gist=10541423><script src='https://gist.github.com/toranb/10541423.js'></script></div>
+
+<p>Now that our grunt build includes jshint we can move onto watch + live reload!</p>
+
+<p>If you want to follow along on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> has a commit for each part in the series</p>
