@@ -1,0 +1,26 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 6"
+date:   2014-04-12 06:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://www.toranbillups.com/blog/archive/2014/04/11/Building-your-own-ember-app-kit-lite-part-5/">previous post</a> we added jshint to catch errors/mistakes early in the build process.</p>
+
+<p>At this point the Grunt configuration has grown, but we are missing a critical part of the build process. To help find errors/mistakes quickly during the development process, we need to add <a href="http://www.jshint.com/docs/">JSHint</a></p>
+
+<p>The first step is to install the npm module itself after adding it to the package.json file.</p>
+
+<div data-gist=10550895><script src='https://gist.github.com/toranb/10550895.js'></script></div>
+
+<p>Next we need to load the npm module at the top of our Gruntfile.js and add the watch task with a few options.</p>
+
+<div data-gist=10551054><script src='https://gist.github.com/toranb/10551054.js'></script></div>
+
+<p>The first option worth calling out is the livereload. If you install the <a href="https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en">chrome plugin</a> and enable it, this will reload the page for you any time a file you configure to watch changes. You configure the file types in the section below. In this example, we want to reload when a handlebars template or javascript file changes.</p>
+
+<p>The last option requires a little re-work because the watch task needs another "task" to run when it gets triggered. Because we wanted to run everything already in local, I renamed local to dev and made local a combination of dev + watch. This way we can reuse it to keep the configuration DRY-ish.</p>
+
+<p>Now that our grunt build includes watch + live reload, we can move onto testem!</p>
+
+<p>If you want to follow along on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> has a commit for each part in the series</p>
