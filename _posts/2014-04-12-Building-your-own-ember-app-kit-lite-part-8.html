@@ -1,0 +1,26 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 8"
+date:   2014-04-12 06:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://www.toranbillups.com/blog/archive/2014/04/11/Building-your-own-ember-app-kit-lite-part-7/">previous post</a> we added testem to help tighten the feedback loop as we write our ember app.</p>
+
+<p>The last feature missing from our grunt configuration is deployment. We need to both uglify and change the final js file name based on a hash of some kind so we can use some aggresive caching techniques on our production web server.</p>
+
+<p>The first step is to install both npm modules after adding them to the package.json file.</p>
+
+<div data-gist=10555317><script src='https://gist.github.com/toranb/10555317.js'></script></div>
+
+<p>Next we need to load the npm modules at the top of our Gruntfile.js and add both tasks with a few basic options.</p>
+
+<div data-gist=10555483><script src='https://gist.github.com/toranb/10555483.js'></script></div>
+
+<p>The uglify task will run first and the only real requirement is to tell grunt what the input/output file names should be. I'm being a little lazy in this example and using the same filename. If you want both files on your production server to help debug a deployment issue you might want to create a new file instead of using the same deps.min.js.</p>
+
+<p>The hashres task has a few options worth mentioning. The renameFiles attribute means that it will literally find "index.html" given the path below (dest) and change the text "js/dist/deps.min.js" (src) to something unique instead. To be clear, this is the entire point of this plugin. This unique hash is based on the contents of your js file. The idea is that if you change this, your next deploy will generate a new hash making it possible for you to enable longer caching without the fear of users getting stale assets.</p>
+
+<p>This post marks the end of my EAK-Lite blog post series. I'm looking forward to ember-cli and broccoli but for now the grunt configuration I built during this series has proven to be effective for builds/testing/deployment.</p>
+
+<p>The final solution is on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> and it contains a commit for each part in the series so you can follow along step-by-step.</p>
