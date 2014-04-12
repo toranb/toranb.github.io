@@ -7,7 +7,7 @@ categories: blog archive
 
 <p>In the <a href="http://www.toranbillups.com/blog/archive/2014/04/11/Building-your-own-ember-app-kit-lite-part-5/">previous post</a> we added jshint to catch errors/mistakes early in the build process.</p>
 
-<p>If you do any design work the manual process of changing some html/running "grunt local" starts to feel painful. Why not rebuild the assets automatically and refresh the browser? This is where grunt-contrib-watch comes to the rescue!</p>
+<p>With the current grunt configuration you might find the feedback loop extremely painful. That's because any time you modify html or javascript you need to manually execute "grunt local" from the command line and then refresh the browser. Why not rebuild the assets automatically and refresh the browser for you? This is where grunt-contrib-watch comes to the rescue!</p>
 
 <p>The first step is to install the npm module itself after adding it to the package.json file.</p>
 
@@ -19,7 +19,7 @@ categories: blog archive
 
 <p>The first option worth calling out is the livereload. If you install the <a href="https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en">chrome plugin</a> and enable it, this will reload the page for you any time a file you configure to watch changes. You configure the file types in the section below. In this example, we want to reload when a handlebars template or javascript file changes.</p>
 
-<p>The last option requires a little re-work because the watch task needs another "task" to run when it gets triggered. Because we wanted to run everything already in local, I renamed local to dev and made local a combination of dev + watch. This way we can reuse it to keep the configuration DRY-ish.</p>
+<p>The last option requires a little re-work because the watch task needs another "task" to run when it gets triggered. Because we already have everything we need in the local task, I simply renamed local to dev and made local a combination of dev + watch. This way we can reuse it to keep the configuration DRY-ish.</p>
 
 <p>Now that our grunt build includes watch + live reload, we can move onto testem!</p>
 
