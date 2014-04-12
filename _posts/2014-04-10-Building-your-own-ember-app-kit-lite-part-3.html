@@ -17,9 +17,11 @@ categories: blog archive
 
 <p>At the top of the file we load the grunt-ember-template-compiler task. Below the concat definition we add a few options to the emberhandlebars task, including the files we expect to pass into the compiler (**/*.handlebars in this case) along with a single filename we assign to the compiled output.</p>
 
-<p>Next we need to add the compiled template output to our concat task as we expect the final deps.min.js to include our newly compiled templates. Finally at the bottom of the file we need to add this emberhandlebars task to the "local" task definition (just before we invoke the concat step).</p>
+<p>Next we need to add the compiled template output to our concat task as we expect the final deps.min.js to include our newly compiled templates.</p>
 
 <div data-gist=10561884><script src='https://gist.github.com/toranb/10561884.js'></script></div>
+
+<p>Finally at the bottom of the file we need to add this emberhandlebars task to the "local" task definition (just before we invoke the concat step).</p>
 
 <p>Now that we have the task runner configured, open the index.html and remove the script tags for the handlebars templates themselves. Then create a new folder under js named "templates" and add a .handlebars file for each of the templates.</p>
 
