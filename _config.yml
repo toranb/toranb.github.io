@@ -1,4 +1,4 @@
 name: Paradigm Shift
 markdown: redcarpet
-pygments: true
+highlighter: true
 permalink: /blog/archive/:year/:month/:day/:title/
