@@ -1,0 +1,108 @@
+---
+layout: post
+title:  "Python and Chromebooks for everyone!"
+date:   2014-06-20 18:00:00
+categories: blog archive
+---
+
+<p><a href="http://toranbillups.com/blog/archive/2013/06/29/Teaching-python-to-fifth-graders/">Last year</a> I put together a week long "introduction to programming" bootcamp for 5th and 6th grade students. It was my first attempt to share what I love about software development with a group of kids. I decided if I was given the opportunity to do something like this again I would improve upon it using what I'd learned from the previous year.</p>
+
+<p>Last year each student was given a <a href="http://www.raspberrypi.org/">raspberry pi</a> and the last 2 days of the week we wrote python code on that hardware exclusively. Each raspberry pi was a gift from <a href="https://www.python.org/psf/">The Python Software Foundation</a> so you could imagine the students excitement when they realized that they would get to take this free computer home at the end of the week.</p>
+
+<p>This looked really good on paper and felt like the key ingredient to my programs success. What I found in practice was that each student left on Friday asking how they could hookup the raspberry pi to their parent's laptop. Or something to that effect meaning the hardware might not/would not be used when they left the classroom. And if the students were not able to program after the class ended, my overall impact would be reduced greatly.</p>
+
+<p>So this year my goal was to improve the hardware story by giving each of the students a free laptop of some kind. I had heard of people hacking the chromebook to run <a href="http://www.ubuntu.com/">ubuntu</a> and ideally this would be the OS of choice for anyone learning <a href="https://www.python.org/">python</a>. After a quick search, I found this <a href="http://chromeos-cr48.blogspot.com/2013/10/chrubuntu-for-new-chromebooks-now-with.html">great tutorial</a> and it looked not only possible, but easy to setup with any modern chromebook.</p>
+
+<p>Within a week of deciding that I would put together a second python bootcamp for 5th grade students, I made the trip to Tennessee to speak at the python conference <a href="http://www.pytennessee.org/">PyTennessee</a>. This conference was a blast for any software professional, but I found the final keynote by <a href="https://twitter.com/jessicamckellar">Jessica McKellar</a> extremely powerful. Her talk, entitled <a href="http://www.pytennessee.org/schedule/presentation/46/">Teaching the next generation</a> touched on the many different things you could do as an individual to improve the adoption of computer science for young people who may not know about the subject or understand why it's valuable.</p>
+
+<p>So in January of this year I decided to approach the principal of a local elementary school to see if a teaching opportunity was available this summer. A few weeks later I met with the district's technology integrationist to talk about my experience in 2013 and what I had planned for the summer if I was given the opportunity to teach again. We decided on the week of June 9th and I was asked to write an official curriculum for the class.</p>
+
+<p>I wrote the <a href="https://dl.dropboxusercontent.com/u/716525/content/presentations/2014/curriculum.pdf">curriculum</a> over the following weekend and emailed it back to him for approval. While I waited to hear back, I decided to email the Python Software Foundation to see what options I had to help fund my chromebook project. They offered to help but it was clear I would need some local sponsors to make the dream a reality.</p>
+
+<p>Next I wrote my first-ever attempt at a grant proposal to start the fundraising process. I started with my <a href="http://www.imtins.com/">employer</a> at that time and it was clear they wanted to be involved from the start. I then reached out to a few other local companies, but 60 days later I was still $900 short of my goal. Finally, I reached out to the only other <a href="https://www.wdesk.com/">local python shop</a> in town and they came through right when I needed them most!</p>
+
+<p>Now that I had met the fundraising goal, I checked in with the PSF to make sure everything was moving along as expected. I heard back that they had received the money and a check for the full amount was on it's way to me. I then started the search for the perfect chromebook. Initially I was enamored with the 11.6" <a href="http://www.amazon.com/Samsung-XE303C12-A01US-Chromebook-Wi-Fi-11-6-Inch/dp/B009LL9VDG">Samsung model</a> but as they were a little outside of my price range so I gave the <a href="http://www.amazon.com/Acer-C720-Chromebook-11-6-Inch-2GB/dp/B00FNPD1VW">Acer C720</a> a hard look and it turns out to be one of the best reviewed chromebooks (and it was hard to beat the price at $199).</p>
+
+<p>When the chromebooks arrived, I wanted to have a clean slate to start so I put each machine into developer mode. From there, I started the basic ubuntu setup and found that the full install took just over an hour to complete. When I got the machine booted I installed idle and removed amazon from the search menu (privacy settings) to protect the kids from the less than "safe for work" images I've seen show up at times. Because python is installed by default the machine was nearly ready to go straight out of the box.</p>
+
+<p>Around the same time, I heard back from the school that my curriculum was approved. We would be meeting June 9th - 13th from 9am - 11am each day. I asked if they could pick 4 girls and 4 boys to ensure we had a diverse group of students. At this point all the machines were setup and I was ready to teach some python!</p>
+
+<h3>Day 1 - Monday</h3>
+
+<p>I'll admit I was a little nervous coming in to teach on Monday after I got an email late Sunday night saying that only 3 or 4 kids had officially registered. Last year I remember having all 8 kids registered almost a full month before school was out, so this was unfamiliar territory to say the least. (Camps and other schedule conflicts plus slow communication made it difficult to round up kids for the intro to programming course.)</p>
+
+<p>When 9 o'clock rolled around I had 3 students so I decided to make the most of our small class size. I asked each of the students if they had a computer in the home. It was clear all of the kids had access to at least one computer, but none of the kids said they had a computer of their own.</p>
+
+<p>What happened next was the highlight of my week without a doubt. I told the kids that they would each be getting a new computer! (hard not to say that without getting excited all over again!). They immediately jumped up and ran over to the table where I had a large brown box full of new chromebooks. I left the original packaging on so the kids would get to open the box as if it were brand new.</p>
+
+<p>Once they got the machines unboxed and booted up we opened chrome and I had everyone navigate to the <a href="http://light-bot.com">light-bot</a> logic game. I like to start the kids out playing this game because it teaches problem solving and logical thinking. In addition I've found it helps to illustrate how computer programs are a series of many small steps.</p>
+
+<p>We took a break at 10am and then dove into a fun Madlib activity. I found it was easier to explain how variables worked conceptually when we could start from a familiar place. We got each of the students started using the python <a href="http://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop">REPL</a> with a simple name = "name" age = "age" activity.</p>
+
+<p>We spent the remainder of the class playing around with simple string/number types and hacking together basic math problems. I did notice throughout the morning that long variable names presented a challenge because most of the kids simply don't type 100+ wpm yet. The remainder of the week I tried to use short variable names when possible.</p>
+
+<p>We spent the entire morning in the REPL so before we left for the day I asked the kids to close the terminal and reopen it. I did this to show them that we didn't save any of the work from that morning. As you could imagine, each student was upset because they were so entrenched in their work.</p>
+
+<p>Initially I had planned to explain how what we'd done in the REPL was "in memory" but after watching the emotional response I completely skipped this discussion. (maybe a missed opportunity) I later told them that it was okay because we'd learned a great deal! Also I mentioned that we would be writing a ton of small programs throughout the week and at times we might throw one away and start over.</p>
+
+<h3>Day 2 - Tuesday</h3>
+
+<p>Tuesday was by far the most difficult day of the week because we had 4 new students. I had planned to teach 8 kids initially so this was a step in the right direction for sure, but the 3 students who attended on Monday experienced a Groundhog day of sorts.</p>
+
+<p>I had to stray from the curriculum a bit because I couldn't jump ahead for fear of leaving the new students behind. I realized the class would be successful if I could redo the basics from Monday but to keep the original 3 engaged I tried to speed it up a little.</p>
+
+<p>We started with light-bot 2.0 so this gave me a chance to talk about how computer programs are a set of procedural instructions (more repetition from the first day, but because the game was new, each of the students had fun with these concepts). Unfortunately when this activity ended, the class seemed to split because the new students needed a (quick) explanation of variables. I used the madlib analogy again but due to time constraints I had to skip the longer activity where each student would write a story/read it to the class/etc.</p>
+
+<p>This helped me get the entire class back into the REPL so I could provide the new students with the simple name/age variable examples while pushing even more complex examples at the original 3 kids. If you are getting a mental picture involving a terrible juggling act then I've accurately described the situation.</p>
+
+<p>I stuck with it and eventually we found our way through the basics. I even had time to work in some additional "order of operations" math problems that the kids seemed to enjoy! The one big change I did manage to incorporate was using IDLE instead of the REPL for most of the day. The students didn't have any trouble with the "file new" / "save as" experience, but I did find the version of IDLE we had installed wouldn't allow the students to open an existing program to edit it further.</p>
+
+<p>Aside from the obvious pain point mentioned above, the new students had a lot of trouble with the trackpad for some reason. I also found that some of the students really wanted to play around with the system clock (because I failed to set it to CST). I took some time after class that day to set them each to 12 hour / CST.</p>
+
+<p>Finally, as helpful as I found light-bot (the flash game), I found the iPad version (JR edition in particular) much easier to play and the examples had a slower ramp (which kept the kids more engaged yet apparently challenged).</p>
+
+<h3>Day 3 - Wednesday</h3>
+
+<p>Now that each of the students had an understanding of the fundamentals I could really drive some of the more complex concepts. But to be sure everyone was ready for it, I started by pairing up the kids to do a quick recap. At this point I also wanted to see if the students could work through basic syntax errors without me.</p>
+
+<p>The previous day we briefly touched on conditionals so I decided we should dive back in with a few <a href="http://www.pythonforbeginners.com/basics/python-if-elif-else-statement">if/else</a> examples to really nail it. We spent the next 20 minutes discussing how if/else blocks work and I even threw in the <a href="http://www.pythonforbeginners.com/basics/python-if-elif-else-statement">elif</a> to help the kids conceptualize branching. The biggest challenge we faced during this lesson was keeping the whitespace consistent. I spent a lot of time convincing the students that <a href="http://www.pythonforbeginners.com/basics/python-if-elif-else-statement">if and else</a> should be on the same conceptual "line" (by using a ruler as a visual).</p>
+
+<p>The next new concept I introduced was the "while loop". We started with a simple "how can we print the word hello 4 times?" example. I used the while loop to introduce the looping concept instead of the "for loop" because I thought it would be more approachable for the beginner. I found that the students were able to follow this basic example without any real problem.</p>
+
+<p>Next I introduced the list type so we could talk about the "for loop" soon after. I went back to a very basic "string" vs "number" example to review with the students again. I then said that a "list" was just another type (of variable) in python and it could contain many different things (such as string or number). We created a list of animal names so I set the stage for the looping idea. I asked the kids how we could print the name of each animal in the list and they very quickly said "we could use a loop!" I then added a loop example taking advantage of the true "for loop". The biggest struggle here was explaining how the variable changes during each iteration.</p>
+
+<p>Once the students had a handle on conditionals, loops and lists, I decided to ask them how we could get information from the person running the program. I then introduced the raw_input function and we did a few examples showing how to use it. A common question I came up against here was explaining that the program will "pause" when it hits the line with raw_input (they initially took this as a program error).
+
+<p>We still had a few minutes toward the end of the day so I did the unthinkable and introduced yet another concept. I decided to talk briefly about functions and I was able to borrow heavily from light-bot because the kids already had a great deal of experience with it. They quickly understood the control flow concepts but for some reason declaring the function independently seemed foreign.</p>
+
+<p>Overall it was the most productive day yet! The only technical issue to speak of was when the IDLE's "run" command quit working for one of the students. A quick reboot corrected this but only for a short time. I decided to take that students chromebook home and reinstall ubuntu to be sure it wasn't anything software related.</p>
+
+<h3>Day 4 - Thursday</h3>
+
+<p>Wednesday night I wrote the battleship game to use on Friday. Going through the process of writing the game helped me pinpoint the key features of python that would be essential for the kids to learn in order to finish the game.</p>
+
+<p>The first concept that I'd missed earlier in the week was replacing/updating an element within a list. In the battleship game the students would swap an item that was unknown (represented as O) with a miss (represented as X) when the user of the program made an incorrect guess.</p>
+
+<p>I planned to work that into the curriculum but first we started the day with a ton of review as you might imagine: discussing variables, types, conditionals, lists and loops. I threw together a few fresh examples for each topic to keep the students interested of course. One such example was a simple for loop that would sum a python list of integers, which was an exercise the kids really enjoyed.</p>
+
+<p>The last hour of the class we circled back to functions. I focused a great deal of energy showing how the function declaration was used, and how to name the arguments that are passed in. I remember working through a few examples without any trouble.</p>
+
+<p>Ultimately functions were nice to have, but since they wouldn't make it into the battleship game, I decided to reserve what little time we had left on Friday to the "must haves".</p>
+
+<h3>Day 5 - Friday</h3>
+
+<p>The first 45 minutes of our last day involved more repetition and a laser focus on the things required to build the game. But to keep things new and exciting I started the class off by asking the kids to shorten a program I wrote the night before. The basic idea is that I had a program with several "for loops" and "if statements" that could easily be a single "for loop" with one conditional. The kids really enjoyed this exercise and almost half the class got a working solution in some form or another.</p>
+
+<p>After we worked through the first exercise I threw together a handful of "while loop" and "conditional" examples to simulate what we would be using to build the engine inside of the game.</p>
+
+<p>The last 45 minutes we got right into game development. The students wrote the game in IDLE and we added each feature one step at a time to get feedback quickly along the way. The final program is a pared down version of the battleship game you build during the <a href="http://www.codecademy.com/courses/python-beginner-en-4XuFm/0/1">codecademy python course</a>.</p>
+
+<div data-gist=74d06bc50055840eaeaf><script src='https://gist.github.com/toranb/74d06bc50055840eaeaf.js'></script></div>
+
+<p>Before any family arrived, I wanted to be sure the students knew how to run the game outside of IDLE. They were already familiar with the terminal so I had them quickly open it up and run it from the command line to make sure everyone was on the same page. This was so simple in fact that over half of the class had their parents play the game directly from the terminal!</p>
+
+<p>At this point everyone had arrived and the room was full of excitement! All the students' hard work had paid off! Everyone had a functional battleship game and the family who showed up to support them had a blast guessing the ships location each time!</p>
+
+<p>The best part of the entire experience was the look on each students face as they left the classroom on Friday. They not only had a brand new chromebook, but a working computer game they wrote themselves!</p>
+
+<img border="0" style="width: 100%;" src="https://dl.dropboxusercontent.com/u/716525/content/images/2014/PythonChromebooks2014.JPG"/>
