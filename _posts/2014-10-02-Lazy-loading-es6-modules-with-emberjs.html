@@ -47,7 +47,7 @@ categories: blog archive
 
 <h3>But what does this look like in a real app?</h3>
 
-<p>To iterate further I created a second app I labeled <a href="https://github.com/toranb/ember-complex-lazy-loading-example">ember-complex-lazy-loading-example</a>. The first commit incorporates the dynamic model/controller/view changes listed above in step 3. The biggest difference is that this example project is much closer to what you would ship to production. I added a true gulp build to both the main and reports app (ignore the obvious duplicate in the gulpfile for now).</p>
+<p>To iterate further I created a second app I labeled <a href="https://github.com/toranb/ember-complex-lazy-loading-example">ember-complex-lazy-loading-example</a>. The first commit incorporates the dynamic model/controller/view changes listed above in step 3. The biggest difference is that this example project is much closer to what you would ship to production. I added a true gulp build to both the main and reports app (ignore the obvious duplication in the gulpfile for now).</p>
 
 <p>The first challenge we need to tackle is that our reports app will need to dynamically inject a new set of routes so the parent app can be unaware on purpose. I added a simple route to the reports app but I didn't want to override the js/router.js file as this won't be the primary ember router. So instead, I added a router under another sub folder (dynamic) and require it in manually -note that this router imports the parent router from js/router so we can add to it.</p>
 
