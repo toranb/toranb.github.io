@@ -1,0 +1,66 @@
+---
+layout: post
+title:  "Lazy loading es6 modules with emberjs"
+date:   2014-10-02 18:00:00
+categories: blog archive
+---
+
+<p>These days if you mention the word monolith in a room full of developers you will likely hear someone mention <a href="http://martinfowler.com/articles/microservices.html">microservices</a>. This term is often associated with backend development but I'm starting to think it's worth a discussion for those of us doing heavy frontend engineering.</p>
+
+<h2>Why do I need this silver bullet?</h2>
+
+<p>disclaimer ** The concepts I'll be showing in this post shouldn't be considered without careful thought (taking into consideration the needs of your team and application). That said, here is a list of the key indicators I've seen in the wild that make me think we should breakup these monolithic javascript applications.</p>
+
+<h3>feedback isn't what it once was</h3>
+
+<p>I'm a huge fan of testing/test-driven development for the simple fact that I can iterate quickly over time. When the number of tests in your app start to reach a level that makes feedback "painful" I'd say it's worth thinking about how to breakup that single application into a few smaller applications.</p>
+
+<h3>parts of the app are not required for most users</h3>
+
+<p>If you have an application that both admin users and non-admin users login to you might find large parts of the app go unused for these non-admin users. This "load only what you need" strategy could help you keep the application lean so users only pull down what they actually use.</p>
+
+<h3>If your single javascript payload is huge</h3>
+
+<p>If your software becomes popular it's likely you'll be asked to add features. Over time you might find that once small javascript application has grown beyond something you feel mobile users can download in one go. If you can instead lazy load a few smaller modules on the fly it might help speed up that initial page load.</p>
+
+<h2>Okay, you've convinced so how can I do this?</h2>
+
+<p>First we need a simple ember app to get started with so we can experiment with this lazy loading concept. I've been using ES6 modules for the past year so this process will involve a simple gulp build to transpile ES6 to AMD. For this first part I've created a simple ember app with 3 commits to <a href="https://github.com/toranb/ember-lazy-loading-example">track our progress</a> as we iterate.</p>
+
+<p>To get started I just wanted to click a link that would load up a route, that would in turn fire off a $.getScript request for the reporting app (a bundle that could contain many controllers/routes/templates/etc). I added a route to my router mapping, added a link-to in the application.handlebars file and finally created a Route that would fire off the request for our dynamic javascript file.</p>
+
+<div data-gist=532e19f93ac120f1c46c><script src='https://gist.github.com/toranb/532e19f93ac120f1c46c.js'></script></div>
+
+<p>When the $.getScript request is resolved the javascript we pulled in will console.log our message proving we loaded it!</p>
+
+<p>Now this was a solid first step ... but I'd like to load up a true ES6 module (or the equivalent AMD module for now). In step 2 lets change the lazy loaded js file to be an importable AMD module. Next in the afterModel we require it. And finally because the module is an ember object we can invoke a method/computed property to see it in action.</p>
+
+<div data-gist=b238e87041c46c050f69><script src='https://gist.github.com/toranb/b238e87041c46c050f69.js'></script></div>
+
+<p>This time around when you click the link you should see a console.log that says 'inside the help property'. We can now lazy load AMD modules containing ember objects and invoke methods on those objects!</p>
+
+<p>That's another great step forward, but in a real application I'd like to avoid any manual require process. In step 3 we will load a single js file on demand that includes a model/controller/view. The key to maintaining this app over time is that we need to think of it as a single ember app conceptually.</p>
+
+<div data-gist=fdc85b921614c5e4e463><script src='https://gist.github.com/toranb/fdc85b921614c5e4e463.js'></script></div>
+
+<p>Now when you click the link you should see the new template is dynamically loaded. Because this didn't involve any special require or custom imports we now have something to build on.</p>
+
+<h2>But what does this look like in a real app?</h2>
+
+<p>To iterate further I created a second app I labeled <a href="https://github.com/toranb/ember-complex-lazy-loading-example">ember-complex-lazy-loading-example</a>. The first commit incorporates the dynamic model/controller/view changes listed above in step 3. The biggest difference is that this example project is much closer to what you would ship to production. I added a true gulp build to both the main and reports app (ignore the obvious duplicate in the gulpfile for now).</p>
+
+<p>The first challenge we need to tackle is that our reports app will need to dynamically inject a new set of routes so the parent app can be unaware on purpose. I added a simple route to the reports app but I didn't want to override the js/router.js file as this won't be the primary ember router. So instead, I added a router under another sub folder (dynamic) and require it in manually -note that this router imports the parent router from js/router so we can add to it.</p>
+
+<div data-gist=ae7a0f4eb792d20501d3><script src='https://gist.github.com/toranb/ae7a0f4eb792d20501d3.js'></script></div>
+
+<p>In the pre 1.0 versions of ember if you called map on the router more than once it would replace the routes, but today it just appends to the existing routes so we get a completely functional web app with child routes that are managed on the fly.</p>
+
+<p>The last remaining issue is that I need to test this partial app as if it was a standalone ember app. The first step is to create a special test helper that will inject an app (for integration testing purposes).</p>
+
+<div data-gist=98c20fe07e1ac04f8627><script src='https://gist.github.com/toranb/98c20fe07e1ac04f8627.js'></script></div>
+
+<p>Now we can write a simple integration test for the reporting app as if it was a standalone ember app.</p>
+
+<div data-gist=a264dd5c607fe9fa0c1e><script src='https://gist.github.com/toranb/a264dd5c607fe9fa0c1e.js'></script></div>
+
+<p>This solution is 90% complete and I hope it's helpful to those teams that have apps large enough to use something like this in the wild. One last tradeoff to note is that I couldn't find a way to (easily) reuse the dynamic routes (for the integration tests) so I simply duplicated the dynamic routes in the reports/app/router.js file. Ideally I'd prefer to load these only the fly (within the test helper). If anyone has a suggestion please feel free to pass it along!</p>
