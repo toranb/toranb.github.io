@@ -64,3 +64,15 @@ categories: blog archive
 <div data-gist=a264dd5c607fe9fa0c1e><script src='https://gist.github.com/toranb/a264dd5c607fe9fa0c1e.js'></script></div>
 
 <p>This solution is 90% complete and I hope it's helpful to those teams that have apps large enough to use something like this in the wild. One last tradeoff to note is that I couldn't find a way to (easily) reuse the dynamic routes (for the integration tests) so I simply duplicated the dynamic routes in the reports/app/router.js file. Ideally I'd prefer to load these only the fly (within the test helper). If anyone has a suggestion please feel free to pass it along!</p>
+
+<h3>Update - make $.getScript run-loop friendly</h3>
+
+<p>After posting this <a href="http://madhatted.com/2007/5/28/what-i-do">Matthew Beale</a> wrote me to ask that I update how I invoke $.getScript to make it more aware of the run-loop. He wrote it so well that I just copy/pasted his exact words below! Thanks for the email Matthew!</p>
+
+<p>Although getScript does return a thennable, it does not return an RSVP promise. This means the resolution of the promise (the function passed to .then) is not wrapped in a runloop, and an auto-run will be incurred. Auto-runs are inefficient, cause non-deterministic behavior through race conditions, and are difficult to test.</p>
+
+<p>What I would suggest is writing a utility function:</p>
+
+<div data-gist=1636a20ed8d28f9e758e><script src='https://gist.github.com/toranb/1636a20ed8d28f9e758e.js'></script></div>
+
+<p>This would help avoid an auto-run, and keep the runloop code (Ember.run) out of your domain logic in the route.</p>
