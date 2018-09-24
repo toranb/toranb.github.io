@@ -1,0 +1,34 @@
+---
+layout: post
+title:  "Submit data using an http post in objective-c"
+date:   2011-04-10 6:15:00
+categories: blog archive
+---
+
+<p>In <a href='http://toranbillups.com/blog/archive/2011/04/10/Writing-your-first-http-request-in-objective-c'>part 1</a> of the series I demonstrated how you might construct a simple http GET request. But in any real application the user will typically need to act on something pulled down during the GET request and this is where the http POST comes in.  With the POST verb we can send data along with the request and most websites will require some form of communication to happen using the POST verb exclusively.</p>
+
+<p>Lucky for us it's not much different than creating a GET request. For this example I will be working to emulate a simple form POST found on my redblueflix webpage that sends an email.  The elements in html look something like the below.</p>
+
+<div data-gist=912876><script src='https://gist.github.com/toranb/912876.js'></script></div>
+
+<p>We can see the url that we need to use for the post along with the name and suggestion input values. I will be using the same project from our previous example so if you plan to follow along be sure to get the source code from <a href='https://github.com/toranb/HttpWithObjectiveC'>github</a>.</p>
+
+<p>The first step is to create the url and request as we did with the http GET.  Also we need to set the method as 'POST' instead of 'GET' this time. </p>
+
+<div data-gist=912877><script src='https://gist.github.com/toranb/912877.js'></script></div>
+
+<p>This would work just fine except that it doesn't have any of the required form data.  The simplest thing that works here is to build a string with the values we want to send and add this string to the POST. We can then turn this string into NSData so it can be sent over with the request.</p>
+
+<div data-gist=912880><script src='https://gist.github.com/toranb/912880.js'></script></div>
+
+<p>Next we need to add this NSData to the request by setting the body. In addition we will set a few other values like the accept header, content-type and length.</p>
+
+<div data-gist=912881><script src='https://gist.github.com/toranb/912881.js'></script></div>
+
+<p>Now if we put this all together we end up with the following code to build and fire off our first http POST.</p>
+
+<div data-gist=912882><script src='https://gist.github.com/toranb/912882.js'></script></div>
+
+<p>The current implementation will fire off an http POST with that form data as if we had clicked the submit button on an html page.</p>
+
+<p>The full source code for this sample is available on <a href='https://github.com/'>github</a> <a href='https://github.com/toranb/HttpWithObjectiveC'>here</a>.</p>

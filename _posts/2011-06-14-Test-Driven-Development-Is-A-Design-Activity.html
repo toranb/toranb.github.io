@@ -1,0 +1,40 @@
+---
+layout: post
+title:  "Test Driven Development Is A Design Activity"
+date:   2011-06-14 18:00:00
+categories: blog archive
+---
+
+Any time I introduce someone to <a href='http://www.objectmentor.com/resources/articles/tfd.pdf'>Test Driven Development</a> the focus quickly turns to testing in the QA sense.  And if this same person has experience with <a href='http://en.wikipedia.org/wiki/Unit_testing'>unit testing</a> it's seemingly impossible to move the discussion beyond this testing concept.  And at first glance this makes sense, after all the term 'Test Driven Development' has the word 'test' in it. But over time I've found tdd most valuable as a design tool.</p>
+
+<p>But before you can explain the design process you have to get past this 'testing' word that seems to hang everyone up. It usually starts with you being asked to justify all the time you will need to carve out for 'testing' during the project. In the past I would have labeled this as a problem because if I was to sell unit-testing alone I couldn't do it.</p>
+
+<p>For starters unit testing a legacy code base isn't worth the effort when you do it 'just for testing sake' or to reach some <a href='http://programmer.97things.oreilly.com/wiki/index.php/Give_me_100%25_Code_Coverage_or_Give_Me_Death!'>mythical coverage goal</a>. I also couldn't tell you that unit-testing a new method today after the fact would be worth it. Because with either approach you are doing work that doesn't add any value directly and it's not only hard to sell the concept, it's impossible to justify the extra work.</p>
+
+<p>So why would I look this same person in the eye and tell them I do Test Driven Development after I just said unit-testing doesn't provide any real return on investment? It's because I'm using the mechanics of unit-testing to design my software (hence the name Test-Driven).  I won't deny the regression benefits provided by the unit tests left over from the design work, but these are nothing more than a side effect. Simply put, Test Driven Development is a design activity.</p>
+
+<p>When I tell this to someone who has been writing code for 10+ years they always ask 'what does a test tell you about the design anyway?'. So instead of the generic 'I let the tests tell me what's wrong with the design' response, I decided to put a short list of examples together for anyone who might find them interesting.</p>
+
+<h3>If the test is hard to write...</h3>
+
+<p>When you write software test first you are forced to decompose the software down to the smallest bits of behavior. When you don't get these behaviors small enough you will find the test cases difficult to write. This is usually the first symptom that you are trying to do too much and haven't broken the problem down enough.</p>
+
+<p>I also find it hard to write a test for something I don't understand. This shows up quickly when you are forced to write a test first. If I truly can't write the test before the implementation I don't yet understand the requirement or I've not broken the expected behavior down to a small atomic unit. Letting the test tell me I'm not ready to write the implementation has improved the quality of my production code by keeping each class focused.</p>
+
+<h3>If the test requires a ton of mock objects...</h3>
+
+<p>When you finish writing a test and you see more mocked out behavior than asserted behavior you might have a class that is doing too much. The test makes it clear that my object depends on a number of related objects to perform some action. This is usually a sign that I should refactor out a related behavior that has crept into my object without me otherwise knowing about it.</p>
+
+<p>I should also point out that one exception to this rule is often found in presentation layer objects such as Controllers, Presenters, ViewModels, etc. These classes are usually delegation objects that don't have any real conditional behavior except to invoke a method on some other object. I would say that over time I've found the real value of test driving these objects is to help me see that it's only doing delegation work, not some behavior + some delegation. This command-query segregation helps manage the complexity and is generally a good rule to follow for systems both large and small.</p>
+
+<h3>If the next developer prefers to read the production code...</h3>
+
+<p>Recently I've noticed that when I go back to read an old unit test I wrote I much prefer to read the production code. This is usually a sign that the unit test itself isn't expressive enough. So in the last few months I've made it a priority to read over each unit test I write to ensure it's telling a story about how the method under test works. And I don't commit this test or the production code it drove out until it's expressive enough that a developer without any context can easily understand what it's doing within seconds (not minutes and without launching the debugger).</p>
+
+<p>I've found this last minute review of sorts really helps improve clarity in both test and production code. It's a fact that developers read more code than we write so the easier it is to read the less time we waste in a debugger or reading logs trying to wrap our head around something we don't understand.</p>
+
+<h3>If the test setup starts to grow...</h3>
+
+<p>If I extend an existing unit test and find that I'm adding a ton of setup code to reach different scenarios it might be a sign that my production class is also growing. This is usually a good time to define what you are trying to add and should this be classified as a new behavior it might be better to put this inside a new class altogether. I've found this really helps me grow a large code base over time while keeping my objects small and cohesive.</p>
+
+<p>In general when you feel friction when writing a test it's a sign something is wrong with the design. I hope the above examples help someone else see how the test driven design process works for me personally. If anyone else has an example they would like to share please leave a comment!</p>

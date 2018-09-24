@@ -1,0 +1,24 @@
+---
+layout: post
+title:  "Unit testing your ember.js templates with jasmine part 1"
+date:   2013-04-08 18:00:00
+categories: blog archive
+---
+
+<p>I've been playing around with <a href='http://emberjs.com/'>ember.js</a> the past few months but I still don't have a great deal of experience <a href='http://en.wikipedia.org/wiki/Unit_testing'>unit testing</a> a large single page app built with handlebars and ember.js. The only ember.js web app I have in production today started with a few selenium tests but quickly I could see this wouldn't scale with the complexity of a modern javascript heavy app. And because ember.js apps start template first, I needed some way to verify my handlebars output was correct without having to open the browser each time I made a change or added a new template.</p>
+
+<p>The test examples I'll be showing in this post use the <a href='http://pivotal.github.io/jasmine/'>jasmine</a> behavior-driven development framework and the <a href='https://github.com/toranb/jasmine-phantom-node'>jasmine-phantom-node</a> test runner (quick cli feedback using phantomjs). For brevity I'll be showing the jasmine tests and discuss the process, but if you want the code for this entire example be sure to pull it down from github <a href='https://github.com/toranb/ember-template-jasmine-example'>here</a></p>
+
+<p>Before we jump into a full blow production like unit test, let's start with something basic to get a better understanding of how we can interact with ember views and their handlebars templates.</p>
+
+<div data-gist=5341526><script src='https://gist.github.com/toranb/5341526.js'></script></div>
+
+<p>In the example above you first need to create a simple ember view that we can attach our template to. Inside the view we can set the template manually using handlebars directly. Notice in this example I'm not using any real handlebars syntax just yet because I want to keep it simple. After we create the view and set the template it's time to attach the view to the dom (you can use #body if you really want but in this example I have a different root element to help reset the browser between tests). And finally, the last line is your standard jasmine assertion to prove the template we wired in is being used correctly. The view.$() function provides a jQuery-esk view into the rendered template so you can get specific elements to assert against.</p>
+
+<p>Now any real application will require you bind a model to some compiled handlebars template so let's take a look at something more interesting.</p>
+
+<div data-gist=5341536><script src='https://gist.github.com/toranb/5341536.js'></script></div>
+
+<p>In the first line of this example we create a model that we will bind to the template. And because you proxy a model with help from the controller in ember.js, I also created a controller and set the model accordingly. Also notice that in this example the template I set on the view expects a model with a username property (basic handlebars stuff here). When this test runs you will see the bound template in action.</p>
+
+<p>The problem with the above example is that you need a way to get your handlebars templates without rewriting them in your test fixtures each time you want to verify some behavior. In <a href='/blog/archive/2013/04/09/Unit-testing-your-emberjs-templates-with-jasmine-part-2/'>part 2</a> I'll show one technique I've used to accomplish this with jasmine.</p>

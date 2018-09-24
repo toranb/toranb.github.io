@@ -1,0 +1,24 @@
+---
+layout: post
+title:  "Hacking array proxy to observe changes on nested array"
+date:   2015-04-23 18:00:00
+categories: blog archive
+---
+
+<p>Just today I found myself asking why a rendered list in my template can't observe changes when the underlying model has an array and I decide to watch for changes to that nested array. If that sounds fun checkout the <a href="https://github.com/emberjs/ember.js/issues/541">issue</a> from 2012 for more details but the TL;DR is that doing a complex computed property (like you see below) isn't supported.</p>
+
+<div data-gist=4a3f6a1e37c3d95a1947><script src='https://gist.github.com/toranb/4a3f6a1e37c3d95a1947.js'></script></div>
+
+<p>My example was slightly more complex than just a computed so I thought to write up a quick "how-to" and share a few jsbin examples. First I'll show the not working example to express what I'd like to see happen (but sadly isn't supported today).</p>
+
+<div data-gist=29f9496e971ebc7e392c><script src='https://gist.github.com/toranb/29f9496e971ebc7e392c.js'></script></div>
+
+<p>Here is the full (broken example) <a href="http://emberjs.jsbin.com/niwaga/1/edit?js,output">jsbin</a> if you want to see it in action. In the example I have an array of models but I've decided only to show items that have the number 8 inside a nested array called things. I then implemented a controller action that removes this number from the things array to ensure the view would update itself (removing the model from the template).</p>
+
+<p>Instead in this example you will see that this doesn't happen ...so what other options do you have? I found a few looking around on github today but my friend <a href="http://williamsbdev.com/">Brandon Williams</a> came up with a killer hack that I just had to blog about because it seemed to solve the issue (aka- the view now updates).</p>
+
+<div data-gist=0e775b12884852d3a427><script src='https://gist.github.com/toranb/0e775b12884852d3a427.js'></script></div>
+
+<p>Here is the working <a href="http://emberjs.jsbin.com/gopiduwowe/1/edit?js,output">jsbin</a> to see it in action. The workaround starts by coming to terms with the idea that I can't listen on a 2nd @each. So instead I create a count computed on the model itself that will listen to changes on the things array. I then update the ArrayProxy to listen for changes to that count property "source.@each.totalThings". Next I added a helper that allows the model itself to remove that number 8 from the nested things array (instead of doing the removeObject inside the controller action directly). And finally this does require totalThings to be in the template to force the getter (if you don't need that number showing up you could always hide the div/span/etc)</p>
+
+<p>Clearly a hack but the simplest I've seen yet that allows the template to observe changes on a nested array!</p>

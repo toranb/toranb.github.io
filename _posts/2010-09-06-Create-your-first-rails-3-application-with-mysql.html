@@ -1,0 +1,31 @@
+---
+layout: post
+title:  "Create your first rails 3 application with mysql"
+date:   2010-09-06 18:00:00
+categories: blog archive
+---
+
+<p>First install mysql from the command line</p>
+
+<pre>sudo apt-get install mysql-server libmysqlclient15-dev</pre>
+<pre>gem install mysql</pre>
+<pre>gem install mysql2</pre>
+
+<p>Now that mysql is installed you can create your first rails app like so</p>
+
+<pre>rails new blog -d mysql</pre>
+
+<p>After you get the app created, cd into the directory that gets generated.  Next generate a simple post object with the following command</p>
+
+<pre>rails generate scaffold Post title:string body:text</pre>
+
+<p>Once this object is created you will need to create the database</p>
+
+<pre>rake db:create</pre>
+<pre>rake db:migrate</pre>
+
+<p>The last thing to do is fire up the default web server that ships with rails and make sure everything is setup correctly.</p>
+
+<pre>rails server</pre>
+
+<p>To verify open your browser and type localhost:3000/posts and see if you can create a new object.  If so you have a working rails 3 application with a mysql database!</p>

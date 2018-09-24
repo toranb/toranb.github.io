@@ -1,0 +1,91 @@
+---
+layout: post
+title:  "How to host a private bower registry"
+date:   2013-08-04 18:00:00
+categories: blog archive
+---
+
+<p>Some would argue the biggest hurdle we have writing client-side javascript today is that we don't get a package manager out of the box. Thankfully over the last calendar year+ <a href='http://browserify.org/'>several</a> <a href='https://npmjs.org/package/coffeeify'>package</a> management solutions have popped up to solve this problem. The one I started playing around with recently, called <a href='https://github.com/bower/bower'>bower</a>, is being developed by the engineering team at <a href='https://twitter.com'>twitter</a>. The main reason I took to bower is that the api is nearly identical to npm (simple and proven to help javascript developers get work done)</p>
+
+<p>Getting started with bower is simple and a ton of <a href='http://gpiot.com/twitter-bower-grunt-get-started-with-assets-management/'>posts</a> exist that show how you can get started using bower for basic package management. What's missing is a post about how to use bower for internal (behind the firewall) package management inside your organization. So without further ado ... here is my attempt to cover this much needed topic.</p>
+
+<h3>why an internal bower you ask?</h3>
+
+<p>One reason you might host a private registry is that your company has a proprietary javascript library and you cannot make this code public. Another reason to host both the web app and your javascript packages behind the firewall, is that it will reduce any dependency you have on the outside world (ie- when github or the public bower website is having downtime it won't affect your business).</p>
+
+<h3>1.) deploy your internal bower web app</h3>
+
+<p>The first step is to stand-up a bower web application that simply stores the location of your git repository by name. If you can/want to host a ruby web app, bower has a <a href='https://github.com/sinatra/sinatra'>sinatra</a> <a href='https://github.com/bower/registry'>app</a> that does the job. If you prefer python, I wrote a simple <a href='https://github.com/toranb/django-bower-registry'>django app</a> that does the trick. Or you could write your own, because at the core it's a simple REST api for name/url.</p>
+
+<p>For this example, I'll be using the django app because I wanted to see how quickly I could get a private bower registry up on a vanilla raspberry <a href='http://www.raspberrypi.org/'>pi</a>. To spin up the python/django bower registry locally</p>
+
+<p style='margin-left: 20px;'>git clone https://github.com/toranb/django-bower-registry.git registry</p>
+<p style='margin-left: 20px;'>cd ~/Projects/registry</p>
+<p style='margin-left: 20px;'>mkvirtualenv registry</p>
+<p style='margin-left: 20px;'>pip install -r requirements.txt</p>
+<p style='margin-left: 20px;'>python manage.py dev syncdb --migrate --noinput</p>
+<p style='margin-left: 20px;'>python manage.py dev runserver</p>
+
+<h3>2.) pre-publish step to setup the bare repository</h3>
+
+<p>One of the missing features of bower 1.0 is that you don't get a store to hold the javascript files (mainly because it assumes every package you will need is a public accessible github repository). You can get around this, but because it's not supported by the bower api you need to do a few steps manually.</p>
+
+<p>The first manual step that's required is to pull down a git repository for the javascript package you want to store internally (bower works with standalone files also but for easy upgrades I prefer the git based approach). In this example, I'll just pull down the <a href='https://github.com/moment/moment'>moment</a> library as it's something I typically use on projects involving datetime.</p>
+
+<p style='margin-left: 20px;'>cd ~/Projects</p>
+<p style='margin-left: 20px;'>git clone https://github.com/moment/moment.git</p>
+
+<p>Next you will need to create a bare git repository on your web server (or some other location you will store the js files). For this example I'll be storing the javascript on my local web server for simplicity.</p>
+
+<p style='margin-left: 20px;'>cd ~/Projects/registry/api/static/api/packages</p>
+<p style='margin-left: 20px;'>git init --bare moment.git</p>
+
+<h3>3.) push the git repository to your web server</h3>
+
+<p>Now that we have an empty git repository, we can add a remote and push the code. Notice I'm using ssh here so authentication will be required.</p>
+
+<blockquote>A quick note about the paths I'm showing below -my username is toranb and the full path to my project directory is /Users/toranb/Projects so be sure to change the below if you do this locally on your developer machine or on a remote web server</blockquote>
+
+<p style='margin-left: 20px;'>cd ~/Projects/moment</p>
+<p style='margin-left: 20px;'>git checkout master (moment defaults to the develop branch and bower plays nice with master)</p>
+<p style='margin-left: 20px;'>git remote add bower ssh://toranb@127.0.0.1/Users/toranb/Projects/registry/api/static/api/packages/moment.git</p>
+
+<p>Before you can push this you need to get your ssh setup working locally (if you are on OSX use <a href='https://github.com/beautifulcode/ssh-copy-id-for-OSX'>this bash script</a> to get the same linux ssh-copy-id). If you haven't yet generated an ssh key on your machine, github has a great <a href='https://help.github.com/articles/generating-ssh-keys'>tutorial</a>.</p>
+
+<p style='margin-left: 20px;'>ssh-copy-id -i ~/.ssh/id_rsa toranb@127.0.0.1</p>
+<p style='margin-left: 20px;'>git push bower master</p>
+
+<p>If you need the ability to install based on tag (ie- specific version of the library), you should also push the tags to the new bower remote.</p>
+
+<p style='margin-left: 20px;'>git push --tags bower master</p>
+
+<h3>4.) register the package with bower</h3>
+
+<p>The next step is where ssh:// falls down with the built in 'bower register' command (so here is the work around). If you try => bower register moment ssh://... it will fail with the error.</p>
+
+<p><b>bower EINVFORMAT    The registry only accepts URLs starting with git://</b></p>
+
+<p>Because bower only works with public accessible repositories, it rejects ssh:// as it would require authentication. So for now I get around this using curl (essentially an http POST to create the package on your internal bower given a name/url)</p>
+
+<p style='margin-left: 20px;'>curl http://127.0.0.1:8000/packages/ -v -F 'name=moment' -F 'url=ssh://toranb@127.0.0.1/Users/toranb/Projects/registry/api/static/api/packages/moment.git'</p>
+
+<h3>5.) install the package in your frontend project</h3>
+
+<p>So now that our bower web app has a name/url that points to a git repository on the web server, we can install moment using bower</p>
+
+<p style='margin-left: 20px;'>cd ~/Projects/your_project_goes_here</p>
+
+<p>Before you can install using bower, we need to tell it about your internal bower registry (as bower defaults to the public bower web app outside of your organization)</p>
+
+<p style='margin-left: 20px;'>echo '{\"registry\": \"http://localhost:8000\"}' > .bowerrc</p>
+
+<p>Now that we have your bower registry setup in your local project using the .bowerrc file, we can install moment using your internal bower web app</p>
+
+<p style='margin-left: 20px;'>npm install bower</p>
+<p style='margin-left: 20px;'>bower install moment</p>
+
+<p>If you want to install a specific version of moment and you pushed the tags to your web server remote, use the optional hash - version like so</p>
+
+<p style='margin-left: 20px;'>bower install 'moment#2.1.0'</p>
+
+<p>My hope is the verbose registration process I outlined above will disappear if/when bower officially supports private storage like this. But for now this workaround allows you to control both the web app and all the production javascript packages you rely on.</p>

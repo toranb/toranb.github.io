@@ -1,0 +1,17 @@
+---
+layout: post
+title:  "Force the browser to get your latest javascript edits"
+date:   2009-05-23 18:00:00
+categories: blog archive
+---
+
+<p>I was looking through some source code on <a href='http://www.stackoverflow.com/' target='_blank'>stackoverflow</a> just the other day using our good friend view source and noticed something strange about how they referenced css and javascript files.  I say strange because it was something I have never seen before, but it solved a big problem I have been facing since my early days of web development.  That problem I am describing is the one where you make some changes to the client side files that are cached by the browser and you need your customer to hit 'control + F5' to force the browser to get the latest changes.</p><p>This has been a real issue for me as of recent because I typically make a ton of javascript changes between iterations and hate to ask my end user to do 'something tricky' just to get the application working as it does on my machine. But this all changed with the discovery of such a simple adjustment to my reference in the head of my html.</p><p>So instead of this:</p>
+<blockquote>
+  &#60;script src='/js/master.js' type='text/javascript'&#62;&#60;&#47;script&#62;
+</blockquote>
+<br />
+<p>I can do this and the browser will know to pull down the css or javascript file when I increment the version number like so:</p>
+<blockquote>
+  &#60;script src='/js/master.js?v=3391' type='text/javascript'&#62;&#60;&#47;script&#62;
+</blockquote>
+<br /><p>I know this is the smallest post yet but to be honest, it proves one of the things I enjoy most about this industry -you learn something new (and fun) every day!</p>

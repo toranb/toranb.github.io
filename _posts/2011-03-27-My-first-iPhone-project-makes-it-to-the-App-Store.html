@@ -1,0 +1,34 @@
+---
+layout: post
+title:  "My first iPhone project makes it to the App Store"
+date:   2011-03-27 18:00:00
+categories: blog archive
+---
+
+<p>I started playing around with objective-c <a href='http://toranbillups.com/blog/archive/2010/11/16/Developing-for-the-iPhone'>last November</a> to see what all the <a href='http://www.apple.com/iphone/'>iPhone</a> hype was about.  At the time I worked with a few mobile developers who had success on other platforms and I thought it would be fun to take an idea from nothing to a finished product.</p>
+
+<p>The developers I worked with at the time all wrote simple redbox apps that would allow a user to find a movie and reserve it for pickup. I knew the app store already had several of these in existence so I would have to innovate before apple would approve anything I created in this realm. So I decided to take from the one great idea introduced on the Windows phone 7 platform, aggregation.  </p>
+
+<p>With a windows phone 7 device you don't open a twitter app separate from your facebook app, but instead a single aggregate social media like app that shows both in one place.  I took this idea and applied it to the dvd kiosk rental space because as a consumer I didn't really care if I was renting from a redbox kiosk or a blockbuster express kiosk, I just wanted to rent a new release on Friday night and drive the shortest distance to get it.</p>
+
+<p>With this idea in mind I started the initial prototype to see if this was even possible.  I reverse engineered both the redbox website and the blockbuster express website to map out the api I would be interacting with over http.  The next step was to start learning the objective-c language itself and for this I purchased a <a href='http://pragprog.com/screencasts/v-bdobjc/coding-in-objective-c-2-0'>great screencast</a> series from <a href='http://pragprog.com/'>The Pragmatic Bookshelf</a> called 'Coding in Objective-C 2.0'.</p>
+
+<p>Like any new programming language I would need to get my hands dirty before I really felt comfortable with it.  I downloaded Xcode and started hacking on a sample project that would query a website with an http GET and return the html.  I remember spending a good week just trying to understand how objects worked and what methods I would need to implement in order to send off this seemingly simple http request.</p>
+
+<p>But after a few weeks I got more interested in the language and found joy in learning something new. A month in I now understood the basics behind creating and interacting with objects, working with multiple navigation elements and the most basic http libraries required for my app idea to take off.  I took these concepts and applied them to a real prototype project that would allow the end user to view a list of movies and reserve one directly in the app.</p>
+
+<p>I remember how low the quality was on this first project because I was still learning how the platform worked. Regardless I worked day and night on this idea just to see if it would work and found myself giving up sleep to invent the time I would need to learn this new platform and programming language (not something I suggest by the way).</p>
+
+<p>When the first movie was reserved through my prototype I felt a huge sense of accomplishment.  Like I had done the impossible or something.  I still remember describing this idea to my wife for the first time '... it's almost God like in that I can create something incredible from nothing and just weeks later have people all over the world using it'</p>
+
+<p>That feeling it turns out can be the most motivational thing in the world at times.  So after I proved the idea would work I did the impossible and started over.  I knew that if I continued with the project as is I would end up with so much technical debt I would eventually be forced to drop it altogether.  So I took what experience I had from the prototype project and spent the next 2 months writing the best quality objective-c that I could. </p>
+
+<p>Some 60 days later I ended up with a functional iPhone app that I felt users would love so I started to nail down all the tweaks that would need to be applied if someone were to actually pay money for this app.  I hired a graphic design team to build a logo for the app because I knew this would be the first thing customers saw when they opened it and if it didn't look professional people might not trust it or use it at all.</p>
+
+<p>I should mention that every day I added a feature to the app I would transfer it to my iPhone 2G and test it throughout the day.  The first reason was that I wanted to support the older iPhone devices running iOS 3.1.3 and the second was that I needed to see how it felt on a real device.  I noticed early on that I was having some performance issues on the actual device around how I loaded images for the main movie view. But in the simulator I didn't actually find this to be an issue.  Also it was good to load the app on a physical device so I could try out the GPS related functionality as the simulator didn't offer any real way to test this.</p>
+
+<p>At the end of February I finally had a rock solid app and submitted it to apple.  I got my first rejection a week later because I didn't pay close enough attention to the crash logs on my iPhone 2G that showed my app requesting a test framework at launch.  If I had figured this out sooner I would have removed it and got the app approved within weeks, but instead I kept submitting it without removing the framework. So a few rejections later the app was finally approved by apple and now it was up the the marketing team (also me) to get the word out.</p>
+
+<p>I created a website using the <a href='www.redblueflix.com'>domain</a> I had purchased a few months back and the <a href='http://twitter.com/redblueflix'>twitter</a> account to match.  I then started looking for people who explicitly use blockbuster express on twitter because they don't yet have an iPhone app so it's more likely they would spring for this as redbox already has a free app.</p>
+
+<p>Within the first week I'd had a decent number of sales and the satisfaction that comes with building something people actually use on a daily basis.  Although I gave up 3 hours of sleep a night for almost 3 months straight I enjoyed the process and hope the people who pay for it get some real value for $0.99 price tag.  The app is called <a href='http://itunes.apple.com/us/app/redblueflix/id422500690'>redblueflix</a> and it's still the ONLY iPhone app that lets you reserve movies for blockbuster express (not to mention that it also lets you reserve from redbox as well)</p>

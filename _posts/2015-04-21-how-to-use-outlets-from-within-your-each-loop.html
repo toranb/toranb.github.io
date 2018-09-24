@@ -1,0 +1,50 @@
+---
+layout: post
+title:  "How to use outlets from within your each loop"
+date:   2015-04-21 18:00:00
+categories: blog archive
+---
+
+<p><b>*Ember 2 Update*</b> I've created a modern version of this technique with ember-twiddle for all those using <a href="https://ember-twiddle.com/6de171477a2527dd01dfc7857c8048c2?openFiles=items.template.hbs">ember 2x</a></p>
+
+<p><b>*Glimmer Update*</b> the custom-outlet you see below isn't necessary because the Ember.Assert that required quoted args <a href="https://github.com/emberjs/ember.js/pull/11029">was removed</a>. Because glimmer isn't stable yet I didn't modify the below/or the example project I put together back in April. Instead I created a <a href="https://github.com/toranb/named-outlet-inside-each-loop-example/commits/glimmer">glimmer branch</a> and you can checkout the commits for technical details about how it works w/ canary today. Big thanks to <a href="https://github.com/intuitivepixel">intuitivepixel</a> for the pull request that landed the final working glimmer nested outlet example!</p>
+
+<hr />
+
+<p>If you've ever tried to inject a template inside of an outlet that is itself inside of an each loop ...you might find it's full of surprises. I decided to outline each issue I ran up against and talk through the final solution I ended up with.</p>
+
+<p>If you just want to see the commits and the example ember-cli project <a href="https://github.com/toranb/named-outlet-inside-each-loop-example/commits/master">check it out</a> on github. Each commit along the way tells part of the story (as you will quickly see below).</p>
+
+<p>First I wanted to see what a single outlet would do so I created a bare bones app with a single nested template. I then added the line you see below in my parent template so I could inject the child html on the fly.</p>
+
+<div data-gist=e6755317f7474e3197a7><script src='https://gist.github.com/toranb/e6755317f7474e3197a7.js'></script></div>
+
+<p>Here is the simple parent/child route relationship for reference.</p>
+
+<div data-gist=dd7b124b6ca3a2c86634><script src='https://gist.github.com/toranb/dd7b124b6ca3a2c86634.js'></script></div>
+
+<p>The first issue I found after I got this much functional was that if I clicked any one of the details links it would inject the child html into EACH of the outlets. The desired behavior is that it should only inject into a single outlet.</p>
+
+<p>The next challenge was that I had an index value (from the each loop -using ember 1.11) but outlet won't accept a non quoted name. So I instead created a custom-outlet (HTMLBars helper) that would let a number/integer based value play the role of my outlet name.</p>
+
+<p>This looks like something that could be added to the normal outlet (in the <a href="https://github.com/emberjs/ember.js/issues/10922">future</a>) but at this time it requires the ugly hack you see below (in the app.js file of your ember-cli project).</p>
+
+<div data-gist=7984fb4f1c1e55c0d013><script src='https://gist.github.com/toranb/7984fb4f1c1e55c0d013.js'></script></div>
+
+<p>Now in my parent template I can pass the index in as a named outlet using the new "custom-outlet" helper.</p>
+
+<div data-gist=2187d52aa55b43763a13><script src='https://gist.github.com/toranb/2187d52aa55b43763a13.js'></script></div>
+
+<p>But now when I click the link-to helper in the browser nothing shows up. To correct this you need to add some renderTemplate logic to the child route itself.</p>
+
+<div data-gist=2e2f1029eaa0f371173a><script src='https://gist.github.com/toranb/2e2f1029eaa0f371173a.js'></script></div>
+
+<p>This now renders correctly but when I click a second or third link it's clear I'm not closing /or disconnecting the previous. To do this just add the following willTransition logic to the child route.</p>
+
+<div data-gist=6c8f9d7b36769e7a9533><script src='https://gist.github.com/toranb/6c8f9d7b36769e7a9533.js'></script></div>
+
+<p>Now this works perfectly but what if I want to have that same outlet inject another template (not details)? Turns out that custom-outlet is reuse friendly! Just add another route/template and link-to and you are off to the races!</p>
+
+<div data-gist=6d8868bb4a8fee171b0b><script src='https://gist.github.com/toranb/6d8868bb4a8fee171b0b.js'></script></div>
+
+<p>Hope this helps someone else get the same great UX w/out all the pain I went through!</p>

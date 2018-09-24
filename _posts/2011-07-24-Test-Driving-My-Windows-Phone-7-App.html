@@ -1,0 +1,20 @@
+---
+layout: post
+title:  "Test Driving My Windows Phone 7 App"
+date:   2011-07-24 18:00:00
+categories: blog archive
+---
+
+<p>I recently started building my first <a href='http://developer.windowsphone.com'>WP7</a> app and found that most of the community seems to be 'okay' with running tests through the emulator instead of a normal test runner like <a href='http://www.jetbrains.com/resharper/'>ReSharper</a>. And as someone who can't design software anymore without thinking test-first I had to come up with a way to test drive my app or I wouldn't have much success on the platform.</p>
+
+<p>I initially played around with the <a href='http://weblogs.asp.net/nunitaddin/archive/2008/05/01/silverlight-nunit-projects.aspx'>Silverlight NUnit Project</a> Visual Studio Template but it didn't work right out of the box as I had hoped. But not because <a href='http://weblogs.asp.net/nunitaddin/'>Jamie Cansdale</a> wasn't thinking ahead, instead the latest version of ReSharper (6.0) has a bug in the test runner causing my tests to not go green (or red for that matter). So after a week without tdd, I went to the <a href='http://stackoverflow.com/questions/6543030/how-to-write-a-simple-wp7-unit-test-using-xunitcontrib'>community</a> for help ... but I still didn't find the answer I was looking for.</p>
+
+<p>Finally I decided to research and blog about the working solution I came up with that allowed me to practice tdd again on the platform. The video is 16 minutes long and I hope someone as frustrated as I was will find it helpful.</p>
+
+<video poster='/content/video/wp7/FirstFrame.png' controls preload='none' width='880' width='494'><source src='/content/video/wp7/wp7nunittdd.mp4' /></video>
+
+<p><a href='/content/video/wp7/wp7nunittdd.mp4'><b>Direct Download (mp4)</b></a></p>
+
+<p>For anyone who isn't interested in the short video I basically took the NUnit dll from the Silverlight NUnit Project and added it to a new WP7 Class Library. From here I had to downgrade my version of ReSharper to 5.x (until the test runner gets a patch). And finally if you come across the 'assembly xyz is missing' during a unit test be sure you mark the dependency as 'Copy Local - True'</p>
+
+<p>If anyone wants the nunit dll I used in the project it's available <a href='/content/downloads/nunitwp7.zip'>here</a> for direct download.</p>

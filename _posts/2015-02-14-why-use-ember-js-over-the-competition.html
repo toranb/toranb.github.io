@@ -1,0 +1,68 @@
+---
+layout: post
+title:  "Why use ember.js over the competition"
+date:   2015-02-14 18:00:00
+categories: blog archive
+---
+
+<p>I've been building apps with ember.js since 2012 so it's fair to say I'm more than a little biased when it comes to picking a javascript framework. In my local tech community I'm often asked "why would I choose ember.js over another framework or library?" ... so I decided I would blog about the topic and save myself from copy/pasting the same email over and over again.</p>
+
+<p>It might be important to call out that my reasons for picking ember have changed over the years. Back in 2012 I <a href="http://toranbillups.com/blog/archive/2012/12/08/Why-emberjs-is-my-go-to-mvc-framework/">wrote</a> about this topic but focused on how ember-data (along with ember) provided a programming model that was closer to traditional server side development. An interesting aside => I'm not even using ember-data anymore (personal preference/not hating on the library or the many smart people working to solve that very challenging problem).</p>
+
+<h3>What makes ember.js so great again?</h3>
+
+<ul>
+  <li>ember-cli</li>
+  <li>ember addons</li>
+  <li>web applications consist of more than just web components</li>
+  <li>convention over configuration</li>
+  <li>truly built with testing in mind</li>
+</ul>
+
+<h3>ember-cli</h3>
+
+<p>Earlier this year I was hired to write a build tool for an organization on top of the streaming build system that is <a href="http://gulpjs.com/">gulp.js</a>. The company had great success with grunt and this project was the planned successor of that build tool for all javascript projects. After 6 weeks we had a mostly feature complete drop in replacement but it lacked some true end-to-end acceptance tests and because of some (dev team) scope creep the upgrade path would involve a (possible) change in testing libraries/etc.</p>
+
+<ul>
+  <li>1) teams could be shipping features/making money but instead they are tasked with writing a build tool before any real software can ship. And if done correctly these build tools require communication between teams/ a rigorous test suite so you iterate on the tooling over time/ and a team to support it when issues or feature requests come in.</li>
+  <li>2) each project often has it's own unique build file (fragmentation even inside a single company). This means not only one team spent time *thinking about build tooling/ writing build tooling/ improving build tooling/ supporting build tooling* but often many teams.</li>
+</ul>
+
+<p>The big win for ember development teams is that this is a solved problem. And even better, the entire community is behind it / supporting it/ improving it so you can ship features that add value instead of reinventing the wheel. Applying the same concepts that made ember so productive to the command line tooling is huge. This means you can learn the tooling once and be productive across your entire organization/ the next organization/ some open source project you hack on/ any other team or project that uses ember.</p>
+
+<p>Another often over looked benefit is not having to argue with your team about the build tooling/ project structure/ etc. If you don't like a convention get involved with the community and hash it out. If it's a great idea/improvement it will stick and everyone wins. Gone are the days when you'd write a build tool in isolation!</p>
+
+<h3>ember addons</h3>
+
+<p>Early in my short career I spent some time with the .net stack (long before NuGet hit the scene) and I remember just how painful it was to share code across teams. The funny part is that back then I didn't know just have powerful a concept it was to share code easily like we do today.</p>
+
+<p>My first real exposure to a great package manager wasn't until 2011 when I was first introduced to pip (the preferred python package manager). At first I remember thinking "this seems like a lot of extra work for no real benefit", but within 3 months I started thinking "how on earth do teams ship software reliability without something like pip and virtualenv". Funny how such a simple concept can change how you view the world sometimes.</p>
+
+<p>Fast forward to 2013/early 2014 and ember-app-kit/ember-cli starts to pave a real path for sharing code. Today if I want to share a module between projects or teams it's trivial. What's even better is that a new addon starts with a functional test suite out of the box so authors literally fall into the pit of success from the very start. Sharing web components across your company is one thing, but having a huge community of addons is something that takes story to the next level. I imagine in just a few months almost anything you can think of will have an ember-cli addon that's supported and easily installed.</p>
+
+<h3>web applications consist of more than just web components</h3>
+
+<p>When I speak to younger (in years of experience) developers they often seem most excited about web components. For some reason this has always seemed odd because I don't think web components (alone) will get you a web application you'd want to maintain/pass on.</p>
+
+<p>For starters, if I just have a web page with 10 web components sprinkled throughout how do they get data from a single source (ish)? How do the communicate between each other (event based or something else entirely)? What is the url doing as you navigate around the application? How can you test the interaction between several components (and please don't mention selenium)?</p>
+
+<p>Without a true application framework you often find what's lacking is a truly holistic solution. You still need and could leverage web components as part of the bigger application but building something that could compete with a desktop app requires more than a handful of widgets.</p>
+
+<h3>convention over configuration</h3>
+
+<p>I can always tell when a developer or team is more excited about the opportunity to reinvent the wheel than it is to provide value/build what the customer really needs. These same teams usually love the "ability" to pick and choose each little piece of the library/framework. With ember you get the exact opposite of this and it has 2 major advantages.</p>
+
+<ul>
+  <li>1) as the developer you look like a true professional when you join the team because you already know where to find each component in the stack/how to use it/etc</li>
+  <li>2) as the employer you don't need to spend a great deal of time/money/resource helping the developer ramp up as they already know the stack</li>
+</ul>
+
+<p>We are solving a lot of the same problems over and over again so it only makes sense that a few great patterns would rise to the top. The community has done a great job putting together what works and throwing out what didn't.</p>
+
+<h3>truly built with testing in mind</h3>
+
+<p>Having the freedom/ability to quickly refactor a route/controller/template and not worry about how many mock tests broke is a strategic advantage. Having the ability to drop down and write a unit test for any object or component without having to pivot to some selenium DSL is a big win for productivity on any team.</p>
+
+<p>In the split world of client/server you are stuck trying to do "some server work" and "some client work" which requires a lot of moving pieces to do any "user like" testing. But when you make the jump to all client work the testing story becomes much simpler. You can write your tests and execute them quickly without any sleep/timeout based hacks because it's all running in the same stack.</p>
+
+<p>The biggest advantage of ember-testing is that developers have a true tdd/feedback loop again. Selenium is great but it was never intended to be a quick feedback/ test-driven development tool for feature development. It's a regression tool to catch differences between client and server (and it does that well). But for those of us who want to ship software quickly and sustainability I'm glad better options have emerged!</p>

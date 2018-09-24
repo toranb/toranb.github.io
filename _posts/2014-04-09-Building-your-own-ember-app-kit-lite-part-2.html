@@ -1,0 +1,32 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 2"
+date:   2014-04-09 18:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://toranbillups.com/blog/archive/2014/04/08/Building-your-own-ember-app-kit-lite-part-1/">previous post</a> we did a quick walk through of the sample application. The basic idea is that we have a javascript file in js/app.js and a index.html file in the root of the project that pulls in app.js and its dependencies.</p>
+
+<p>The first thing to note about the sample application is that it doesn't have a build step. Because we haven't yet introduced a build tool we face 2 problems. The first is that we make an http request for each of the static assets separately and at this time the best practice is to make a single http request for all of your javascript assets. The second is that if we want to test our application we need to create another index.html for qunit and add the assets again (duplicating what we've done in the original index.html file).</p>
+
+<p>To solve the first problem, lets introduce a build tool to concatenate all of the javascript files into a single js file. The build tool we are using in the eak-lite blog series is called <a href="http://gruntjs.com/">grunt</a>. Grunt has a huge ecosystem of plugins that we will leverage throughout this process and it's a great task runner.</p>
+
+<p>The first step is to add grunt, grunt-cli and grunt-contrib-concat to your package.json file and npm install each of them.</p>
+
+<div data-gist=10340155><script src='https://gist.github.com/toranb/10340155.js'></script></div>
+
+<p>The next step is to add a new file that will hold the configuration for our build process. For grunt this file is called literally Gruntfile.js</p>
+
+<div data-gist=10340276><script src='https://gist.github.com/toranb/10340276.js'></script></div>
+
+<p>At the top of the script you need to load the concat task so we have access to it when we run our grunt command. Next we declare the concat task itself, providing both a list of assets to concatenate and finally a single file name for the combined output file. Then at the very bottom we simply register a task named "local" that will run the concat step we defined above.</p>
+
+<p>The final step is to replace all the assets in index.html with our new output file.</p>
+
+<div data-gist=10340449><script src='https://gist.github.com/toranb/10340449.js'></script></div>
+
+<p>If you already completed the npm install of grunt/grunt-cli/grunt-contrib-concat you should be able to add grunt to your path and type "grunt local". This command will generate a single js file named deps.min.js and put it in the dist folder. After you run the grunt command you can run the python script by typing "./bin/server" from the root of the project. This should host the static directory so you can view the running app at localhost:3000
+
+<p>Now that we have a working grunt build we can serve up a single javascript file. Up next, we will <a href="http://toranbillups.com/blog/archive/2014/04/10/Building-your-own-ember-app-kit-lite-part-3/">precompile our handlebars templates!</a></p>
+
+<p>If you want to follow along on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> has a commit for each part in the series</p>

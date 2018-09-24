@@ -1,0 +1,109 @@
+---
+layout: post
+title:  "Working with Fluent NHibernate instead of xml"
+date:   2010-03-12 18:00:00
+categories: blog archive
+---
+
+<p>Initially the worst part about <a href='https://www.hibernate.org/343.html'>NHibernate</a> was that you had to write a great deal of xml to get your configuration setup and your objects mapped.  But at some point <a href='http://codebetter.com/blogs/jeremy.miller/'>Jeremy Miller</a> decided to make working with this great ORM less painful.  And from this idea the open source community took over and created <a href='http://fluentnhibernate.org/'>Fluent NHibernate</a>.</p>
+
+<p>Fluent NHibernate allows you to write what is called a <a href='http://en.wikipedia.org/wiki/Fluent_interface'>fluent interface</a> instead of xml.  A fluent interface is simply a fancy way of saying that the code is more human readable.  And one of the best reasons to write this fluent interface is that it's managed code so you can evaluate it at compile time instead of runtime.  </p>
+
+<p>But in my opinion the largest benefit of a fluent interface is the refactoring support you get.  With xml you are back in the land of magic strings and tools like <a href='http://www.jetbrains.com/resharper/index.html'>ReSharper</a> can't do much for you.  </p>
+
+<p>This is why xml is such a road block to evolutionary design.  And if you don't make evolutionary design easy, over time your software will become more and more expensive to maintain.</p>
+
+<p>I could go on and on but the Fluent NHibernate team already has a great <a href='http://wiki.fluentnhibernate.org/Getting_started'>intro</a> that you can read.  Instead, I wanted to share a very simple example that I applied this week to highlight the benefits of using a fluent interface instead of xml.</p>
+
+<p>With the xml approach you would have some configuration in a web.config that might look something like the below.</p>
+
+{% highlight xml linenos %}
+    <hibernate-configuration xmlns='urn:nhibernate-configuration-2.2'>
+		<session-factory>
+			<property name='connection.driver_class'>NHibernate.Driver.SqlClientDriver</property>
+			<property name='connection.connection_string_name'>Blog</property>
+			<property name='dialect'>NHibernate.Dialect.MsSql2005Dialect</property>
+			<property name='current_session_context_class'>web</property>
+			<property name='proxyfactory.factory_class'>NHibernate.ByteCode.Castle.ProxyFactoryFactory, NHibernate.ByteCode.Castle</property>
+			<mapping assembly='ParadigmShift.Library'/>
+		</session-factory>
+	</hibernate-configuration>
+{% endhighlight %}
+
+<p>In addition to this configuration you would also need to do the following in code to get the ISessionFactory ready for use in the application.</p>
+
+{% highlight c# linenos %}
+    private static ISessionFactory CreateSessionFactory()
+    {
+        var cfg = new Configuration().Configure(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, 'Web.config'));
+        return cfg.BuildSessionFactory();
+    }
+{% endhighlight %}
+
+<p>Compare the above with a fluent interface to do the exact same thing.</p>
+
+{% highlight c# linenos %}
+    private static ISessionFactory CreateSessionFactory()
+    {
+        var cfg = Fluently.Configure()
+            .Database(MsSqlConfiguration.MsSql2005.ConnectionString(c => c.FromConnectionStringWithKey('Blog')))
+            .Mappings(m => m.FluentMappings.AddFromAssembly(Assembly.GetExecutingAssembly()))
+            .ExposeConfiguration(x => x.SetProperty('current_session_context_class', 'web'));
+
+        return cfg.BuildSessionFactory();
+    }
+{% endhighlight %}
+
+<p>The first thing that jumped out at me was how much more readable the configuration was.  But in addition you get the compiler to help find issues before runtime.  This saves time when someone new comes into the application and needs to get up to speed quickly.</p>
+
+<p>But because configuration is typically set once, I find the real power comes in the form of a fluent interface for the object mapping.  The below is a mapping file for the Post object in my blog.</p>
+
+{% highlight xml linenos %}
+<?xml version='1.0' encoding='utf-8' ?>
+<hibernate-mapping xmlns='urn:nhibernate-mapping-2.2'>
+  <class name='Entity.Post, ParadigmShift.Library' table='Posts'>
+    <id name='ID' type='Int32'>
+      <generator class='native' />
+    </id>
+    <property name='PublishDate' type='datetime' />
+    <property name='Title' type='string' />
+    <property name='uri' type='string' />
+    <property name='Content' type='string' />
+
+    <bag name='CommentCollection' table='Comments' lazy='true'>
+      <key column='PostID'/>
+      <one-to-many class='Entity.Comment, ParadigmShift.Library'/>
+    </bag>
+
+    <bag name='TagCollection' table='TagMap' lazy='true'>
+      <key column='PostID' />
+      <many-to-many class='Entity.Tag, ParadigmShift.Library' column='TagID' />
+    </bag>
+    
+  </class>
+</hibernate-mapping>
+{% endhighlight %}
+
+<p>Compare this to the fluent interface that does the exact same thing.</p>
+
+{% highlight c# linenos %}
+    public class PostMap : ClassMap<Post>
+    {
+        public PostMap()
+        {
+            Table('Posts');
+            Id(x => x.ID);
+            Map(x => x.PublishDate, 'PublishDate');
+            Map(x => x.Title, 'Title');
+            Map(x => x.uri, 'uri');
+            Map(x => x.Content, 'Content');
+
+            HasMany(x => x.CommentCollection).KeyColumn('PostID');
+            HasManyToMany(x => x.TagCollection).Table('TagMap').ParentKeyColumn('PostID').ChildKeyColumn('TagID');
+        }
+    }
+{% endhighlight %}
+
+<p>The huge benefit here is that if I decide to rename a property, the refactoring tool will make all the changes for me.  Or if something isn't spelled correctly you will notice it at compile time.</p>
+
+<p>So next time you start up an NHibernate project please skip the xml and jump in with Fluent NHibernate.</p>

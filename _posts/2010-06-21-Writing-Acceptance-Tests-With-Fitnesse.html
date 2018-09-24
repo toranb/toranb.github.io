@@ -1,0 +1,30 @@
+---
+layout: post
+title:  "Writing Acceptance Tests With Fitnesse"
+date:   2010-06-21 18:00:00
+categories: blog archive
+---
+
+<p>Sometime last year I changed jobs to learn how <a href='http://toranbillups.com/blog/archive/2010/04/22/How-test-first-development-changed-my-life'>test driven development</a> was done inside a real software company.  The first thing I learned was that professionals don't rely on <a href='http://en.wikipedia.org/wiki/Unit_testing'>unit tests</a> alone to prove the software works.  Instead they combine traditional unit testing with a form of <a href='http://en.wikipedia.org/wiki/Acceptance_testing'>acceptance testing</a> to verify the behavior of a given system.</p>
+
+<p>This type of test isn't technical, because in the best case scenario you would have the business users write them for the development team.  As a result the test reads more like a specification.  So as you can imagine this acceptance test starts to play the role of live documentation.  This is a big win for both the business and the development team because software documentation typically gets neglected after the development work gets underway.  But with acceptance tests in place you simply execute them to prove the software is still in working order.</p>
+
+<p>Many different tools exist but the one I've been working with is called <a href='http://fitnesse.org/'>Fitnesse</a>.  This tool has a wiki like front-end that makes collaboration easy for any organization.  Fitnesse is actively developed by <a href='http://www.objectmentor.com/omTeam/martin_r.html'>Robert Martin</a> and <a href='http://www.8thlight.com/main/bio?sub_action=micah'>Micah Martin</a>.  This web front-end actually sits on top of another tool called <a href='http://fit.c2.com/'>Fit</a> (Framework for Integrated Test).  Fit was developed by <a href='http://c2.com/~ward/'>Ward Cunningham</a> back in 2002 as a tool for writing automated customer tests. The general idea behind Fit was to increase collaboration and put the customer back in control by allowing them to write tests in a language that was more familiar to business users.</p>
+
+<blockquote><p>Fit allows customers, testers, and programmers to learn what their software should do and what it does do. It automatically compares customers' expectations to actual results.</p></blockquote>
+
+<p>This tool was a big step in the right direction because it helps to cut out a great deal of miscommunication that often occurs between customers and the development team.  But creating the tables was a bit of work using the initial version of Fit (or so I'm told).  The tables were often written in excel or word documents.</p>
+
+<p>But with Fitnesse you could simply open your favorite web browser and in plain text describe what you wanted to happen.  The other benefit is that these tests can be written long before development even starts.  They help the business understand when a feature is considered 'done'.  From the developer point of view this is also helpful because you know when each story/task is complete.</p>
+
+<p>After the acceptance tests are defined they will sit in the wiki until the development team begins working on the project.  The development is still done test-first at the unit level so you get all the benefits of test driven development.  After the feature is complete, you hookup the Fitnesse test and run it to verify the full end to end behavior.  From my experience, if the software is well written it takes very little code to get the acceptance tests passing.</p>
+
+<p>The best part about having an acceptance test suite in place is that you get a true set of regression tests.  This helps provide some real confidence when making a change late in the production cycle.</p>
+
+<p>You can't get this same experience with unit tests alone because they work at a much lower level.  For starters a unit test works in isolation so they never test the interaction between objects.  Also a good unit test is one that runs quickly, so they don't exercise anything that might reference a shared resource (like a database for example).</p>
+
+<p>We need acceptance tests to verify the end to end behavior of the system.  Because they exercise the entire application they run slower and shouldn't be run with each change.  Also, debugging an acceptance test can take a great deal of time so we need to avoid this if possible.</p>
+
+<p>Just as we need acceptance tests at a high level, we need unit tests to help us design the software at the low level.  Because we are using these tests as a design tool, we need them to be running fast as they will be run with each change.  Another big advantage of this technique is that it helps you find small bugs quickly so you don't spend much time in the debugger.  And for anyone who has spent a day inside the debugger looking for the latest production bug, I'm sure you could appreciate this.</p>
+
+<p>I've been working with this model for some time and finally decided to blog my personal experience using this tool at home on a small project.  I have to admit I was a bit intimidated at first but after a co-worker sent me a link to <a href='http://gojko.net/fitnesse/'>this</a> free ebook by <a href='http://gojko.net/about/'>Gojko Adzic</a>, I couldn't put it down.  By far one of the best guides to Fitnesse for the beginner.  So over the next few weeks I hope to share the learning curve I faced trying to set this up for the first time and what I learned about Fitnesse and <a href='http://sourceforge.net/projects/nhibernate/'>NHibernate</a>.</p>

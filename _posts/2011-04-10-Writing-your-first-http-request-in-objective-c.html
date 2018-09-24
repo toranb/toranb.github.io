@@ -1,0 +1,64 @@
+---
+layout: post
+title:  "Writing your first http request in objective-c"
+date:   2011-04-10 18:00:00
+categories: blog archive
+---
+
+<p>The first thing I realized after starting my iPhone project last year was that most apps require some form of communication over http to interact with the outside world. And like any web application you need to understand how to send an http request and parse the response if you plan to do anything useful. I soon found I was doing web development without the html, css or javascript.</p>
+
+<p>I decided to start this series because I couldn't find many 'end-to-end' examples on the web for beginners.  I learned how to work with http on my own as I built and launched my first iPhone app earlier this year.</p>
+
+<p>Throughout this series I'll be using a single view iPhone app for simplicity. The best place to start is with a simple GET request because we can focus on the basics required to interact with http.  To make the http request and kick it off we will start coding inside the 'viewDidLoad' method of the default view controller.</p>
+
+<p>First we need to supply our request with a valid url using NSURL.</p>
+
+<div data-gist=912407><script src='https://gist.github.com/toranb/912407.js'></script></div>
+
+<p>After we have a valid url we can create the request itself using NSMutableURLRequest.  Because this is a GET request we simply set the http method accordingly.</p>
+
+<div data-gist=912408><script src='https://gist.github.com/toranb/912408.js'></script></div>
+
+<p>And finally to fire off the request we call the method 'initWithRequest' on NSURLConnection. </p>
+
+<div data-gist=912409><script src='https://gist.github.com/toranb/912409.js'></script></div>
+
+<p>The entire solution put together inside the 'viewDidLoad' method now looks something like the below.</p>
+
+<div data-gist=912410><script src='https://gist.github.com/toranb/912410.js'></script></div>
+
+<p>When I copy and pasted this for the first time I felt 90% of it was clear and made sense. Then I hit the last line and saw the 'delegate:self' syntax. Up to this point I hadn't done much with delegates and because of this I didn't know what would happen if I ran the code. So I did a simple build and run to find out if this worked and to my surprise it did nothing.</p>
+
+<p>So after a little more reading I learned the initWithRequest method we invoked would call back to a specific class when the http response was returned with the html from http://www.google.com.  In example code above we set the delegate to self (the view controller we are in currently) so if we wanted to get the html back from the server we would need to implement the method 'connectionDidFinishLoading'.</p>
+
+<p>Below I added the bare method that would be invoked during this call back. Currently I only cleanup after the NSURLConnection we initialized earlier but what's missing here is that we don't have a way to get at the html that would be returned in the response. </p>
+
+<div data-gist=912412><script src='https://gist.github.com/toranb/912412.js'></script></div>
+
+<p>We can't reach into the NSURLConnection directly to pull out the response data without implementing a few other delegate methods. But before we can stub out these methods we need a property to hold the data returned from the server -so in the view controllers .h file add the responseData property as follows.</p>
+
+<div data-gist=912413><script src='https://gist.github.com/toranb/912413.js'></script></div>
+
+<p>Next in your .m file add the @synthesize declaration at the top and release it in your controllers dealloc method. Normal property setup but to someone new like myself it was better to see each step in detail. Also in the first line of the 'viewDidLoad' method we need to new the NSData property like so.</p>
+
+<div data-gist=912414><script src='https://gist.github.com/toranb/912414.js'></script></div>
+
+<p>Now we can add the additional delegate methods required to setup and append data returned from the response.  The first is called only once when the server gets the request and acknowledges it.  In this 'didReceiveResponse' method we simply setup the responseData property so it will be ready to append the data sent back from the server.</p>
+
+<div data-gist=912415><script src='https://gist.github.com/toranb/912415.js'></script></div>
+
+<p>And in the 'didReceiveData' method we just append the data sent back during the response.</p>
+
+<div data-gist=912416><script src='https://gist.github.com/toranb/912416.js'></script></div>
+
+<p>Now we can modify our 'connectionDidFinishLoading' method to pull out the html from the responseData property. We do this by creating a string from the NSData collected during the 'didReceiveData' method invoked earlier.  We wait until this method to extract the contents because it's the final step in the request + response life cycle.</p>
+
+<div data-gist=912417><script src='https://gist.github.com/toranb/912417.js'></script></div>
+
+<p>In this example I used NSLog to push the string into the console for the sake of simplicity.  If you now run this in Xcode using the simulator you will see the full html from http://www.google.com in the debugger console.</p>
+
+<p>The only additional method I would suggest is the 'didFailWithError' because if your http request errors the call back will not invoke 'connectionDidFinishLoading' so if you need to inform the user that something unexpected has occurred you will need to do it here instead.</p>
+
+<div data-gist=912418><script src='https://gist.github.com/toranb/912418.js'></script></div>
+
+<p>The full source code for this sample is available on <a href='https://github.com/'>github</a> <a href='https://github.com/toranb/HttpWithObjectiveC'>here</a>.</p>

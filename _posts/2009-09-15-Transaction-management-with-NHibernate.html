@@ -1,0 +1,395 @@
+---
+layout: post
+title:  "Transaction management with NHibernate"
+date:   2009-09-15 18:00:00
+categories: blog archive
+---
+
+<p>In my <a href='http://toranbillups.com/blog/archive/2009/09/11/Writing-your-first-update-delete-and-insert-with-NHibernate' target='_blank'>previous</a> <a href='http://toranbillups.com/blog/archive/2009/09/09/Writing-your-first-query-with-NHibernate' target='_blank'>posts</a> about <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> I focused on how to interact with the database using the session object.  But one of the concepts that was missing from these examples is <a href='http://martinfowler.com/eaaCatalog/unitOfWork.html' target='_blank'>unit of work</a>.  I mentioned the unit of work pattern initially but for brevity I kept it out of the code, until now.  </p>
+
+<p>The power of unit of work is that it allows the application to perform a set of operations and verify everything was a success before you commit your changes.  And if something does go wrong, the transaction is simply rolled back and none of the changes are persisted to the database. </p>
+
+<p>Think of the banking example where you want to transfer funds from one account to another.  You might start the transaction, perform a withdrawal on the from account, perform a deposit on the to account and if this is a valid operation the changes are committed to the database.  But if the from account didn't have enough money for the transfer it wouldn't commit any changes to the database because some type of exception would be thrown.</p>
+
+<p>But how can we leverage the unit of work pattern when using NHibernate?  First you might create a session when the web server is called to do some work in the global.asax or an <a href='http://support.microsoft.com/kb/307996' target='_blank'>HTTP Module</a> using the 'Application_BeginRequest' method.  Next you would allow your application to do the work requested.  And finally you would attempt to commit the transaction or rollback depending on the success factors of your application using the same HTTP Module but this time the 'Application_EndRequest' method.</p>
+
+<p>So to begin, create the HTTP module class I just described.  Also be sure to register this module in the web.config. </p>
+
+{% highlight c# linenos %}
+    public class CommonSessionManager : IHttpModule
+    {
+
+        public void Init(System.Web.HttpApplication context)
+        {
+            context.BeginRequest += Application_BeginRequest;
+            context.EndRequest += Application_EndRequest;
+        }
+
+        private static void Application_BeginRequest(object sender, EventArgs e)
+        {
+            ISession session = SessionBuilderFactory.CurrentBuilder.OpenSession();
+
+            session.BeginTransaction();
+
+            CurrentSessionContext.Bind(session);
+        }
+
+        private static void Application_EndRequest(object sender, EventArgs e)
+        {
+            ISession session = CurrentSessionContext.Unbind(SessionBuilderFactory.CurrentBuilder.GetSessionFactory());
+
+            if (session != null)
+            {
+                try
+                {
+                    session.Transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    AttemptToRollBackCurrentSession(session);
+                }
+                finally
+                {
+                    session.Close();
+                }
+            }
+        }
+
+        private static void AttemptToRollBackCurrentSession(ISession session)
+        {
+            try
+            {
+                if (session.Transaction.IsActive)
+                {
+                    session.Transaction.Rollback();
+                }
+            }
+            catch (Exception ex)
+            {
+				//you might want to log this exception
+            }
+        }
+
+        public void Dispose()
+        {
+
+        }
+
+    }
+{% endhighlight %}
+
+<p>You will notice something special that I didn't describe earlier.  Although we start this session and keep it alive until the end of the request, we need some way to distinguish what session the user has open so when you ask NHibernate to perform an action of some kind, it has the correct session.  We do this by asking NHibernate to manage this for us using CurrentSessionContext.Bind and CurrentSessionContext.UnBind respectively.  This will bind the NHibernate session to the active aspnet session, and since this value is unique you won't have any conflicts.</p>
+
+<p>You might also notice that we have a special class named 'SessionBuilderFactory' available that will take the configuration and build a session factory.  Then we ask this session factory, in the same line of code, to create a new session for this request.  As with anything that is duplicated like this, I try to abstract the details away to help reuse the functionality across the application.</p>
+
+<p>All these classes are included in the sample project if you want to learn more.  Instead of spending a great deal of time talking about how I pushed the details down into a few base classes I wanted to focus on a large refactor that we can do to help reduce the tight <a href='http://en.wikipedia.org/wiki/Coupling_(computer_science)' target='_blank'>coupling</a> that currently exists in the controller.  Early in this series we spent our time learning how to write a query and haven't gone back yet to clean up the codebase.  But as we move forward I want to ensure each class is doing one category of things to help provide a <a href='http://en.wikipedia.org/wiki/Separation_of_concerns' target='_blank'>separation of concerns</a> and respect the <a href='http://en.wikipedia.org/wiki/Single_responsibility_principle' target='_blank'>single responsibility principle</a>.</p>
+
+<p>First you can pull out all the duplicated code that was previously needed to create a session factory from configuration, then ask the session factory for a session, etc.  This will now be replaced with a simple call to the factory class asking for the current session (unit of work).</p>
+
+{% highlight c# linenos %}
+public class UserController : System.Web.Mvc.Controller
+{
+
+    protected readonly ISessionBuilder mSessionBuilder;
+
+    public UserController()
+    {
+        mSessionBuilder = SessionBuilderFactory.CurrentBuilder();
+    }
+
+    protected ISession GetSession()
+    {
+        return mSessionBuilder.CurrentSession;
+    }
+
+    public ActionResult Edit(int id)
+    {
+        User User = null;
+        ISession Session = GetSession();
+
+        User = Session.Get<User>(id);
+
+        return View(User);
+    }
+}
+{% endhighlight %}
+
+<p>And although this does work, it's not test friendly because in our unit test project we don't have access to system.web, and thus our HTTP module won't fire leaving our session null.  To solve this we need to refactor again, this time taking the session details to a base class we can leverage across the entire project.  Again this class is part of the source code available, but because I use it for each repository I wanted to include it below so you could see that we basically took the guts of our 'get the current session for me so I can query/insert/update/delete' and pushed it down to reuse it across the system.</p>
+
+{% highlight c# linenos %}
+    public abstract class NHibernateRepository<T> where T : class
+    {
+
+        protected readonly ISessionBuilder mSessionBuilder;
+
+        private ISession mSession;
+        private ITransaction mTransaction;
+
+        public NHibernateRepository()
+        {
+            mSessionBuilder = SessionBuilderFactory.CurrentBuilder;
+        }
+
+        public NHibernateRepository(ISession Session, ITransaction Transaction)
+        {
+            mSession = Session;
+            mTransaction = Transaction;
+        }
+
+        public T Retrieve(int id)
+        {
+            if (mSession == null)
+            {
+                ISession session = GetSession();
+
+                return session.Get<T>(id);
+            }
+            else
+            {
+                return mSession.Get<T>(id);
+            }
+        }
+
+        public void Save(T entity)
+        {
+            if (mSession == null)
+            {
+                ISession session = GetSession();
+
+                session.SaveOrUpdate(entity);
+            }
+            else
+            {
+                mSession.SaveOrUpdate(entity);
+            }
+        }
+
+        public void Delete(T entity)
+        {
+            if (mSession == null)
+            {
+                ISession session = GetSession();
+
+                session.Delete(entity);
+            }
+            else
+            {
+                mSession.Delete(entity);
+            }
+        }
+
+        public IQueryable<T> RetrieveAll()
+        {
+            if (mSession == null) {
+                ISession session = GetSession();
+
+                var query = from Item in session.Linq<T>() select Item;
+
+                return query;
+            }
+            else {
+                var query = from Item in mSession.Linq<T>() select Item;
+
+                return query;
+            }
+        }
+
+        protected virtual ISession GetSession()
+        {
+            return mSessionBuilder.CurrentSession;
+        }
+    }
+ {% endhighlight %}
+
+<p>Now instead of doing all the data access work directly in the controller we will push these details to a repository class for the user object.  The basic operations just leverage the base class as you can see below.  You will notice that we have an optional constructor that takes a session and transaction.  I will show later how we use this to do some automated <a href='http://en.wikipedia.org/wiki/Integration_testing' target='_blank'>integration testing</a>.</p>
+
+{% highlight c# linenos %}
+public class UserRepository : NHibernateRepository<User>, IUserRepository
+{
+
+    public UserRepository() : base()
+    {
+    }
+
+    public UserRepository(ISession Session, ITransaction Transaction) : base(Session, Transaction)
+    {
+    }
+
+    public void DeleteUser(User User)
+    {
+        base.Delete(User);
+    }
+
+    public User GetUserById(int id)
+    {
+        return base.Retrieve(id);
+    }
+
+    public IQueryable<User> GetUserCollection()
+    {
+        return base.RetrieveAll();
+    }
+
+    public void SaveUser(User User)
+    {
+        base.Save(User);
+    }
+
+}
+{% endhighlight %}
+
+<p>Next I will write a service that will act as a facade layer for user functionality.  Now that we have abstracted out the details of data access our controller will look very thin.  As it should because the only logic a controller/presenter should contain is to ask the model for something and pass that to the view to be rendered.</p>
+
+{% highlight c# linenos %}
+public class UserController : System.Web.Mvc.Controller
+{
+
+    private IUserService mUserService;
+
+    public UserController() : this(new UserService())
+    {
+    }
+
+    public UserController(IUserService UserService)
+    {
+        mUserService = UserService;
+    }
+
+    public ActionResult Edit(int id)
+    {
+        User User = mUserService.GetUserById(id);
+
+        return View(User);
+    }
+}
+{% endhighlight %}
+
+<p>Notice I'm doing some poor man's <a href='http://martinfowler.com/articles/injection.html' target='_blank'>dependency injection</a> here as I want to unit test the controller action, not the service class.  With this in place we can stub out the service using <a href='http://ayende.com/projects/rhino-mocks/downloads.aspx' target='_blank'>Rhino Mocks</a> and confirm that our view does contain the model returned from the service class.</p>
+
+{% highlight c# linenos %}
+[TestClass()]
+public class UserControllerTest
+{
+
+    [TestMethod()]
+    public void Should_Get_User_By_Id_And_Pass_Model_To_The_View()
+    {
+        IUserService Service = MockRepository.GenerateStub<IUserService>();
+        UserController Controller = new UserController(Service);
+
+        Service.Stub((System.Object x) => x.GetUserById(1)).Return(new User { ID = 1, FirstName = 'Toran' });
+
+        ViewResult GetResult = Controller.Edit(1);
+
+        User GetModel = (User)GetResult.ViewData.Model;
+
+        Assert.AreEqual(GetModel.ID, 1);
+        Assert.AreEqual(GetModel.FirstName, 'Toran');
+    }
+}
+{% endhighlight %}
+
+<p>But should we test our repository class?  This has always been a question in my mind because all you really test here is that your mapping files are setup correctly.  I decided to test the CRUD functionality of the repository anyway.  This is one example, notice that I leverage a base class to setup the session and transaction.  I then pass this to the base repository so it can get data from SQL Server.  And finally after each test the transaction is rolled back.  This is an integration test and if speed is at all an issue, I would recommend pushing this type of test into another project.</p>
+
+{% highlight c# linenos %}
+[TestClass()]
+public class UserRepositoryTest : NHibernateTransactionFixture
+{
+
+    [TestMethod()]
+    public void Should_Exercise_The_UserRepository_Methods()
+    {
+        UserRepository Repository = new UserRepository(mSession, mTransaction);
+        //**
+        //** First clear the table so we can assure this test is accurate **'
+        //**
+        mSession.CreateQuery('delete from User').ExecuteUpdate();
+        //**
+        //** Verify the table was cleared after the above method was executed **'
+        //**
+        List<User> InitUserCollection = Repository.GetUserCollection().ToList();
+        Assert.AreEqual(0, InitUserCollection.Count);
+        //**
+        //** Create a new user object to manipulate throughout the test **'
+        //**
+        User UserObject = new User();
+        UserObject.FirstName = 'John';
+        UserObject.LastName = 'Doe';
+        //**
+        //** Save the user
+        //**
+        Repository.SaveUser(UserObject);
+        //**
+        //** Verify the user was saved after the above method was executed **'
+        //**
+        User NextUserObject = Repository.GetUserById(UserObject.ID);
+        Assert.AreEqual(NextUserObject.FirstName, 'John');
+        Assert.AreEqual(NextUserObject.LastName, 'Doe');
+        //**
+        //** Get a collection of users **'
+        //**
+        List<User> UserCollection = Repository.GetUserCollection().ToList();
+        //**
+        //** Verify the collection was populated after the above method was executed **'
+        //**
+        Assert.AreEqual(UserCollection.Count, 1);
+        Assert.AreEqual(UserCollection(0).ID, NextUserObject.ID);
+        //**
+        //** Delete the user **'
+        //**
+        Repository.DeleteUser(NextUserObject);
+        //**
+        //** verify it worked **'
+        //**
+        User NullUserObject = Repository.GetUserById(NextUserObject.ID);
+        //**
+        //** Verify the user was deleted after the delete method was executed **'
+        //**
+        Assert.AreEqual(null, NullUserObject);
+    }
+}
+{% endhighlight %}
+
+<p>With that you can see we now have an application that couldn't care less how things are persisted.  This was my goal the entire time, because using NHibernate as 'just another data access strategy' is not the right approach.  You want to forget you ever had to persist these objects and instead focus on writing software of value.</p>
+
+<p>The only thing left to mention is how you rollback a transaction if your application throws an exception.  In my last project, I would throw each exception to the top of the stack so I could log it in the global.asax.  If you take this approach it's easy to determine the unit of work was not a success and you should rollback.  In the Application_Error method of your global.asax you simply get the NHibernate session that is bound to the aspnet session context and call transaction.rollback() to make sure NHibernate doesn't persist any changes for that server request.</p>
+
+{% highlight c# linenos %}
+public class MvcApplication : System.Web.HttpApplication
+{
+
+    public static void RegisterRoutes(RouteCollection routes)
+    {
+        routes.IgnoreRoute('{resource}.axd/{*pathInfo}');
+        // MapRoute takes the following parameters, in order:
+        // (1) Route name
+        // (2) URL with parameters
+        // (3) Parameter defaults
+        routes.MapRoute('Default', '{controller}.aspx/{action}/{id}', new { controller = 'User', action = 'Index', id = '' });
+        routes.MapRoute('Root', '', new { controller = 'User', action = 'Index', id = '' });
+    }
+
+    public void Application_Start()
+    {
+        RegisterRoutes(RouteTable.Routes);
+    }
+
+    public void Application_Error(object sender, EventArgs e)
+    {
+        ISession session = CurrentSessionContext.Unbind(SessionBuilderFactory.CurrentBuilder.GetSessionFactory());
+
+        if (session != null) {
+            try {
+                if (session.Transaction.IsActive) {
+                    session.Transaction.Rollback();
+                }
+            }
+            catch (Exception ex) {
+
+            }
+        }
+    }
+}
+{% endhighlight %}
+
+<p>As always, the <a href='/content/downloads/simpleNHibernateV3.zip'>source code</a> for this sample is available for download.  But in addition to the banking project, I have also included a separate <a href='/content/downloads/MyFramework.zip'>download</a> for the base class library mentioned throughout this post.</p>

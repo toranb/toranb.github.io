@@ -1,0 +1,120 @@
+---
+layout: post
+title:  "Writing your first unit test with Rhino Mocks in VB"
+date:   2009-10-09 18:00:00
+categories: blog archive
+---
+
+<p>When I first started learning <a href='http://en.wikipedia.org/wiki/Test-driven_development' target='_blank'>test driven development</a>, I came across a slew of new concepts that seemed to be missing from the simple calculator examples scattered across the blogosphere.  One of these new concepts was <a href='http://en.wikipedia.org/wiki/Mock_object' target='_blank'>mock objects</a> and more specifically 'how to use a mock object framework to help enable testing in isolation'.</p>
+
+<p>A mock object is simply a 'fake' object that will play the role of some dependency in a unit of code under test.  This is the reason your average calculator example looked so easy.  The class didn't depend on anything, so testing each bit of functionality was easy.  But in the 'real world' almost every class I work with has some type of dependency.  Although I strive to keep the number of dependencies low, it seems almost every <a href='http://en.wikipedia.org/wiki/Unit_testing' target='_blank'>unit test</a> I write would call into another class if I didn't use a *fake / mock / stub* object instead.</p>
+
+<p>The library I will be showing in this post is <a href='http://ayende.com/projects/rhino-mocks.aspx' target='_blank'>Rhino Mocks</a>, and open source mock object framework written by <a href='http://ayende.com/blog/' target='_blank'>Ayende Rahien</a>.  This is just one of many frameworks available but if you're interested in learning more about the others available checkout <a href='http://weblogs.asp.net/rosherove/archive/2007/04/26/choosing-a-mock-object-framework.aspx' target='_blank'>this</a> post by Roy Osherove titled 'Choosing a Mock Object Framework'.  I decided on Rhino Mocks because it was the first one that worked.  Just trying to be honest here, but to be clear I am yet to come up against a wall with this framework (with the exception of <a href='http://nhprof.uservoice.com/pages/28152-rhino-mocks-4-0/suggestions/307542-add-the-ability-to-stub-out-a-return-of-iqueryable-that-has-where-criteria?ref=title' target='_blank'>this</a> - 'it would be nice to have' the ability to stub a return of IQueryable using a lambda expression).</p>
+
+<p>I couldn't possibly cover all the concepts of mocking in a single post, let alone all the other concepts required to do unit testing in general, but I will attempt to highlight a few scenarios that I frequently come across in real projects.  If you are interested in learning more about TDD, mock objects, or unit testing in general be sure you subscribe to <a href='http://codebetter.com/blogs/' target='_blank'>codebetter</a>, <a href='http://devlicio.us/blogs/' target='_blank'>devlicious</a>, <a href='http://www.lostechies.com/blogs/' target='_blank'>lostechies</a> and <a href='http://www.infoq.com/' target='_blank'>infoq</a>.</p>
+
+<p>The first method we are going to test is a simple controller method that attempts to lookup a user by id and if one is found, it will call UpdateModel and save to persist the changes coming in via HTTP POST.  The basic logic inside this method is simple so I thought it would be a good place to start.</p>
+
+{% highlight vbnet linenos %}
+Public Class UserController
+    Inherits System.Web.Mvc.Controller
+
+    Private mUserService As IUserService
+
+    Public Sub New()
+        Me.New(New UserService())
+    End Sub
+
+    Public Sub New(ByVal UserService As IUserService)
+        mUserService = UserService
+    End Sub
+
+    <AcceptVerbs(HttpVerbs.Post)> _
+    Function Edit(ByVal id As Integer, ByVal collection As FormCollection) As ActionResult
+        Dim User As User = mUserService.GetUserById(id)
+
+        If User IsNot Nothing Then
+            UpdateModel(Of IUser)(User)
+
+            mUserService.SaveUser(User)
+        End If
+
+        Return View(User)
+    End Function
+End Class
+{% endhighlight %}
+
+<p>Notice we have a dependency on some class that implements IUserService.  To test this class in isolation we need to have some fake object represent this dependency.  For this example to work I'm using <a href='http://msdn.microsoft.com/en-us/magazine/cc337885.aspx' target='_blank'>poor man's dependency injection</a> via the constructor to give the program a concrete object at runtime while leaving another option for anyone testing this class.  </p>
+
+<p>I would be lying if I told you that I got into <a href='http://en.wikipedia.org/wiki/Interface_based_programming' target='_blank'>interface based programming</a> because it was one of the <a href='http://www.butunclebob.com/ArticleS.UncleBob.PrinciplesOfOod' target='_blank'>SOLID principles</a>.  The same would apply to my time spent with <a href='http://en.wikipedia.org/wiki/Inversion_of_control' target='_blank'>inversion of control</a>, and learning good object oriented design in general.  I got into these topics because I found it difficult to write a good unit test around a big ball of mud.  </p>
+
+<p>You need small classes with concise methods doing one thing and only one thing.  This will enable you to understand the intent of the code much better and find bugs at a much faster rate.  But don't take my word for it, take the time to experiment with test driven design and see for yourself.</p>
+
+<p>To start writing your first test, simply stub out the service using Rhino Mocks.  What happens behind the scenes here is that a proxy class is generated at runtime to represent our dependency.  With Rhino Mocks 3.6 you can set properties just like any other real object, but the power of using a framework is that you can have a method return something based on a call into that object and you can query the mock to see if something was called or not.</p>
+
+{% highlight vbnet linenos %}
+<TestClass()> _
+Public Class UserControllerTest
+
+    <TestMethod()> _
+    Public Sub Should_UpdateModel_And_Call_Save_When_ID_Provided_To_The_Controller_Returns_A_Valid_User()
+        Dim Service As IUserService = MockRepository.GenerateStub(Of IUserService)()
+        Dim Controller As UserController = New UserController(Service)
+
+        Dim User = New User With {.ID = 1, .FirstName = 'Toran', .LastName = 'Billups', .Address = '1016 Cameron', .City = 'Burlington', .State = 'IA', .Zip = '52601', .Phone = '5156672344'}
+
+        Service.Stub(Function(x) x.GetUserById(1)).[Return](User)
+
+        Dim GetResult As ViewResult = Controller.Edit(1, Nothing)
+
+        Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+
+        Service.AssertWasCalled(Function(x) Wrap_SaveUser(x, User))
+    End Sub
+
+	Function Wrap_SaveUser(ByVal Service As IUserService, ByVal User As User) As Object
+        Service.SaveUser(User)
+
+        Return Nothing
+    End Function
+
+End Class
+{% endhighlight %}
+
+<p>In the above test we are assuming the optimistic case that a id value sent will return a valid user.  And once a valid user is returned the save method on our service should be called.  At this time the only logic we have under test is specific to the conditional in the controller class itself.</p>
+
+<p>I'm showing this example in VB because a ton of C# examples can be found all over, and when I was new to unit testing I ran into a few of the 'fun' problems that VB developers face.  One example of this is that VB9 does not support a 'void' / 'sub' method in the form of a lambda, so we have to write this separate function that returns nothing (of type object).  In the next version of VB this will be resolved, but for now you can see that I'm forced to call this other method passing the dependency.</p>
+
+<p>You can see that the first line is where you ask Rhino Mocks to create a proxy object for the dependency on our Controller class.  You then create a new controller class and pass in this proxy to represent the dependency on IUserService.</p>
+
+<p>A few lines down is another strange Rhino Mocks thing that was new for me.  We need some way to have the mock object framework return a user when we query the service class during this unit of code under test.  So this line 'Service.Stub(Function(x) x.GetUserById(1)).[Return](User)' tells the proxy class that when a call for 'GetUserById' with a input of 1 gets invoked, return the 'user' object.</p>
+
+<p>Now that we have the test arranged, we can call the edit method on the controller class to start testing our functionality.  After this is done, we ask Rhino Mocks if the 'Save' method was called during the execution of our edit method on the controller class.</p>
+
+<p>But because this test only covers the optimistic case we need another that will ensure we don't save when the id doesn't return a valid user.  The test below has a few changes from the above and asserts that the save was not called.</p>
+
+{% highlight vbnet linenos %}
+<TestMethod()> _
+Public Sub Should_UpdateModel_And_Call_Save_When_ID_Provided_To_The_Controller_Returns_A_Valid_User()
+    Dim Service As IUserService = MockRepository.GenerateStub(Of IUserService)()
+    Dim Controller As UserController = New UserController(Service)
+
+    Dim User = New User With {.ID = 1, .FirstName = 'Toran', .LastName = 'Billups', .Address = '1016 Cameron', .City = 'Burlington', .State = 'IA', .Zip = '52601', .Phone = '5156672344'}
+
+    Service.Stub(Function(x) x.GetUserById(1)).[Return](User)
+
+    Dim GetResult As ViewResult = Controller.Edit(1, Nothing)
+
+    Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+
+    Service.AssertWasCalled(Function(x) Wrap_SaveUser(x, User))
+End Sub
+{% endhighlight %}
+
+<p>Notice that we tell the proxy class to return 'Nothing' when a query comes in for 'GetUserById' this time around.  And if you look back at the controller class you will see that if the user is null, we don't call into that conditional to persist the changes.</p>
+
+<p>So after the edit method is run we again ask the proxy class if the save method was called, this time expecting it wasn't.</p>
+
+<p>These tests show some of the power you get with a good mock object framework.  Also I hope that it helped some VB developer get up and running with Rhino Mocks!</p>
+
+<p>As always, the <a href='/content/downloads/simpleNHibernateV6.zip'>source code</a> for this sample is available for download.</p>

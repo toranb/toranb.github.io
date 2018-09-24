@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head runat="server">
+  <title>Cleanup for dynamically generated DOM elements in IE</title>
+
+  <script type="text/javascript" src="http://toranbillups.com/Scripts/jquery-1.4.1.min.js"></script>
+  <style>
+  body
+{
+	line-height: 1.6em;
+}
+
+#hor-minimalist-b
+{
+	font-family: "Lucida Sans Unicode", "Lucida Grande", Sans-Serif;
+	font-size: 12px;
+	background: #fff;
+	margin: 45px;
+	width: 480px;
+	border-collapse: collapse;
+	text-align: left;
+}
+#hor-minimalist-b th
+{
+	font-size: 14px;
+	font-weight: normal;
+	color: #039;
+	padding: 10px 8px;
+	border-bottom: 2px solid #6678b1;
+}
+#hor-minimalist-b td
+{
+	border-bottom: 1px solid #ccc;
+	color: #669;
+	padding: 6px 8px;
+}
+#hor-minimalist-b tbody tr:hover td
+{
+	color: #009;
+}
+  </style>
+  <script type="text/javascript">
+    var lastSelectedItem;
+
+    function ToggleProductDetails(obj, id) {
+      obj.blur();
+
+      if (lastSelectedItem == id) {
+        collapseDetails(obj);
+      } else {
+        if (document.getElementById('detailTR')) {
+          collapseDetails(obj);
+        }
+        GetProductDetails(obj, id);
+      }
+    }
+    function GetProductDetails(obj, id) {
+      $.ajax({
+        type: "GET",
+        url: "http://toranbillups.com/Example/DynamicallyGeneratedExample?id=" + id,
+        dataType: "html",
+        beforeSend: function() { lastSelectedItem = id; },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+          alert(XMLHttpRequest.responseText);
+        },
+        success: function(xhtml) {
+          var tr = document.createElement('tr');
+          tr.id = "detailTR";
+
+          var td = document.createElement('td');
+          td.colSpan = 3;
+
+          var container = document.createElement('div');
+          container.id = "fillDiv";
+
+          obj.parentNode.parentNode.parentNode.insertBefore(tr, obj.parentNode.parentNode.nextSibling);
+
+          td.appendChild(container);
+          tr.appendChild(td);
+
+          //cleanup the html from aspnet and append the
+          //new elements to the DOM
+          removeExtraFormData(xhtml, $("#fillDiv"));
+        }
+      });
+    }
+    function removeExtraFormData(xhtml, parentObj) {
+      var div = document.createElement("div");
+      $(div).html(xhtml);
+
+      $(div).children().each(
+            function() {
+              if ($(div).find("div").filter(function() { return $(this).attr("id") == ""; }).remove());
+            }
+        );
+
+      var children = $(div).find("form").children();
+
+      $(div).find("form").remove();
+
+      // append the correct child element back to the DOM
+      parentObj.append(children);
+
+      div = null;
+    }
+    function collapseDetails(obj) {
+      if (document.getElementById("detailTR")) {
+        removeChildSafe(document.getElementById("detailTR"));
+        lastSelectedItem = null;
+      }
+    }
+    function removeChildSafe(el) {
+      //before deleting el, recursively delete all of its children.
+      while (el.childNodes.length > 0) {
+        removeChildSafe(el.childNodes[el.childNodes.length - 1]);
+      }
+      el.parentNode.removeChild(el);
+      discardElement(el);
+    }
+    function discardElement(el) {
+      var bin = document.getElementById("IELeakGarbageBin");
+
+      if (!bin) {
+        bin = document.createElement("DIV");
+        bin.id = "IELeakGarbageBin";
+        document.body.appendChild(bin);
+      }
+
+      bin.appendChild(el);
+      bin.innerHTML = "";
+    }
+  </script>
+
+</head>
+<body>
+  <form id="form1" runat="server">
+  <div>
+<table id="hor-minimalist-b" summary="Employee Pay Sheet">
+    <thead>
+    	<tr>
+        	<th scope="col">Employee</th>
+            <th scope="col">Salary</th>
+            <th scope="col">Supervisor</th>
+        </tr>
+    </thead>
+    <tbody>
+    	<tr>
+        	<td><a href="javascript:void(0);" onclick="ToggleProductDetails(this, 1); return false;">Stephen C. Cox</a></td>
+            <td>$300</td>
+            <td>Bob</td>
+        </tr>
+        <tr>
+        	<td><a href="javascript:void(0);" onclick="ToggleProductDetails(this, 2); return false;">Josephin Tan</a></td>
+            <td>$150</td>
+            <td>Annie</td>
+        </tr>
+        <tr>
+        	<td><a href="javascript:void(0);" onclick="ToggleProductDetails(this, 3); return false;">Joyce Ming</a></td>
+            <td>$200</td>
+            <td>Andy</td>
+        </tr>
+    </tbody>
+</table>
+  </div>
+  </form>
+</body>
+</html>

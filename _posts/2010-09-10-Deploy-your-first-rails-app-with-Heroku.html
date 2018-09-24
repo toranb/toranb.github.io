@@ -1,0 +1,60 @@
+---
+layout: post
+title:  "Deploy your first rails app with Heroku"
+date:   2010-09-10 18:00:00
+categories: blog archive
+---
+
+<p>When I first started playing with rails back in 2006, deployment was a scary complex world that I avoided for some reason.  And because I never deployed any production code I didn't learn anything about how difficult it was back then.  But a lot has changed since 2006 and a few weeks ago I stumbled upon this rails hosting service called <a href='http://heroku.com/'>Heroku</a>.</p>
+
+<p>Heroku is labeled as a cloud based hosting service for rails based web applications.  But that isn't saying much so I decided to deploy something myself and see just how easy or hard this would be.  I soon found that deployment would never be this easy again.  The steps below are exactly what I followed the first time I deployed a simple application to Heroku.</p>
+
+<h3>Commit your code locally with git</h3>
+
+<p>Init your git repository for the first time.</p>
+
+<pre>git init</pre>
+
+<p>add every file in your project so we can commit.</p>
+
+<pre>git add .</pre>
+
+<p>commit your code to the local repository.</p>
+
+<pre>git commit -m 'first commit'</pre>
+
+<h3>Install the heroku gem</h3>
+
+<p>Simply install the gem to get started with heroku.</p>
+
+<pre>gem install heroku</pre>
+
+<h3>Setup your SSH keys</h3>
+
+<p>First verify that you don't already have a key generated.</p>
+
+<pre>cd ~/.ssh</pre>
+
+<p>If the above returns 'no such file or directory' you can simply generate your key</p>
+
+<pre>ssh-keygen -t rsa -C 'you@gmail.com'</pre>
+
+<p>At the first prompt you can just hit enter to generate the key with the default name.  At the next prompt you need to enter a good passphrase and confirm it.</p>
+
+<h3>Deploy your rails application to heroku</h3>
+
+<p>Type the command below and when prompted for credentials simply enter your username (usually your email) and password.</p>
+
+<pre>heroku create</pre>
+
+<p>Next push your code up to heroku via git</p>
+
+<pre>git push heroku master</pre>
+
+<p>And finally run the rake command to get your database setup for the first time</p>
+
+<pre>heroku rake db:migrate</pre>
+
+<p>You should have a working application now! Just browse to your heroku url and check it out!</p>
+
+<p>Now you can make changes to your app locally and push them up with a simple 'git push heroku' from the command line.</p>

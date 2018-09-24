@@ -1,0 +1,48 @@
+---
+layout: post
+title: "Intro to python four years running"
+date:   2016-06-25 18:00:00
+categories: blog archive
+---
+
+<p>This week I was lucky enough to introduce 12 kids to the python programming language. I've been teaching 5th grade students python the last 3 years and <a href="http://toranbillups.com/blog/archive/2015/07/14/more-chromebooks-and-more-python/">previously</a>, the class size was limited to 8 students. The decision to increase the class size was difficult but I was willing to take on a new challenge in hopes of reaching more students who might one day share my love for software development.</p>
+
+<p>I wanted to write a quick recap of the week for anyone who might be interested in teaching kids programming for the first time. A big part of the process is simply documenting what I've learned and how others can benefit from it.</p>
+
+<h3>The Hardware</h3>
+
+<p>Like <a href="http://toranbillups.com/blog/archive/2015/07/14/more-chromebooks-and-more-python/">last year</a> I felt it was important to provide a chromebook for each student so they could continue writing code long after the class was over. This year I selected the <a href="https://www.amazon.com/Dell-CRM3120-1667BLK-11-6-Inch-Chromebook/dp/B00FBBUIDM?ie=UTF8&ascsubtag=hawk-1712653091-20&creative=394997&creativeASIN=B00FBBUIDM&linkCode=df0&ref_=asc_df_B00FBBUIDM4375171&tag=hawk-future-20">dell chromebook 11</a> because it allowed me to install ubuntu 15.10 and boot it directly (with minimal <a href="https://johnlewis.ie/custom-chromebook-firmware/rom-download/">hacking</a>). This chromebook also came highly recommended for anything education-related because of its rugged exterior.</p>
+
+<blockquote>One thing to note was that ubuntu 15.10 didn't support the sound card so students did not have audio. I'm hopeful that an upgrade to ubuntu 16/17 will solve this but it's something to be aware of. **update** I was able to get this working with a <a href="https://gist.github.com/toranb/ab8ba19cdf603e66161394ea57807c67">few steps</a></blockquote>
+
+<p>Because I wanted to expand the group from 8 to 12 students, I reached out to the <a href="https://www.python.org/psf/">Python Software Foundation</a> for additional funding. They agreed to help as they've done previously, so I felt it was only appropriate to take a moment and thank everyone for the time and money they've invested. Without this support year after year it would have been much more costly to gift each student a computer. Thank you to everyone at the PSF (or who donated to the PSF) for making this possible!</p>
+
+<h3>Timing is everything</h3>
+
+<p>In the past, I've run out of material quickly the first day, but this year I decided to slow things down to help build a more trusting relationship betwen myself and the students. We spent time doing a more traditional "ice breaker" in order to build trust and help me gain some understanding of their background.</p>
+
+<p>One side effect of taking it slower was that we ended our first day with maximum excitement. I was able to introduce just enough about variables, the REPL and types, so everyone was more than excited for Tuesday. One adjustment to note from the previous <a href="/content/presentations/2014/curriculum.pdf">curriculum</a> is that we also briefly introduced <a href="https://en.wikipedia.org/wiki/IDLE_(Python)">IDLE</a> to avoid the multi-line pain I've seen in years past.</p>
+
+<h3>IDLE so random</h3>
+
+<p>This year we didn't run into any of the issues with IDLE that I've seen in the past. One thing I did want to mention is that one of my students decided to name his program "random.py" and as a result we had a very tricky issue trying to save and run his code. If you ever get an error that looks something like this...</p>
+
+<blockquote>IDLE's subprocess didn't make connection. Either IDLE can't start a subprocess or personal firewall software is blocking the connection.</blockquote>
+
+<p>... be sure to remove both random.py and the pyc that it generated. This should clear up any issues. Here is the <a href="http://stackoverflow.com/questions/15888186/cant-run-python-via-idle-from-explorer-2013-idles-subprocess-didnt-make-c">stackoverflow post</a> that helped me figure this out :)</p>
+
+<h3>Copy/Paste considered harmful</h3>
+
+<p>Each year, trackpads on the chromebook hardware improve tenfold. As much as I thought the dell trackpad was decent, I decided to purchase an optical usb mouse for each student to avoid the problematic click and drag errors I've seen in years past.</p>
+
+<p>I assumed that having a mouse would eliminate any basic word processing problems, but one challenge I found this year was that asking each student to copy and paste code from the internet was difficult. Next year, I plan to have each of the exercises available in the home folder to avoid the time my assistant and I spent helping the students copy from github.</p>
+
+<h3>Stay with it</h3>
+
+<p>One thing I told the students on Tue and Wed morning is that the middle part of the week would be tough because we would be covering a great deal of new concepts. My hope was that by Thursday, all of the variable, conditional and loop ideas would start to sink in, but honestly that hadn't occurred like I'd seen in the past likely due to the larger class size and age range (as this year we didn't have exclusively 5th grade students). Truth be told, on Thursday I felt as if I'd failed the kids because we just didn't have enough familarity with the core concepts required to build a text-based game.</p>
+
+<p>Thankfully, Friday morning I saw a completely refreshed group of kids who deeply understood variables, IDLE and everything in-between. The best part was watching the students both find and fix bugs in our battleship game long before I had time to even call them out. Next year I hope to remain more optimistic as the students have inspired me to stay the course.</p>
+
+<p>To all the families and students -thank you for sticking with me throughout this challenging and rewarding week!</p>
+
+<img style="width: 100%;" src="/content/images/2016/pythoncoding2016.jpg" border="0"></img>

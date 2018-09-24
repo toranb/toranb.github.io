@@ -1,0 +1,71 @@
+---
+layout: post
+title:  "Mapping a one-to-many relationship using IList with NHibernate"
+date:   2009-10-05 18:00:00
+categories: blog archive
+---
+
+<p>I gave my first <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> talk last week at the local <a href='http://www.iowadnug.org/' target='_blank'>dotnet user group</a> and got a ton of great feedback.  One of the most popular scenarios missing from my talk was the canonical 'one-to-many' mapping that shows up in any 'real world' system these days.</p>
+
+<p>Working in the context of our banking example, a single user can have multiple accounts.  The database was already setup to represent this relationship so we won't be making any changes to the schema.  If you look at the Account table you will notice a FK column 'UserID'.  This will be used by NHibernate to make the real time query that is responsible for lazy loading accounts associated with a particular user.</p>
+
+<p>So the first step is to add a new property on the user object that will hold the list of accounts.</p>
+
+{% highlight c# linenos %}
+public virtual IList<Account> AccountList { get; set; }
+{% endhighlight %}
+
+<p>Remember to mark this as virtual and keep the type as IList, not a concrete List(Of T).  Next you need to alter the User.hbm.xml mapping file to explicitly tell NHibernate about this relationship.</p>
+
+{% highlight xml linenos %}
+<?xml version='1.0' encoding='utf-8' ?>
+<hibernate-mapping xmlns='urn:nhibernate-mapping-2.2'>
+  <class name='Banking.Library.Entity.User, Banking.Library' table='tbl_Banking_User'>
+    <id name='ID' column='ID' type='Int32' unsaved-value='0'>
+      <generator class='native' />
+    </id>
+    <property name='FirstName' column='FirstName' type='string' not-null='false' />
+    <property name='LastName' column='LastName' type='string' not-null='false' />
+    <property name='Address' column='Address' type='string' not-null='false' />
+    <property name='City' column='City' type='string' not-null='false' />
+    <property name='State' column='State' type='string' not-null='false' />
+    <property name='Zip' column='Zip' type='string' not-null='false' />
+    <property name='Phone' column='Phone' type='string' not-null='false' />
+    <bag name='AccountList' table='tbl_Banking_Account' lazy='true'>
+      <key column='UserID'/>
+      <one-to-many class='Banking.Library.Entity.Account, Banking.Library'/>
+    </bag>
+  </class>
+</hibernate-mapping>
+{% endhighlight %}
+
+<p>Notice we don't use a tag for this 'one-to-many' mapping like we did our 'many-to-one' mapping, but instead we use the 'bag' tag.  This tells NHibernate we are working with a collection.  The name must match the public property on the object you are using.  In this case our user object has a property named AccountList.  Next you must give the table name of the related entity.  And if you keep lazy loading set to 'true' you will be telling NHibernate not to load the entire object graph when you pull down a 'user' object.  Instead NHibernate will make a 'on demand' / 'real time' query when the application explicitly asks for a list of accounts.  This can help with performance because the query for a user or list of users won't have a join to grab the related account information.  The key column listed points to the 'UserID' column in tbl_Banking_Account so NHibernate knows how to write the TSQL join.  And finally, you must tell NHibernate what class will be used in this collection of objects.</p>
+
+<p>To see this in action, modify one of the controller methods to query account information.  <a href='http://nhprof.com/' target='_blank'>NHProf</a> will show the lazy loading details so we can see exactly what is going on behind the scenes.</p>
+
+{% highlight c# linenos %}
+public ActionResult Index()
+{
+    List<User> UserList = mUserService.GetUserCollection.ToList();
+
+    //****
+    //ONLY used to show how you could do lazy loading of a one-to-many relationship
+    List<Account> Accounts = UserList(0).AccountList.ToList();
+
+    foreach (var Account in Accounts) {
+        string description = Account.Description;
+    }
+    //ONLY used to show how you could do lazy loading of a one-to-many relationship
+    //****
+
+    return View(UserList);
+}
+{% endhighlight %}
+
+<p>If you watch NHProf while this method is executed you will see 2 different queries.  The first is to get the collection of users, but the second is the one that interests me.  NHibernate fires off a query to grab the accounts related to this specific user when the line 'UserList(0).AccountList.ToList()' is executed.</p>
+
+<img src='/content/images/lazy-loaded100509.jpg' alt='NHProf'/>
+
+<p>This was a simple example, but if it helped someone write their first one-to-many mapping it was worth the time to write it down.</p>
+
+<p>As always, the <a href='/content/downloads/simpleNHibernateV6.zip'>source code</a> for this sample is available for download.</p>

@@ -1,0 +1,29 @@
+---
+layout: post
+title:  "Pair programming with tmux"
+date:   2014-09-17 18:00:00
+categories: blog archive
+---
+
+<p>I've been pair programming with tmux for a few years because I've found it solves a lot of the traditional pain points I've had with past pairing setups.</p>
+
+<ul>
+  <li>A single keyboard/mouse makes for awkward "can I drive now" moments</li>
+  <li>A single developer machine makes breaking away to "google something" awkward when your pair is still typing/focused on a given problem</li>
+  <li>With a heavy weight IDE it's hard to share a single session across multiple machines</li>
+</ul>
+
+<p>One of the biggest challenges with this setup is that you first need to ssh into your pairs machine. If you are on a team that uses a shared login of some kind this isn't a problem, but for everyone else this presents a problem.</p>
+
+<p>But recently I found 2 solutions to this problem.</p>
+
+<p>If you are on a mac you can use <a href="http://tmate.io/">tmate.io</a>. This program allows the person hosting the session to quickly create a sharable ssh session. Then the pair partner can simply paste this ssh link into the terminal and away you go!</p>
+
+<p>If you are not on the mac, you are still in luck! If you want to allow someone else to ssh into your machine (with a username that is different than the one you are logged in with) type the following in your terminal</p>
+
+<blockquote><p>tmux -S /tmp/pair</p></blockquote>
+<blockquote><p>chmod 777 /tmp/pair</p></blockquote>
+
+<p>Next have your pair partner login via ssh and when they are authenticated have them run the following from the terminal</p>
+
+<blockquote><p>tmux -S /tmp/pair attach</p></blockquote>

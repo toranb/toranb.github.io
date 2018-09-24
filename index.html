@@ -1,0 +1,13 @@
+---
+layout: default
+title: ParadigmShift - the endless journey of a software professional
+---
+<h1>{{ site.name }}</h1>
+
+<p class="subtext">the endless journey of a software professional</p>
+
+<ol class="posts home">
+  {% for post in site.posts %}
+    <li><span class="date">{{ post.date | date_to_string }}</span> &raquo; <a href="{{ post.url }}">{{ post.title }}</a></li>
+  {% endfor %}
+</ol>

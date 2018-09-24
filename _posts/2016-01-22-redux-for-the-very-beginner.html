@@ -1,0 +1,16 @@
+---
+layout: post
+title:  "Redux for the very beginner"
+date:   2016-01-22 18:00:00
+categories: blog archive
+---
+
+<p>Last month I started learning <a href="https://github.com/rackt/redux">redux</a> and the learning process transformed me from skeptic to believer. I decided to record a short screencast to document what I learned and show why I think it's a great paradigm for managing state in your javascript applications.</p>
+
+<p>The part I found most useful was that it truly helped me learn what <a href="http://www.samselikoff.com/blog/data-down-actions-up/">data-down-actions-up</a> (DDAU) should look like when done well. One painful pattern I've seen in my own ember apps late last year was that the route started to grow. It was responding to actions that previously would be handled in the controller/or component itself. In addition, because each mutation is now explicit these actions grow in number (almost making me feel like a new object with the role of mutation manager should exist at times).</p>
+
+<p>With redux I found you actually get this as a pure function. The function is called a reducer and it's job/role is to take an action and the previous state => then return a new state. Another added benefit of this approach is that all your data structures become mutation free (something you start to ask about when you get past hello world/todo-mvc).</p>
+
+<p><a href="https://vimeo.com/151603293">Redux: the beginner friendly introduction</a></p>
+
+<iframe src="https://player.vimeo.com/video/151603293" width="800" height="501" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>

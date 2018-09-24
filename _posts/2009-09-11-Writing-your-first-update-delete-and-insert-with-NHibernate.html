@@ -1,0 +1,221 @@
+---
+layout: post
+title:  "Writing your first update delete and insert with NHibernate"
+date:   2009-09-11 18:00:00
+categories: blog archive
+---
+
+<p>In my previous <a href='http://toranbillups.com/blog/archive/2009/09/09/Writing-your-first-query-with-NHibernate' target='_blank'>post</a> we wrote a query with <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> to get a user based on id and a query to get a collection of users based on some criteria using <a href='http://ayende.com/Blog/archive/2007/03/17/Implementing-Linq-for-NHibernate-A-How-To-Guide--Part.aspx' target='_blank'>LINQ to NHibernate</a>.  But what about updating an object, or deleting an object?  How does NHibernate handle this type of database transaction?</p>
+
+<h3>Dirty Tracking</h3>
+
+<p>When you are used to keeping track of your objects manually and updating them when needed you don't tend to think of this <a href='http://ayende.com/Blog/archive/2009/06/11/nhibernate-ndash-automatic-change-tracking-for-aggregate-roots-in-ddd.aspx' target='_blank'>dirty tracking</a> idea as anything special.  But what if you didn't need to think about persisting changes when you altered a property on your business objects?  What would this allow you to focus on instead?</p>
+
+<p>I found that if I had the session object do this work for me, I could work more with the <a href='http://msdn.microsoft.com/en-us/magazine/dd434649.aspx' target='_blank'>business domain</a>.  Again adding value for the customer and making my life easier at the same time.  So what does NHibernate do exactly?  The session object will keep track of what properties are changed (if any) on your entity and update the database accordingly.  The first time I profiled an application using <a href='http://nhprof.com/' target='_blank'>NHibernate Profiler</a> and performed a save without any changes, I was shocked because NHibernate didn't write the TSQL to update the database.  But as I got further into this NHibernate stuff, I realized it's actually tracking this low level detail for me and saving the database from doing an update that isn't needed.  </p>
+
+<p>Now if someone has altered the data in the database during my transaction, NHibernate would find this and throw an exception during the commit so the transaction would be rolledback.  You might think of this as negative but you would do the exact same thing manually if you truly had your application setup for concurrent transactions.</p>
+
+<p>I have learned to embrace this feature as it does so much work for me that I don't even need to explicitly say 'save this object'.  Instead, if I update the state of an object NHibernate will understand that I want the changes to my object model persisted.</p>
+
+<h3>Writing your first update</h3>
+
+<p>So how does this work exactly?  Let's add an edit method to our controller that will update a property of our existing user.  Notice how I won't ask the session object to do a save explicitly, yet if we write a test to verify it worked I can prove it does the update because NHibernate wrote the TSQL needed to persist the change we made in our controller action.</p>
+
+{% highlight vbnet linenos %}
+    <AcceptVerbs(HttpVerbs.Post)> _
+    Function Edit(ByVal id As Integer, ByVal collection As FormCollection) As ActionResult
+        Dim User As User
+        Dim mSession As ISession
+        Dim mSessionFactory As ISessionFactory
+
+        Dim configuration = New Cfg.Configuration()
+
+        configuration.Configure('C:\Documents and Settings\user\My Documents\Visual Studio 2008\Projects\Banking\Banking.Test\app.config')
+
+        mSessionFactory = configuration.BuildSessionFactory()
+
+        mSession = mSessionFactory.OpenSession()
+
+        Try
+            mSession.BeginTransaction()
+
+            'first query to get the user as it exists in the database
+            User = mSession.Get(Of User)(1)
+
+            'next update the address property
+            User.Address = '1016 Cameron'
+
+            mSession.Transaction.Commit()
+        Catch ex As Exception
+            mSession.Transaction.Rollback()
+        Finally
+            mSession.Close()
+        End Try
+
+        Return View(User)
+    End Function
+	{% endhighlight %}
+
+<p>Please note that each test in this solution is an integration test that is used to prove our database transactions work as expected.  These won't have any real value in the final project because we will abstract away all the detail and do true unit testing instead.  </p>
+
+{% highlight vbnet linenos %}
+    <TestMethod()> _
+    Public Sub Should_Update_User_And_Reflect_Changes_When_We_Query_User_By_Id()
+        Dim Controller As UserController = New UserController()
+
+        'call the edit to update the user object
+        Dim UpdateResult As ViewResult = Controller.Edit(1, Nothing)
+
+        'now pull the user back out and verify the address was updated
+        Dim GetController As UserController = New UserController()
+
+        Dim GetResult As ViewResult = GetController.Edit(1)
+
+        Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+
+        Assert.AreEqual(GetModel.ID, 1)
+        Assert.AreEqual(GetModel.FirstName, 'Toran')
+        Assert.AreEqual(GetModel.LastName, 'Billups')
+        Assert.AreEqual(GetModel.Address, '1016 Cameron')
+        Assert.AreEqual(GetModel.City, 'Bondurant')
+        Assert.AreEqual(GetModel.State, 'IA')
+        Assert.AreEqual(GetModel.Zip, '50035')
+        Assert.AreEqual(GetModel.Phone, '3199995555')
+    End Sub
+	{% endhighlight %}
+
+<p>Notice that this test does pass because after we altered the property and did a commit, NHibernate updated the database to reflect these changes in our object.  You will notice that after this edit is complete, I call the edit (http GET) method to get the object and verify the changes.  This is because until we commit the transaction, our session object won't update the database.  So instead I wanted to treat each call to the database as it's own unit of work to prove this data was updated.  But to be clear, you won't use a second session in your production environment. (unless you want to)</p>
+
+<h3>But what if I want to explicitly save?</h3>
+
+<p>You can still tell NHibernate to save the object, it's just not needed in the event of an update.  The insert code sample shown toward the end of this post will show the syntax to call this explicitly.</p>
+
+<h3>Writing your first delete</h3>
+
+<p>We begin by writing a new controller action called delete that will get an object with the id specified, then we will ask NHibernate to delete that object.  Once this transaction is committed, NHibernate will write the TSQL to delete this object from the database.</p>
+
+{% highlight vbnet linenos %}
+    <AcceptVerbs(HttpVerbs.Post)> _
+    Function Delete(ByVal id As Integer) As ActionResult
+        Dim User As User
+        Dim mSession As ISession
+        Dim mSessionFactory As ISessionFactory
+
+        Dim configuration = New Cfg.Configuration()
+
+        configuration.Configure('C:\Documents and Settings\user\My Documents\Visual Studio 2008\Projects\Banking\Banking.Test\app.config')
+
+        mSessionFactory = configuration.BuildSessionFactory()
+
+        mSession = mSessionFactory.OpenSession()
+
+        Try
+            mSession.BeginTransaction()
+
+            'first query to get the user as it exists in the database
+            User = mSession.Get(Of User)(1)
+
+            'next tell NHibernate to delete this user
+            mSession.Delete(User)
+
+            mSession.Transaction.Commit()
+        Catch ex As Exception
+            mSession.Transaction.Rollback()
+        Finally
+            mSession.Close()
+        End Try
+
+        Return View()
+    End Function
+	{% endhighlight %}
+
+<p>In the test below, we call this action and then the action of the edit (http GET) to verify the user was deleted from the database.</p>
+
+{% highlight vbnet linenos %}
+    <TestMethod()> _
+    Public Sub Should_Delete_User()
+        Dim Controller As UserController = New UserController()
+
+        Dim DeleteResult As ViewResult = Controller.Delete(1)
+
+        'now attempt to get this user
+        Dim GetController As UserController = New UserController()
+
+        Dim GetResult As ViewResult = GetController.Edit(1)
+
+        Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+
+        Assert.AreEqual(GetModel, Nothing)
+    End Sub
+	{% endhighlight %}
+
+<h3>Writing your first insert</h3>
+
+<p>The insert scenario is a bit different in that I have found explicitly calling 'SaveOrUpdate' is the only way to ensure NHibernate will insert this object into the database.  I thought originally that you could just create a new object with an id of zero, tell NHibernate (in the configuration) that zero = new object and it would insert automatically.  Up to this point, I can't get it to work as desired.  So for now, after you create a new object, call the 'SaveOrUpdate' method and it will insert the object after you commit the transaction.</p>
+
+{% highlight vbnet linenos %}
+<AcceptVerbs(HttpVerbs.Post)> _
+    Function Create(ByVal collection As FormCollection) As ActionResult
+        Dim User As User
+        Dim mSession As ISession
+        Dim mSessionFactory As ISessionFactory
+
+        Dim configuration = New Cfg.Configuration()
+
+        configuration.Configure('C:\Documents and Settings\user\My Documents\Visual Studio 2008\Projects\Banking\Banking.Test\app.config')
+
+        mSessionFactory = configuration.BuildSessionFactory()
+
+        mSession = mSessionFactory.OpenSession()
+
+        Try
+            mSession.BeginTransaction()
+
+            Dim NewUser As New User With {.FirstName = 'John', .LastName = 'Doe', .Address = '400 N. 1st', .City = 'Des Moines', .State = 'IA', .Zip = '50309', .Phone = '5154010344'}
+
+            mSession.SaveOrUpdate(NewUser)
+
+            mSession.Transaction.Commit()
+        Catch ex As Exception
+            mSession.Transaction.Rollback()
+        Finally
+            mSession.Close()
+        End Try
+
+        Return View()
+    End Function
+	{% endhighlight %}
+
+<p>Now we can write a test to verify this was inserted.</p>
+
+{% highlight vbnet linenos %}
+    <TestMethod()> _
+    Public Sub Should_Create_User()
+        Dim Controller As UserController = New UserController()
+
+        'call the edit to update the user object
+        Dim UpdateResult As ViewResult = Controller.Create(Nothing)
+
+        'now pull the user back out and verify the address was updated
+        Dim GetController As UserController = New UserController()
+
+        Dim GetResult As ViewResult = GetController.Edit(2)
+
+        Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+
+        Assert.AreEqual(GetModel.ID, 2)
+        Assert.AreEqual(GetModel.FirstName, 'John')
+        Assert.AreEqual(GetModel.LastName, 'Doe')
+        Assert.AreEqual(GetModel.Address, '400 N. 1st')
+        Assert.AreEqual(GetModel.City, 'Des Moines')
+        Assert.AreEqual(GetModel.State, 'IA')
+        Assert.AreEqual(GetModel.Zip, '50309')
+        Assert.AreEqual(GetModel.Phone, '5154010344')
+    End Sub
+	{% endhighlight %}
+
+	<p>This test only works if you have not inserted a record beyond the default (else, just drop the table and re-add it).  Again this integration test is not something we will go to production with (sorry for the demo code).</p>
+
+	<p>Now you can create, read (single), read (collection), update and delete objects using NHibernate.  Done - right?  If you look at the sample project that corresponds with the progress thus far, you will notice a ton of duplication around creating the session factory and session objects.  Not to mention we haven't really taken advantage of this 'unit of work' concept.  Next time we will focus on how to reduce noise in the code and work with a single transaction for each web request.</p>
+
+	<p>If you want to investigate further, download the source <a href='/content/downloads/simpleNHibernateV2.zip'>here</a>.</p>

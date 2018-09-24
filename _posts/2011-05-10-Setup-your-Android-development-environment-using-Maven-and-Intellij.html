@@ -1,0 +1,50 @@
+---
+layout: post
+title:  "Setup your Android development environment using Maven and Intellij"
+date:   2011-05-10 18:00:00
+categories: blog archive
+---
+
+<p>I recently started playing around with <a href='http://developer.android.com/index.html'>Android</a> and found it difficult to get my development environment setup. I suppose this is something I should have expected given it's the java ecosystem, but my recent <a href='http://toranbillups.com/blog/tags/iphone/'>fling</a> with <a href='http://cocoadevcentral.com/d/learn_objectivec/'>objective-c</a> had me thinking back to the 'good old days' when you just opened the editor and hit go.</p>
+
+<p>Most of the examples I found online would show you how to get started with Android using <a href='http://www.eclipse.org/downloads/'>Eclipse</a> but as I'm already using Intellij at work I thought this would be a great opportunity to learn the shortcuts and editor in depth.  So off I went to <a href='http://www.jetbrains.com/idea/download/'>download</a> a free copy of the community edition.</p>
+
+<p>After a few days of trial and error I got to talking with a co-worker about how he got setup doing Android development and he mentioned <a href='http://maven.apache.org/download.html'>Maven</a>. I was using Maven at work as a build/dependency management tool of sorts but as I'm new to the java world I didn't know much about it.  I had him walk me through a basic setup and thought why not share that with others who might be interested in Android development. </p>
+
+<p>I also thought this would be valuable because most blog posts/tutorials online kept the focus on Intellij (w/out Maven) or Eclipse. It was rare to come across a 'how-to' that mentioned Android, Intellij and Maven.</p>
+
+<p>So I started documenting the steps required to get a perfect build up and running on a freshly formatted Windows 7 machine.  But instead of displaying a bunch of steps in text format I decided to do a short (23ish minutes) screencast that I recorded on a freshly formatted machine. The <a href='http://dl.dropbox.com/u/716525/content/video/android/androidsetup.mp4'>video</a> was taken on my netbook so I didn't launch the emulator (not enough power) but I did detail each step required to get a new Android developer up and running.</p>
+
+<video poster='http://dl.dropbox.com/u/716525/content/video/android/androidpreview.png' controls preload='none' width='880' width='494'><source src='http://dl.dropbox.com/u/716525/content/video/android/androidsetup.mp4' /></video>
+
+<p><a href='http://dl.dropbox.com/u/716525/content/video/android/androidsetup.mp4'><b>Direct Download (mp4)</b></a></p>
+
+<p>If you don't feel like watching the video here are the basic steps in less detail</p>
+
+<p>1.) Install the JDK</p>
+<p>2.) Add the JAVA_HOME env variable</p>
+<p>3.) Install the Android SDK</p>
+<p>4.) Add the ANDROID_HOME env variable</p>
+<p>5.) Add platform tools to your class path (to call adb later)</p>
+<p>6.) Install Maven</p>
+<p>7.) Add Maven to your class path</p>
+<p>8.) Add the M2_HOME env variable</p>
+<p>9.) Install Intellij</p>
+<p>10.) Open a command prompt and type the following command to generate your mvn project</p>
+
+<p>mvn archetype:generate -DarchetypeArtifactId=android-quickstart -DarchetypeGroupId=de.akquinet.android.archetypes -DarchetypeVersion=1.0.5 -DgroupId=com.somepkg.android -DartifactId=SomeProjectName</p>
+
+<p>11.) cd into the project directory you just created and do an mci w/out testing included</p>
+
+<p>mvn clean install -Dtest=false -DfailIfNoTests=false</p>
+
+<p>12.) Open Intellij</p>
+<p>13.) Open your project and do a build (control + F9) - this should fail</p>
+<p>14.) Add the JDK to your Intellij project</p>
+<p>15.) Go back to the command prompt and do a 'mvn clean install'</p>
+<p>16.) Start the emulator</p>
+<p>17.) Go back to the command prompt and enter the following to push your apk to the emulator</p>
+
+<p>adb install target/*.apk (where *.apk is the apk you want pushed to the emulator)</p>
+
+<p>I hope this helps someone else get started with Android!</p>

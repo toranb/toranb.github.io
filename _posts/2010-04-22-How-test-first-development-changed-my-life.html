@@ -1,0 +1,90 @@
+---
+layout: post
+title:  "How test first development changed my life"
+date:   2010-04-22 18:00:00
+categories: blog archive
+---
+
+<p>Since 2007 I've spent a large part of each day trying to understand <a href='http://www.agiledata.org/essays/tdd.html'>test driven development</a>.  Looking back now, I think the reason I started down this journey had something to do with my experience trying to maintain a large application written by another developer.  I still remember how hard it was to understand what each method/class was doing.  And when I would make a change to existing code, I wouldn't know about a bug until the end users found it.  In short, it was this experience that got me interested in writing more maintainable software.</p>
+
+<p>Initially, I thought the value of TDD would be found in a suite of regression tests to help the next developer make changes.  And this is helpful no doubt, but instead what I've found over the last few years is that software built test-first is more maintainable than those built without testability in mind.  And this is important because the maintenance of software is always more expensive than the initial development.</p>
+
+<p>The first thing I learned about TDD is that it's not about testing.  It turns out that having a word like 'test' in the name implies you only need to write tests to be successful.  But the real goal of TDD is to accomplish higher code quality by forcing you to write a test for something before the implementation.  This way you are cognizant of the complexity you are building into each class/method, well before you move on and call it 'done.'</p>
+
+<p>When you write software test-first, you are using the tests as a design tool to help guide you along the way.  And if you ask someone who has been doing test driven development for any length of time, they will tell you that this is why they follow the discipline.  My own experience has shown me that this idea works in practice because the software you end up with is much easier to read, understand and maintain.</p>
+
+<p>Because I've spent so much time learning how to write software test-first, I wanted to share how this shift in thinking has changed my life.</p>
+
+<h3>If you can't write a test for something you don't understand it</h3>
+
+<p>When I started writing software for a living, I got into the habit of writing code before I fully understood what the customer wanted.  In practice, this meant I was writing software without thinking about the responsibility of each class/method.</p>
+
+<p>This came to my attention when I tried to write a test for the first time and couldn't give the test a name that explained the intent.  It was at this moment that I fully understood why so many people feel that the hardest part about writing software is providing a good name for each variable/method/class/test.</p>
+
+<p>Writing a test first required me to slow down and think more about each problem I was trying to solve.  When doing this, I found the software I was writing to be of higher quality.  This enabled the developers who followed to not only read it, but also understand what I was doing and make changes to it.</p>
+
+<p>Another thing happened when I had to think more about what I was doing.  I suddenly had a lot more questions for the business about what they really wanted.  This allowed me to provide more input and, in turn, a better product for the customer.</p>
+
+<h3>Without a regression test you can't clean the code</h3>
+
+<p>In the past, I feared having another developer read my code because it was such a mess.  And if I tried to <a href='http://martinfowler.com/books.html#refactoring'>refactor</a> it, I would have to manually test large parts of the application to be sure I didn't break anything.  But after I started writing tests first, I could refactor the production code and know if I had altered the behavior in any way.  Now initially you might not think this is a problem because you only write new features, but what I found in the real world is that this can start to harm a codebase, regardless.  </p>
+
+<p>For example, when I was adding a new feature a few years back, I needed about 60% of the functionality in an existing method.  But the method itself was over 2000 lines long, and I was afraid to refactor this to reduce duplication, so I copied and pasted it into another class.  Then I tweaked it to do the 'new' stuff that was required of the feature.  So because I had no way to verify the expected behavior, I made a poor design decision out of fear.</p>
+
+<h3>Fast feedback cycles save time and money</h3>
+
+<p>Until late last year, most of my work experience could be categorized as <a href='http://en.wikipedia.org/wiki/Waterfall_model'>waterfall</a>.  This being the idea that we do a great deal of design and analysis up front, then write the software for a year without talking to the business.  I would describe this as a slow feedback cycle because the business doesn't see anything until it's completed.  And often times, the business doesn't fully understand what they want until they see something they don't.  And by that point it's often too late.</p>
+
+<p>The same idea applies to testing.  If you are writing a test first, and you keep your tests running quickly, you will know when you are done with a feature/story/bug/etc.  Without this kind of rapid feedback, you need to open the application, click around until you get to the part you modified, and see what happens.  Doing this over and over again really slows down a development team, and it feels like waste.</p>
+
+<p>Another great thing about this feedback is that you truly feel like you're getting work done each hour.  If you have ever worked on a long project, you understand that it can take days or even weeks to know when you're 'done' with a task.  Breaking down a large problem into several smaller ones is always a good thing in my book.</p>
+
+<h3>You are going to test it anyway, spend the time to do it right</h3>
+
+<p>After a new feature was added, I would open the browser and fire up the application to make sure it worked.  What I found with test-first development, was that I was already doing the same thing with the added benefit of a regression test for the next time around.  Without a suite of these regression tests the application will take longer to test as it grows.  At some point this will become unmanageable because you will be spending more time doing manual regression testing than you do writing new features.</p>
+
+<p>You might be thinking, sure I can build a regression test suite using test-after development.  And to some extent, this is true.  But if you choose to spend your time writing tests after development, you will be giving up the largest benefit of all: design.  Remember we are using test driven development as a design tool more than a testing tool.</p>
+
+<p>Another good reason not to write tests after development is that you will never get to it.  Like anything in software development, the closer you get to the end of a project, the more things get cut.  This would include ALL tests if you plan to test after development.  Plan ahead and test first, to avoid an empty suite of regression tests.</p>
+
+<p>In addition, most of my test-after experience has resulted in much larger integration-like tests.  These can be harder to understand and maintain, and often run very slow.  I've also seen the implementation become so complex to test that I simply gave up and pushed it to production without any coverage for the next developer.</p>
+
+<p>Now if you are new to unit testing, you will no doubt start with test-after simply because you have so much to learn.  I started this way, as I'm sure others have.  It's just a stepping stone on your way to test-first development.  Keep in mind that you want to move out of this stage quickly because bad habits are hard to break.</p>
+
+<h3>Without tests the next developer will need a word doc and a lot of luck</h3>
+
+<p>I was looking at some source code for a function I wrote myself just a year ago and couldn't understand what it was doing.  I was trying to explain this to another developer at the time and found myself going to the unit test for clarification.  A unit test can be a great form of developer documentation because it shows the inputs and expected outputs.</p>
+
+<p>Often times when I'm reading code, I just want to know what something does, not how it does it.  To this end, unit tests provide a great value.  And if you are working test-first, it helps you think about the problem from a unique perspective.</p>
+
+<h3>Evolutionary design is possible without fear</h3>
+
+<p>I took a new job last year that has me shipping software each month.  Initially, I was afraid to make changes in the codebase because if I broke something, it would hang around for a month.  And if this was something that would cost the company money, it might be a sign that I'm not providing the value they hired me for.</p>
+
+<p>What I found instead was that we have a pile of regression tests, and everyone is working to improve the code through evolutionary design.  This gave me a great deal of confidence to refactor existing classes and methods throughout my day.  And if a codebase doesn't have the ability to improve, it's only a matter of time before the big 're-write'.  And often the re-write is a failure, so I plan to avoid this at all costs.</p>
+
+<h3>You will actually write less code</h3>
+
+<p>When you first talk with a co-worker about writing tests, the knee-jerk reaction is always 'I don't have time to write more code'.  But with modern IDE's and refactoring tools like <a href='http://www.jetbrains.com/resharper/'>ReSharper</a>, I have found that you actually write less code when you start with a unit test.</p>
+
+<p>For instance, when you write a test for a class that doesn't yet exist, ReSharper will stub it out for you with a simple keystroke.  The same goes for methods and properties.  So instead of writing a ton of boiler plate method and class signatures, I only write tests and the simplest implementation to get them passing.</p>
+
+<h3>Job security</h3>
+
+<p>If you approached your boss today and asked if he wanted software that was bug-free or software that was riddled with imperfections, he would hopefully say 'bug-free'.  This is because with each bug the development team is slowed down and has less velocity to work on things that actually provide business value.</p>
+
+<p>But to be clear, the tests themselves don't actually prevent bugs from happening.  Instead I have found that when you slow down and write a test, it starts to act like a specification of sorts.  And when you start working to a spec with quick feedback, you examine the edge cases with a little more care than usual.  And this attention to detail is what prevents bugs.</p>
+
+<p>And with automated tests becoming the norm, it wouldn't hurt to learn something new this year.  If nothing else, it will help you standout at the next job interview.  Believe me, this is how I landed my dream job.</p>
+
+<h3>It actually makes my work more enjoyable</h3>
+
+<p>Personally I have found 'red, green, refactor' to be a breath of fresh air in our industry.  I enjoy the rhythm of writing a test, watching it fail, writing enough code to make it pass, and finally cleaning it up.  It makes me feel like I'm turning around something of value with each passing test.</p>
+
+<p>In addition, I've started to understand that passing software to another developer without tests is like saying 'good luck dude'.  I encourage everyone in the software industry to work as a professional and look out for the next developer.  So instead of staying 'good luck', say 'hey I've got you covered'.</p>
+
+<h3>Wrapping it up</h3>
+
+<p>TDD is a great way to build maintainable software, but it's still not a silver bullet.  What test-first development can't verify is the end-to-end behavior of the software.  I've learned that some form of <a href='http://agilesoftwaredevelopment.com/blog/vaibhav/acceptance-testing-what-why-how'>acceptance-testing</a> is required to fully cover integration areas and prove that the system works as the business expects it should.</p>
+
+<p>That being said, I've found that a combination of TDD and acceptance-testing can provide great value to any development team.  The business begins to trust again, and this provides a better work environment for everyone.</p>

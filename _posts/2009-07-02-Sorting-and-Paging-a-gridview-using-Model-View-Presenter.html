@@ -1,0 +1,266 @@
+---
+layout: post
+title:  "Sorting and Paging a gridview using Model View Presenter"
+date:   2009-07-02 18:00:00
+categories: blog archive
+---
+
+<p>The last piece of functionality that I worked at for some time was trying to implement sorting and paging of a gridview using the MVP pattern.  To start I had to think about what I was displaying in tabular form to the user.  This was almost always a collection of some business entity so I found that List(Of T) was a good place to start.  To display a list of products you will first need to add a property to the interface that represents the view.</p>
+
+{% highlight c# linenos %}
+    public interface IProductView
+    {
+        List<Product> ProductCollection { get; set; }
+   }
+{% endhighlight %}
+
+<p>Next we need to create the markup for the UI implementation (webforms so I will use a gridview in this example)</p>
+
+{% highlight xml linenos %}
+                        <asp:GridView ID='gridProducts' runat='server'>
+                            <Columns>
+                                <asp:TemplateField HeaderText='Product Name'>
+                                    <ItemTemplate>
+                                        <a id='lnkProductName' runat='server'></a>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText='Quantity Per Unit'>
+                                    <ItemTemplate>
+                                        <span id='lblQuantityPerUnit' runat='server'></span>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText='Units In Stock'>
+                                    <ItemTemplate>
+                                        <span id='lblUnitsInStock' runat='server'></span>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                            </Columns>
+                        </asp:GridView>
+{% endhighlight %}
+
+<p>After the gridview is complete, you needed to implement the list<t> property in your code-behind, along with the usual presenter setup</p>
+
+{% highlight c# linenos %}
+public partial class Default : System.Web.UI.Page, IProductView
+    {
+        private ProductPresenter _Presenter;
+
+        protected override void OnInit(System.EventArgs e)
+        {
+            _Presenter = new ProductPresenter(this);
+
+            base.OnInit(e);
+        }
+
+        protected void Page_Load(object sender, EventArgs e)
+        {
+           if (IsPostBack) {
+               _Presenter.OnViewLoad();
+           }
+           else {
+               _Presenter.OnViewInit();
+           }
+        }
+
+        public List<Product> ProductCollection {
+          get { return (List<Product>)gridProducts.DataSource(); }
+          set { gridProducts.DataSource = value; gridProducts.DataBind(); }
+        }
+}
+{% endhighlight %}
+
+<p>And finally I needed to populate this collection in the presenter class</p>
+
+{% highlight c# linenos %}
+    public class ProductPresenter
+    {
+
+        private IProductView _View;
+        private IProductService _ProductService;
+
+        public ProductPresenter(IProductView View) : this(View, new ProductService())
+        {
+        }
+
+       public ProductPresenter(IProductView View, IProductService ProductService)
+       {
+           _View = View;
+           _ProductService = ProductService;
+       }
+
+       public void OnViewInit()
+       {
+           PopulateProductCollection();
+       }
+
+       public void OnViewLoad()
+       {
+
+       }
+
+       public void PopulateProductCollection()
+       {
+           List<Product> ProductCollection = new List<Product>();
+
+           ProductCollection = _ProductService.GetProductCollection();
+
+           _View.ProductCollection = ProductCollection;
+       }
+
+   }
+{% endhighlight %}
+
+<p>This work is the bare minimum to get a collection working w/ the MVP implementation.  Notice that with this example we do not have any sorting or paging (yet).  First lets implement the sorting feature.</p>
+
+<p>To do sorting on the collection we are going to use a custom sort class called 'GenericComparer'.  The basic idea of this class is to take the collection and sort it based on a direction and expression.  It might be important to note that the expression should match a property on your business entity.</p>
+
+{% highlight c# linenos %}
+    public class GenericComparer<T> : IComparer<T>
+    {
+
+        private string _Direction;
+        private string _Expression;
+
+        public GenericComparer(string Expression, string Direction)
+        {
+            _Expression = Expression;
+           _Direction = Direction;
+       }
+
+       public int Compare(T x, T y)
+       {
+           PropertyInfo propertyInfo = typeof(T).GetProperty(_Expression);
+           IComparable obj1 = (IComparable)propertyInfo.GetValue(x, null);
+           IComparable obj2 = (IComparable)propertyInfo.GetValue(y, null);
+           if (_Direction == 'Ascending') {
+               return obj1.CompareTo(obj2);
+           }
+           else {
+               return obj2.CompareTo(obj1);
+           }
+       }
+   }
+{% endhighlight %}
+
+<p>But to ensure the presenter method gets called, we need to do some plumbing code in the code-behind to handle the event that gets raised when the user clicks on a column header to sort the gridview.</p>
+
+<p>But before we can hook this up, we are going to need 2 additional read only properties to tell the presenter what property to sort on, and what direction (ascending or descending) to sort the collection.</p>
+
+{% highlight c# linenos %}
+    public interface IProductView
+    {
+        List<Product> ProductCollection { get; set; }
+        string SortExpression { get; }
+        string SortDirection { get; }
+   }
+{% endhighlight %}
+
+<p>Next, we need to implement these in the code-behind so the presenter has access to the expression and direction.  Notice i am using viewstate but anything that will persist this information is good enough.</p>
+
+{% highlight c# linenos %}
+    public string SortDirection {
+       get {
+           if (ViewState('PreviousSortDirection') == null) {
+               ViewState('PreviousSortDirection') = 'Ascending';
+           }
+           return (string)ViewState('PreviousSortDirection');
+       }
+   }
+
+   public string SortExpression {
+       get {
+           if (ViewState('PreviousSortExpression') == null) {
+               ViewState('PreviousSortExpression') = 'ProductName';
+           }
+           return (string)ViewState('PreviousSortExpression');
+       }
+   }
+{% endhighlight %}
+
+<p>Now that we have this code setup, we need to modify the markup to ensure the gridview is ready to do sorting and paging.  Notice we add not only the 'AllowSorting = true' but each column now has a SortExpression.  This should match the property name found on your business entity.</p>
+
+{% highlight xml linenos %}
+<asp:GridView ID='gridProducts' EnableViewState='false' runat='server' OnPageIndexChanging='gridProducts_PageIndexChanging' AutoGenerateColumns='false' AllowPaging='true' AllowSorting='true'>
+                        <PagerStyle CssClass='pager-row' />
+                        <RowStyle CssClass='row' />
+                        <PagerSettings Mode='numericfirstlast' PageButtonCount='10' FirstPageText='«' LastPageText='»' />
+                            <Columns>
+                                <asp:TemplateField HeaderText='Product Name' SortExpression='ProductName'>
+                                    <ItemTemplate>
+                                        <a id='lnkProductName' runat='server'></a>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText='Quantity Per Unit' SortExpression='QuantityPerUnit'>
+                                    <ItemTemplate>
+                                        <span id='lblQuantityPerUnit' runat='server'></span>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                                <asp:TemplateField HeaderText='Units In Stock' SortExpression='UnitsInStock'>
+                                    <ItemTemplate>
+                                        <span id='lblUnitsInStock' runat='server'></span>
+                                    </ItemTemplate>
+                                </asp:TemplateField>
+                            </Columns>
+                        </asp:GridView>
+{% endhighlight %}
+
+<p>After you have modified the markup, lets write the code needed to handle the sorting event.  It might be important to note that this is best implemented with some type of base class if you can do so.  The basic idea is to determine the sort type (asc or desc) and setup viewstate to reflect the changes needed so when the presenter gets the values they reflect the appropriate sorting operation requested by the user.  The bulk of this code is just to toggle the direction and then to set the viewstate property of the expression.</p>
+
+{% highlight c# linenos %}
+private void gridSuppliers_Sorting(object sender, GridViewSortEventArgs e)
+  {
+        if ((string)ViewState('PreviousSortExpression') == e.SortExpression) {
+            if ((string)ViewState('PreviousSortDirection') == 'Ascending') {
+                e.SortDirection = System.Web.UI.WebControls.SortDirection.Descending;
+                ViewState('PreviousSortDirection') = 'Descending';
+            }
+            else {
+                e.SortDirection = System.Web.UI.WebControls.SortDirection.Ascending;
+               ViewState('PreviousSortDirection') = 'Ascending';
+           }
+       }
+       else {
+           e.SortDirection = System.Web.UI.WebControls.SortDirection.Ascending;
+           ViewState('PreviousSortDirection') = 'Ascending';
+       }
+       ViewState('PreviousSortExpression') = e.SortExpression;
+
+       GridView gv = (GridView)sender;
+       if (e.SortExpression.Length > 0) {
+           foreach (DataControlField field in gv.Columns) {
+               if (field.SortExpression == e.SortExpression) {
+                   ViewState('PreviousHeaderIndex') = gv.Columns.IndexOf(field);
+                   break;
+               }
+           }
+       }
+       _Presenter.PopulateProductCollection();
+   }
+{% endhighlight %}
+
+<p>And finally in the presenter itself we need to do the actual sorting work required.  Notice we only added 1 line here to sort the list of products.</p>
+
+{% highlight c# linenos %}
+       public void PopulateProductCollection()
+       {
+           List<Product> ProductCollection = new List<Product>();
+
+           ProductCollection = _ProductService.GetProductCollection();
+
+           ProductCollection.Sort(new GenericComparer<Product>(_View.SortExpression, _View.SortDirection));
+
+           _View.ProductCollection = ProductCollection;
+       }
+{% endhighlight %}
+
+<p>Now that we have the sorting complete, the paging work is a breeze.  In your code behind the only thing we need to do is alter the page index value as below and then call the populate method on the presenter.  The current implementation does indeed call back to your repository so if you want to add some type of caching for this it might help keep the SQL guys off your case.</p>
+
+{% highlight c# linenos %}
+    protected void gridProducts_PageIndexChanging(object sender, System.Web.UI.WebControls.GridViewPageEventArgs e)
+    {
+        gridProducts.PageIndex = e.NewPageIndex;
+        _Presenter.PopulateProductCollection();
+    }
+{% endhighlight %}
+
+<p>Now if you have the above in place you should have the sorting and paging functionality required for any line of business app.  If you want to investigate further, download the source <a href='/content/downloads/MVPSampleApp.zip'>here</a>.</p>

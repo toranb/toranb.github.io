@@ -1,0 +1,32 @@
+---
+layout: post
+title:  "Unit testing your ember.js templates with jasmine part 2"
+date:   2013-04-09 18:00:00
+categories: blog archive
+---
+
+<p>In <a href='/blog/archive/2013/04/08/Unit-testing-your-emberjs-templates-with-jasmine-part-1/'>part 1</a> I showed a simple example of how to unit test a <a href='http://handlebarsjs.com/'>handlebars</a> template inside your <a href='http://emberjs.com/'>emberjs</a> application. But what I ended up with didn't scale because I was having to duplicate each template within my test code.</p>
+
+<p>Instead I needed a way to pull in a production template dynamically without having to spin up the entire application. One side effect of this process is that you need to work with smaller templates or partials because you don't want to verify a ton of html usually, but instead that your model is correctly bound to the template. This is a common side effect of <a href='/blog/archive/2011/06/14/Test-Driven-Development-Is-A-Design-Activity/'>test-driven development</a> and it didn't cause me any pain because it's easy to do this with handlebars out of the box.</p>
+
+<p>The template below is a perfect example of something simple I would want to verify without going to the browser. Just a basic each helper and a few html elements, but I'd like to prove it gets bound and rendered correctly given an array of model objects.</p>
+
+<div data-gist=5344969><script src='https://gist.github.com/toranb/5344969.js'></script></div>
+
+<p>The next step was to write the jasmine test itself. It's important to note that initially this is a failing test because my template is not yet available from emberjs.</p>
+
+<div data-gist=5341542><script src='https://gist.github.com/toranb/5341542.js'></script></div>
+
+<p>In this test I create 2 models because I want to verify the each helper does display an html input for each text field in the handlebars template. To avoid the copy/paste duplication I mentioned earlier, I ask the global Ember.TEMPLATES array for my template '_peopleTable'. But because I didn't spin up my entire frontend the template isn't available and the test will fail as my template is undefined.</p>
+
+<p>To load the handlebars template on demand without the file system help of <a href='http://nodejs.org/'>node.js</a> I reached for $.ajax</p>
+
+<div data-gist=5344887><script src='https://gist.github.com/toranb/5344887.js'></script></div>
+
+<p>This specific example requires the name of the file to be _peopleTable.handlebars but you can modify it accordingly. Just as long as you can precompile the template and add it to Ember.TEMPLATES</p>
+
+<p>One last compromise I had to make was that when I went to assert against the person_id attribute I found it wasn't easily accessible because of the way it was rendered inline. I instead added a quick span to help me find it from within the jasmine test.</p>
+
+<div data-gist=5341950><script src='https://gist.github.com/toranb/5341950.js'></script></div>
+
+<p>Now I'm able to render the bound handlebars template without having to duplicate my efforts! I hope this quick post helps someone else see how easy it is to start unit testing emberjs templates. If you want the full source code for the example I showed above you can find it <a href='https://github.com/toranb/ember-template-jasmine-example'>here</a></p>

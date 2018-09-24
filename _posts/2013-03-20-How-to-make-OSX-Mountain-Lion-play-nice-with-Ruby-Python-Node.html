@@ -1,0 +1,49 @@
+---
+layout: post
+title:  "How to make OSX Mountain Lion play nice with Ruby / Python / Node"
+date:   2013-03-20 18:00:00
+categories: blog archive
+---
+
+<p>Last month I bought my first <a href='http://www.apple.com/macbook-pro/'>retina macbook pro</a>. And like any developer I assumed it would be dead simple to get a ruby/python/node development environment up and running. But after 2 days of trial and error (reading old blog posts on the subject from anyone and everyone), I finally came up with a complete script that worked on the latest build of OSX Mountain Lion.</p>
+
+<hr>
+
+<p>
+# https://developer.apple.com/downloads/index.action<br />
+# 1.) download + install XCode from the app store<br />
+# 2.) download + install the XCode command line tools from the url above<br />
+# 3.) open Xcode for the first time and agree to the terms of use<br />
+<br />
+# install homebrew and install libksba<br />
+ruby -e \"$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)\"<br />
+brew doctor<br />
+brew update<br />
+brew install libksba<br />
+<br />
+# install rvm -fix gcc and install ruby 2.0 + 1.9.3<br />
+curl -L https://get.rvm.io | bash -s stable --rails --autolibs=enabled<br />
+sudo ln -s /usr/bin/gcc /usr/bin/gcc-4.2<br />
+rvm install 1.9.3-p392<br />
+<br />
+# install the fundamentals<br />
+brew install node<br />
+brew install phantomjs<br />
+brew install ack<br />
+brew install ctags<br />
+brew install tmux<br />
+brew install postgresql<br />
+brew install mysql<br />
+brew install mongo<br />
+<br />
+# install a few RubyGems<br />
+gem install bundler rails pg foreman thin --no-rdoc --no-ri<br />
+<br />
+# install pip and virtualenvwrapper<br />
+sudo easy_install pip<br />
+sudo pip install virtualenvwrapper<br />
+</p>
+
+<hr>
+
+<p>If you follow the above you will end up with a development machine running ruby 1.9.3 / python 2.7.2 and the latest node.js (hope this solves the automation problem for someone else next time around)</p>

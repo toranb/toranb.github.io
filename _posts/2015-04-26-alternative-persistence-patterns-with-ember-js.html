@@ -1,0 +1,69 @@
+---
+layout: post
+title:  "Alternative persistence patterns with ember.js"
+date:   2015-04-26 18:00:00
+categories: blog archive
+---
+
+<p>One of the topics I've been afraid to blog about is how I do persistence in my ember apps. In large part because I view the ember community as family and don't want to make those who work on ember-data feel like the project is not valuable. I personally know a great deal of people who love the project, and you won't find me complaining about it in this post. Instead I intend to show an alternative view of the world that has worked well for my team the past 10+ months.</p>
+
+<h3>The paradigm shift</h3>
+
+<p>When I first started working with ember I put a huge emphasis on the model objects. Each model object would start simple like any other view model but quickly it's roles and responsbilities grew.</p>
+
+<p>Initially I wanted data-binding so my views would update any time a property changed. Then I needed a way to fetch and persist this model ...so with a little help from ember-data (at the time) my model soon knew how to save itself. Almost immediately after I got the persistence story working I started thinking about how these model objects would be validated. And because the model itself had all the data it was the obvious place to execute the validation rules before firing off each $.ajax request.</p>
+
+<p>And this approach was fine when each page in the web app matched up exactly one-to-one with a model. But interestingly enough one of the huge benefits of single page applications is that we can get away from primitive user interfaces and build something more intuitive (regardless of the database/server model data structures).</p>
+
+<p>One such example is the signup wizard any modern web app has to onboard users. Most have a few steps or pages that in total represent a single model or in some cases a few different models. About this time I started to see an anti-pattern in my ember apps that I now know was a side effect of my dogmatic view/opinion on <b>the model must do everything</b>.</p>
+
+<h3>Reducing complexity in the model</h3>
+
+<p>To combat this anti-pattern I started reducing the number of things my model was responsible for. The first role I broke out of the model was validation. On the client, <a href="https://www.npmjs.com/package/ember-cli-simple-validation">validation</a> only made sense within a given context. In practice this context is the view/template/form. The properties of this template are backed by the model itself to take advantage of databinding.</p>
+
+<p>At this point the model object still knew how to save itself. I wrongly assumed everyone understood and accepted the active record like pattern you get with ember-data out of the box. But what I've learned working with non-ruby developers is that this pattern doesn't always feel natural or even desirable.</p>
+
+<p>Instead of ignoring the team and pushing ahead with the status quo I decided to challenge myself and find a pattern they would embrace. After all if the team didn't want to write apps in a given way why should I be the one to prevent them from discovering something new? I decided to give the <a href="http://martinfowler.com/eaaCatalog/repository.html">repository pattern</a> a try because the entire team had a great deal of Hibernate and JPA experience.</p>
+
+<p>Now that the model objects didn't do validation or persistence they could act more like the traditional view model that enabled us to build great user experiences for the desktop years ago.</p>
+
+<h3>Why not just use $.ajax again?</h3>
+
+<p>If you are new to single page app development you might be asking yourself "why do I need any of this crazy?". I've skipped ahead about 12 months and failed to introduce the identity map concept. If this is the first time you've heard the word think of it as a local object cache on the client. To show why life without an identity map is painful I'll expose a bug in the example app I wrote at <a href="https://www.youtube.com/watch?v=2b1vcg_XSR8">EmberConf</a> earlier this year.</p>
+
+<div data-gist=a3111f26ab1ea19280b8
+><script src='https://gist.github.com/toranb/a3111f26ab1ea19280b8
+.js'></script></div>
+
+<p>In the snippet above you see that I loop over the json response and throw each item into the array. The problem shows up when we add a child route that needs to access this same collection of model objects. If we don't use the same reference we now have duplicate objects across multiple views in the application forcing us to keep them in sync.</p>
+
+<p>Instead if I have a single pointer to each model that is accessible across the entire application I not only avoid duplication but when I update a property on that object it's instantly updated on every page with zero plumbing. Below is the most basic implementation using a centralized store/identity map to store and retrieve model objects.</p>
+
+<div data-gist=3ab3e47b48191b57d125><script src='https://gist.github.com/toranb/3ab3e47b48191b57d125
+.js'></script></div>
+
+<p>The identity map plays a big role in my alternative view on persistence but it's not the entire package. In modern web development you still need some way to communicate with the server, serialize and deserialize the model objects. In the next section I'll cover how I do this in great detail today revealing the repository pattern for rich client apps written with ember.js.</p>
+
+<h3>So what does this look like in the wild?</h3>
+
+<p>To show this pattern in action I extended the kanban board from my EmberConf talk. Now to be clear this is the most basic working example with just enough moving parts to show the mechanics. If you want to follow along on <a href="https://github.com/toranb/kanban-board-without-ember-data/commits/master">github</a> I'll go commit by commit.</p>
+
+<p>First up you need to npm install the <a href="https://www.npmjs.com/package/ember-cli-simple-store">identity map</a> itself. Next we need to create an object that will act as the repository. From this point forward you will only interface with the repository for data access (both local cache and xhr). This is what the first version of our simple todo repository looks like.</p>
+
+<div data-gist=920913cc21c2f3bb60dc><script src='https://gist.github.com/toranb/920913cc21c2f3bb60dc.js'></script></div>
+
+<p>At this point it's nothing more than what we had in the route initially. The win here is that my route can now be implementation unaware about the low level data access. The repository then becomes responsible for pushing into the store, making any xhr request, etc. In real app development I've found this abstraction is nice because if I'm looking to see how $.ajax, serialization or the store is used for whatever reason, I simply look in one directory. All the other objects in the system defer to this interface for anything data related so routes/controllers/components have one less thing to worry about.</p>
+
+<p>Next I needed a way to inject a repository into my routes/controllers (like I would an ember service). Lucky for me <a href="https://twitter.com/williamsbdev">Brandon Williams</a> already did the heavy lifting with his great addon <a href="https://github.com/williamsbdev/ember-cli-injection">ember-cli-injection</a>. It doesn't give you a repository injection class but we can extend it by adding our own utility class like so.</p>
+
+<div data-gist=3fe8869bad64a025dcc3><script src='https://gist.github.com/toranb/3fe8869bad64a025dcc3.js'></script></div>
+
+<p>Now the last step is to register each repository in the repositories directory to avoid wiring them by hand. Again the heavy lifting is done here by leveraging another addon Brandon wrote called <a href="https://github.com/williamsbdev/ember-cli-auto-register">ember-cli-auto-register</a>. At this point we can write the single initializer required to inject the store into each repository and loop over the repositories directory and register each class found.</p>
+
+<div data-gist=472aa506f1ed51c1882e><script src='https://gist.github.com/toranb/472aa506f1ed51c1882e.js'></script></div>
+
+<p>With the inject utility in place and our new initializer we can inject the repository class we wrote above into the route as shown below. Note: if you want more details on the addons mentioned above, Brandon wrote a <a href="http://williamsbdev.com/posts/ember-cli-auto-register-and-inject/">great post</a> back in March as we worked through this pattern together.</p>
+
+<div data-gist=8b5aa7b42faae5b69c50><script src='https://gist.github.com/toranb/8b5aa7b42faae5b69c50.js'></script></div>
+
+<p>Clearly not a silver bullet for everyone but I'd like to see more alternative persistence patterns for ember web applications in the wild. This approach has worked well for my team and I'd welcome any feedback on the topic.</p>

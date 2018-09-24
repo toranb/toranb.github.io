@@ -1,0 +1,39 @@
+---
+layout: post
+title:  "Writing my first jQuery plugin"
+date:   2009-10-22 18:00:00
+categories: blog archive
+---
+
+<p>A few months back I got very interested in a pseudo memory leak problem involving IE6/7/8 and dynamically generated DOM elements.  I solved this problem using traditional javascript at the time and didn't feel the need to do much else with it.  That was until I found that <a href='http://toranbillups.com/blog/archive/2009/04/21/Cleanup-for-dynamically-generated-DOM-elements-in-IE' target='_blank'>post</a> became one of the most popular on my blog.</p>
+
+<p>This got me thinking about how I could write a more reusable solution for someone who might be familar with <a href='http://jquery.com/' target=_'blank'>jQuery</a> already.  And the best way to pass along some code in the jQuery world is to write a plugin.  </p>
+
+{% highlight javascript linenos %}
+jQuery.fn.removefromdom = function(s) {
+    if (!this) return;
+
+    var bin = $('#IELeakGarbageBin');
+
+    if (!bin.get(0)) {
+        bin = $('<div id='IELeakGarbageBin'></div>');
+        $('body').append(bin);
+    }
+
+    $(this).children().each(
+            function() {
+                bin.append(this);
+                document.getElementById('IELeakGarbageBin').innerHTML = '';
+            }
+    );
+
+    this.remove();
+
+    bin.append(this);
+    document.getElementById('IELeakGarbageBin').innerHTML = '';
+};
+{% endhighlight %}
+
+<p>The above plugin is my first and the only real goal I had was to keep the required javascript coding to a minimum.  I originally posted a 'plugin' on stackoverflow for <a href='http://stackoverflow.com/questions/1455947/memory-leak-involving-jquery-ajax-requests' target='_blank'>this</a> question but it was 100% javascript so ... not much of a jQuery plugin if you ask me.  I since went back and altered this plugin to be mostly jQuery code, but you will notice that I couldn't get away from calling .innerHTML = '' on the bin element.  This was because the jQuery equivalent .html('') isn't doing the same work as innerHTML for IE6/7/8 and this in turn won't actually remove the DOM element(s).</p>
+
+<p>If any of you jQuery ninjas know what the actual jQuery method .html('') does in the IE6/7/8 browsers and could fill me in, please do so.</p>

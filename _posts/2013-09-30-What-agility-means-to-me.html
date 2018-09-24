@@ -1,0 +1,48 @@
+---
+layout: post
+title:  "What agility means to me"
+date:   2013-09-30 18:00:00
+categories: blog archive
+---
+
+<p>Last week a co-worker and I spoke to a group of college students about what it means to be <a href='http://agilemanifesto.org/'>agile</a>. So like any presentation, I had to first define what capital A (agile) was for myself. As I started to build the outline it was clear that I'd been at my dream job for some time.</p>
+
+<p>But before I list a few highlights from the talk, I wanted to describe the situation early in my carrer that got the ball moving in the right direction.</p>
+
+<p>I had just started writing software professionally and within a month I was given my first real task. I would need to modify an existing dashboard feature that was put into production about a week before I started.</p>
+
+<p>The feature itself wasn't anything to write home about, but for the first time in my carrer I had to read code that I didn't write myself. This is just part of the profession and any software engineer will tell you this is 80% of what you do on any given day. But as I think back to that moment, it was obvious I didn't know where or how to get started.</p>
+
+<p>I spent a few hours trying to understand what the mess of <a href='http://en.wikipedia.org/wiki/Visual_Basic'>visual basic</a> code in front of me was trying to accomplish without any luck. So after lunch I got this brilliant idea to ask the original author what the intended behavior of this function was. To my surprise, he couldn't remember and after a half hour of trying to figure it out together it was suggested I <a href='http://www.joelonsoftware.com/articles/fog0000000069.html'>rewrite</a> it.</p>
+
+<p>It was that moment when I started to question if I would be able to do this for the next 30 plus years. If the original author couldn't understand something he wrote just a month before, how on earth would I be able to read code and modify it over time as we built large systems? The months and years that followed I was guided by a number of patient and brilliant mentors. I initially fell in love with the rules of test-driven-development, but other XP practices caught my attention at different times. To all those who put time and effort into helping me grow professionally, thank you!</p>
+
+<h3>Feedback</h3>
+
+<p>Arguably the biggest problem that modern software development solves is that we now get feedback quickly. In the old days we would have a meeting once a month to see if the <a href='http://en.wikipedia.org/wiki/Gantt_chart'>gantt chart</a> was still tracking our slow progress. But even in the small I was manually testing each change by going to a browser window and clicking around until I hit each and every corner case I knew about.</p>
+
+<p>Today we discuss the progress of a feaure once a day at the bare minimum. Instead of big design up front we build something tiny and deliver it quickly. We then get feedback from the customer and iterate (rinse and repeat).</p>
+
+<p>In the small we use <a href='http://www.extremeprogramming.org/rules/unittests.html'>unit</a> and <a href='http://stackoverflow.com/questions/5357601/whats-the-difference-between-unit-tests-and-integration-tests'>integration testing</a> to get feedback about each new feature we add, bug we fix, etc. We also rely on these very tests to catch any regressions that would otherwise come in the form of an email from our customers (not the way you want to catch production issues)</p>
+
+<p>Just a few years ago I watched teams rewrite large <a href='http://en.wikipedia.org/wiki/COBOL'>cobol</a> apps as large web apps in c# or java. Today I'd say the feedback on large projects is slow, so why not build small projects/ libraries/ components/ etc. This form of micro soa (or whatever buzz word you want to suggest fits) keeps each project tiny so running tests/ production deployments/ general feedback is blazing fast.</p>
+
+<p>Every time I hear someone at a conference talking about 'how to speed up your tests', I always think to myself 'why isn't anyone suggesting that we build smaller projects?'.</p>
+
+<h3>Quality</h3>
+
+<p>One debate you often see on tech blogs is centered around <a href='http://agile.dzone.com/articles/don%E2%80%99t-take-technical-debt'>taking on technical debt to get some initial velocity</a>. The idea is simple, you reduce quality in the short term to get more features out the door (time to market is usually the argument here).</p>
+
+<p>But what everyone leaves out is how harmful this is in software engineering. Couple that with the fact that you won't be successful long term if you do make your 'time to market' deadline (the first time around) because you won't be able to keep up with the competition (remember you are now paying down technical debt and trying to deliver features at the same time). I know this first hand because I was usually the one to suggest that we cut corners and 'deliver more value' (seems logical -right?). But without a time machine you can't ever get ahead (how many prototypes have you put into production?)</p>
+
+<p>I always think back to that moment when I asked 'will I be able to do this another 30 plus years'. It makes me wonder about how harmful the word 'rewrite' has been in our industry. Heck every new programmer would rather write code than read it so it seems to make sense (maybe this is why we get another new JS framework each week). But in doing so, we miss out on is all the rich history behind each decision (for better or worse ... usually worse).</p>
+
+<p>When you get the opportunity to work on a team that takes quality seriously it will change everything. You will finally have confidence to change the internals of something that you would normally avoid for fear of having to change it. When you apply the rigor behind these modern engineering practices you end up with a level of build quality that enables true <a href='http://www.extremeprogramming.org/rules/overtime.html'>sustainable pace</a>.</p>
+
+<h3>Ownership</h3>
+
+<p>One of the most difficult XP practices to get started with is <a href='http://www.extremeprogramming.org/rules/pair.html'>pair-programming</a>. I say difficult because when you hear someone describe it as 'an all day meeting with another alpha nerd' it sounds less fun than lone-wolf driven development where you can do whatever you want all day long. But what I've found is that teams who don't pair end up in the usual 'offense/defense' position when it's time to talk about some part of the software because only 'Johnny Coder' knows it/ maintains it/ etc. (man-made knowledge silos)</p>
+
+<p>On the other hand, teams that write the code together seem to own it and take blame for it together. Maybe it's just the teams I've been privileged to work with, but everyone seems to have this deep empathy for one another. Maybe this trait is something that's required to pair full time and be successful. Either way, when a team is full of people who think as one it shows. It shows in the final build quality, it shows in the planning meetings, it shows when a hard problem pops up, it shows when a pair is working with a customer to better understand a given requirement.</p>
+
+<p>I don't claim to be an expert on agile or any other software methodology, but by thinking about some of the points above my organization has produced one of the most effective software teams around. The amount of trust, energy, respect and velocity speak volumes. My hope is other teams see the value in modern software development and bring a little agility to the mix.</p>

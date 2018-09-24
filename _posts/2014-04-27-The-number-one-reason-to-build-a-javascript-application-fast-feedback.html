@@ -1,0 +1,40 @@
+---
+layout: post
+title:  "The number one reason to build a javascript application: fast feedback"
+date:   2014-04-27 18:00:00
+categories: blog archive
+---
+
+<p>The older I get, the closer I want my tests to mirror the interactions my customers have day-to-day in the browser. This doesn't mean I quit unit testing, but generally when I work through a bug or feature I try to simulate it end-to-end with the browser as much as possible.</p>
+
+<p>Since web applications today are so complex this often requires something like <a href="http://docs.seleniumhq.org/">Selenium</a>. I've found these tests are the best way to reproduce a production bug in my web apps because they exercise both the server generated html and the dynamic javascript on the page.</p>
+
+<p>The biggest problem with writing Selenium tests is that they take a long time to run. And if your team builds up a suite of 300+ Selenium tests you are in for a world of hurt (ie- slow feedback).</p>
+
+<p>I've found that when your project's total build time gets over 60 seconds you simply don't want to run it very often. And even when you have a progressive team that works hard to build small web apps you might find yourself with a few hunderd tests to exercise all the features of that seemingly "tiny" app or component.</p>
+
+<p>This has been the challenge for web developers since we started <a href="http://www.confreaks.com/videos/2422-railsconf2013-opening-keynote-patterns-of-basecamp-s-application-architecture">sprinkling javascript</a> code on top of server generated html. The core problem has been that we don't have a clean separation of client and server so we are forced to test both when we just want to verify the client part of the application works.</p>
+
+<p>But imagine a world where you could just verify the client (html/css/javascript) using a simple api that lets you find dom nodes/click buttons/toggle checkboxes/navigate around the app. This is the number one benefit of writing a pure javascript app using something like ember.js.</p>
+
+<p>You get a ton of other benefits when you build your application using pure client technologies, but as a web developer I've been waiting for integration style tests that give me all the benefits of selenium at a fraction of the cost (ie- how long it takes to run a single test or suite of tests). So I decided to setup a fairly low tech experiment/benchmark to see just how costly running these integration tests are with Selenium.</p>
+
+<p>The basic idea is that I wrote 3 integration tests with Selenium, then reproduced each of them using pure JS with <a href="https://qunitjs.com/">QUnit</a> / <a href="https://github.com/airportyh/testem">Testem</a> / Ember-Testing. But because running just 3 tests wouldn't show much of a gap, I copy/pasted these until I had a total of 303.</p>
+
+<p>If you want to see all 3 of the tests give the <a href="https://github.com/toranb/js-testing-benchmark-vs-selenium">benchmark example</a> a look. For brevity I wanted to focus in on just the test that removes an item from the list.</p>
+
+<div data-gist=11353465><script src='https://gist.github.com/toranb/11353465.js'></script></div>
+
+<p>The test is really simple, just find the table and verify it has 2 people/delete one of them/verify that person is no longer shown in the client. I then created a nearly identical test in pure javascript.</p>
+
+<div data-gist=11353571><script src='https://gist.github.com/toranb/11353571.js'></script></div>
+
+<p>The non scientific results showed that running 303 of these integration tests w/ Selenium took 1629 seconds. Compare this to the javascript version where running 306 tests only took 30 seconds. So although Selenium works, it's not the best economic model for teams that strive for a high level of test coverage.</p>
+
+<p>I didn't want to inline the animated gifs I cut from each benchmark video because of the size, but if you want to download them it's worth a quick watch. Also keep in mind you can pull down the app and run the entire suite of tests yourself (just set aside 27+ minutes of your time for the Selenium run if you do so)</p>
+
+<p>Here is the animated gif for the full Selenium run showing it took 27+ minutes to run 303 tests <a href="/content/images/2014/SeleniumGif.gif">Selenium</a></p>
+
+<p>And finally, the animated gif for the full testem run showing it took 30 seconds to run 306 tests <a href="/content/images/2014/TestemGif.gif">Testem</a></p>
+
+<p>Keep in mind this was not the most scientific test possible, but I think it does show the cost of feedback today is high for developers building traditional web applications where both server generated html and javascript are mixed together.</p>

@@ -1,0 +1,68 @@
+---
+layout: post
+title:  "Write your first ember-cli addon in 6 easy steps"
+date:   2014-12-22 18:00:00
+categories: blog archive
+---
+
+<p>If you've been writing components for <a href="http://emberjs.com/">ember.js</a>, you've no doubt come up against the distribution problem at one point or another. Say your team builds a few of these and you decide it's a good idea to share them across the organization ... but you don't know the best way to make them "npm" or "bower" install friendly? And what about using components in your ES6 ember apps? Never fear, <a href="https://github.com/ember-cli/ember-cli">ember-cli</a> is here!</p>
+
+<p>If you haven't yet looked at this fantastic build tool, treat yourself by looking over the <a href="http://www.ember-cli.com">website</a> quick! Also be sure to thank <a href="https://github.com/stefanpenner">Stefan Penner</a> for all his hard work bringing this project from proof of concept to something I now consider the heart of ember development vNext! Without it you'd still be arguing over build tools (remember those *fun* grunt and gulp files we had to maintain for each project?)</p>
+
+<p>So now we have this great build tool ... but what about the next iteration of package management for the web? Look no further because ember-cli has finally delivered on the promise of "install package/component/whatever the kids are calling these things now" and instantly use it! Gone are the days when you'd download it, fight with <a href="https://twitter.com/ryanflorence">Ryan Florence</a> on twitter for 2 hours about why his (current) view on modules is incorrect (again) / decide to wrap the downloaded module in a custom (hand rolled) named AMD module because the maintainer thinks everyone should use CJS and won't acknowledge your pull request / add it to your gulp/grunt/browserify build and finally ... use it.</p>
+
+<p>To show just how easy it is to write and consume these "addons", I decided to throw together a quick 6 step guide (that hopefully complements the documentation).</p>
+
+<p>The tutorial below shows the exact steps/ source code I used to write my first little component named <a href="https://github.com/toranb/ember-cli-wat">ember-cli-wat</a></p>
+
+<h3>Step 1/2/3</h3>
+
+<blockquote><p>npm install ember-cli</p></blockquote>
+<blockquote><p>ember addon ember-cli-wat</p></blockquote>
+<blockquote><p>cd ember-cli-wat</p></blockquote>
+
+<h3>Step 4</h3>
+
+<blockquote><p>vim addon/components/ember-cli-wat.js</p></blockquote>
+
+<p>This file will contain the actual ember component javascript. If you want to do something custom in the insert/destory methods ... or bind the keyUp event, that code goes here.</p>
+
+<div data-gist=3bf45408b398bdbcce86>
+  <script src='https://gist.github.com/toranb/3bf45408b398bdbcce86.js'></script>
+</div>
+
+<h3>Step 5</h3>
+
+<blockquote><p>vim app/templates/components/ember-cli-wat.hbs</p></blockquote>
+
+<p>Next we need to add the html for this new component.</p>
+
+<div data-gist=ce005ac93e8af7bd6116>
+  <script src='https://gist.github.com/toranb/ce005ac93e8af7bd6116.js'></script>
+</div>
+
+<h3>Step 6</h3>
+
+<blockquote><p>vim app/components/ember-cli-wat.js</p></blockquote>
+
+<p>Now because we want this component to be available for use directly after the install, we add one more file to the app directory that will import it.</p>
+
+<div data-gist=fd73632737a93fa239c0>
+  <script src='https://gist.github.com/toranb/fd73632737a93fa239c0.js'></script>
+</div>
+
+<h3>How to use this in your ember app</h3>
+
+<p>First we need to make the component above install friendly using npm. Open the package.json and give it a unique name/version/etc if you haven't already. Next do "npm publish" (or npm link if you don't want this in the registry). When this is complete you should be able to "npm install the-component-you-just-created".</p>
+
+<p>Assuming the new addon is public or linked, do the following inside your ember app to register it with ember-cli.</p>
+
+<blockquote><p>npm install --save-dev ember-cli-wat **save-dev is very critical here</p></blockquote>
+
+<p>Now to use this component in your project open the application.hbs/application.handlebars file and insert the following.</p>
+
+<div data-gist=4a81bc6eeccc13c89e4b>
+  <script src='https://gist.github.com/toranb/4a81bc6eeccc13c89e4b.js'></script>
+</div>
+
+<p>To see it in action, fire up "ember server" from the command line. You should see a text area (or whatever component you added). If you end up with an error saying it can't find your template verify the addon is listed in your ember apps package.json file (<a href="https://github.com/ember-cli/ember-cli/issues/2778">took me a while</a> to understand this is how the registry worked so I hope this post can help others avoid my mistake).</p>

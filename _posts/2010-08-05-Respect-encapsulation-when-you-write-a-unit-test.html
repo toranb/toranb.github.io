@@ -1,0 +1,97 @@
+---
+layout: post
+title:  "Respect encapsulation when you write a unit test"
+date:   2010-08-05 18:00:00
+categories: blog archive
+---
+
+<p>Have you ever written a state based test that required you to examine a private property?  Did you determine the best way to get that test passing was to change the declaration from private to public? If so you made a decision to give up the benefits of encapsulation for the sake of unit testing.</p>
+
+<p>Until a month ago I was making this type of decision all the time because I valued testing more than encapsulation.  I knew this was a bad idea because everything was exposed and could be harmful if the next developer used it for evil.  But because I didn't know any other way to get at private members I kept making the trade off.</p>
+
+<p>That all changed recently when a friend showed me I could have the best of both worlds.  You can tell one assembly that it's ok for another to view internal members.  So the first question was, how do you tell the production assembly that a test assembly can view these?  He said to open the AssemblyInfo.cs file found under the project properties and add the following:</p>
+
+{% highlight c# linenos %}
+[assembly: InternalsVisibleTo('TestProject123', AllInternalsVisible = true)]
+{% endhighlight %}
+
+<p>You will notice the language used above doesn't say anything about private or protected, it instead references 'internals'.  So what was an internal and how was it different than private?  A simple google search helped me understand that internal means it's not visible from an external assembly.  This is good if you are using multiple assemblies but if you have all your production code inside a single dll you might actually find this switch to be worse because all classes inside that assembly will now have the ability to see these 'internal' members.</p>
+
+<p>So on one hand it helps keep encapsulation at the assembly level, but for everything internal you are wide open.  The absolute best solution would be to hide these both internally and externally.  This is exactly what private is good for, but because you can't access these from another assembly, your unit test project is also out of luck.</p>
+
+<p>If you decide this is a good solution and you want to move forward, the below example class shows how you might implement this in a production class.  Notice the class below now has the field declared as internal instead of private.</p>
+
+{% highlight c# linenos %}
+public class SuperController
+{
+	internal string completed;
+	
+	public void SuperOperationComplete()
+	{
+	    completed = 'yes';
+	}
+}
+{% endhighlight %}
+
+<p>Now because my test project was given the right to view internals I could write the following test and it would compile.</p>
+
+{% highlight c# linenos %}
+[TestFixture]
+public class SuperControllerTest
+{
+    [Test]
+	public void CompleteIsValidAfterOperation()
+	{
+	    var controller = new SuperController();
+		
+		controller.SuperOperationComplete();
+		
+		Assert.That(controller.completed, Is.EqualTo('yes'));
+	}
+}
+{% endhighlight %}
+
+<p>But if you have just one class library for the majority of your work it might be worse to mark these fields with internal.  So instead you could mark these as protected instead.  If you make the field protected you could then expose it using a class internal to your test assembly.  For example, to test the above using this approach you would first mark the string 'completed' as protected.</p>
+
+{% highlight c# linenos %}
+public class SuperController
+{
+	protected string completed;
+	
+	public void SuperOperationComplete()
+	{
+	    completed = 'yes';
+	}
+}
+{% endhighlight %}
+
+<p>Now inside your test assembly you would create a class that inherits from SuperController and provide a public method or property that your test can use to verify the expected behavior.</p>
+
+{% highlight c# linenos %}
+[TestFixture]
+public class SuperControllerTest
+{
+    [Test]
+	public void CompleteIsValidAfterOperation()
+	{
+	    var controller = new TestFriendlySuperController();
+		
+		controller.SuperOperationComplete();
+		
+		Assert.That(controller.TestFriendlyCompleted, Is.EqualTo('yes'));
+	}
+}
+
+public class TestFriendlySuperController : SuperController
+{
+    public string TestFriendlyCompleted 
+	{ 
+	    get { return completed; }
+		set { completed = value; }
+	}
+}
+{% endhighlight %}
+
+<p>Experience has shown me that taking the time to write another class like I've done above is worth it to respect the value provided by encapsulation.  But if the internal keyword doesn't have you worried it's another option (especially if you're working with a ton of separate projects).</p>
+
+<p>So the next time you think about making a private field public just to verify something in a test, remember that you have a few other options.</p>

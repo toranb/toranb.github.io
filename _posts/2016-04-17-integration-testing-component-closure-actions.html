@@ -1,0 +1,20 @@
+---
+layout: post
+title: "Integration testing component closure actions"
+date:   2016-04-17 18:00:00
+categories: blog archive
+---
+
+<p>Last month at <a href="http://emberconf.com/" target="_blank">EmberConf</a> I ran a workshop on test driven development. Each time I do a training event like this I get a handful of great questions and this time around was no different. I got so many great questions that I decided it was time to blog about a few of the repeat offenders.
+
+<p>The question for this blog post is centered around component integration testing. If you have a simple component that takes in some users and a closure action, how can you assert the action is wired up correctly without including the outter context (parent/container component or controller).</p>
+
+<div data-gist=65f84acd3c78be640a4a2bbcc617305f><script src='https://gist.github.com/toranb/65f84acd3c78be640a4a2bbcc617305f.js'></script></div>
+
+<p>Integration testing makes this such a snap (once we get the syntax down correctly) because you can pass in anything we want (no mock or spy required).</p>
+
+<div data-gist=0b2e2a8a6b598286183e5ce1d7a11ba4><script src='https://gist.github.com/toranb/0b2e2a8a6b598286183e5ce1d7a11ba4.js'></script></div>
+
+<p>In the <a href="http://toranbillups.com/blog/archive/2016/04/17/integration-testing-dynamic-templates-and-the-component-helper/">next post</a> I'll show how you can inject a custom template to test a custom component helper with integration testing!</p>
+
+<p>To see the test in action you can pull down this <a href="https://github.com/toranb/ember-redux-ddau-example/commits/master">example app</a> to learn more</p>

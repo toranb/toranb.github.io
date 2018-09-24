@@ -1,0 +1,38 @@
+---
+layout: post
+title:  "Building Your Own Ember App Kit Lite Part 7"
+date:   2014-04-12 18:00:00
+categories: blog archive
+---
+
+<p>In the <a href="http://toranbillups.com/blog/archive/2014/04/12/Building-your-own-ember-app-kit-lite-part-6/">previous post</a> we added a watch task to automate rebuilds/refresh the brower with a little help from this <a href="https://chrome.google.com/webstore/detail/livereload/jnihajbhpnppcggbcgedagnkighmdlei?hl=en">chrome plugin</a>.</p>
+
+<p>Now the grunt configuration will provide quick(er) feedback for html/handlebars changes but I think we can do one better for the javascript specifically. Having the ability to run both unit and integration tests with grunt will provide a tight feedback loop so you can make changes with confidence as you grow the codebase.</p>
+
+<p>The first step is to install the npm module itself after adding it to the package.json file. We will also install the phantomjs module with npm so users who don't have phantom installed globally can still run the test suite.</p>
+
+<div data-gist=10553663><script src='https://gist.github.com/toranb/10553663.js'></script></div>
+
+<p>Next we need to load the npm module at the top of our Gruntfile.js and add the <a href="https://github.com/airportyh/testem">testem</a> task with a few options.</p>
+
+<div data-gist=10553847><script src='https://gist.github.com/toranb/10553847.js'></script></div>
+
+<p>In addition to adding the testem task, we need to add a new transpile task that will convert the tests to AMD modules (this way we can import modules like we do in production code using ES6). The only real difference between the tests/production transpile tasks is the module prefix given. We put the tests in the "example/tests" module namespace to isolate it from production javascript.</p>
+
+<div data-gist=10554144><script src='https://gist.github.com/toranb/10554144.js'></script></div>
+
+<p>We also need to introduce a new concat task that knows how to build our assets for testing specifically. The biggest difference between dist/test concat is that we include the debug version of ember to include the test helpers, we pull in all the transpiled test code, and finally we add a test-loader at the very end to "require" or kick off the tests when testem throws them into phantomjs.</p>
+
+<div data-gist=10554205><script src='https://gist.github.com/toranb/10554205.js'></script></div>
+
+<p>Now before we can fire up our new "grunt test" command to see it work, we need to add a simple unit test quick to verify it can/does execute the tests. Create a directory under js called "tests" and add a simple qunit test with any filename you want. I'm using example_tests.js below.</p>
+
+<div data-gist=10553984><script src='https://gist.github.com/toranb/10553984.js'></script></div>
+
+<p>Now to verify it all works execute the new "grunt test" command and you should see a single test was run.</p>
+
+<p>Now that our grunt build includes support for unit testing with testem, we can move onto <a href="http://toranbillups.com/blog/archive/2014/04/12/Building-your-own-ember-app-kit-lite-part-8/">deployment!</a></p>
+
+<p>If you want to follow along on github, <a href="https://github.com/toranb/building-your-own-ember-app-kit-lite">this repository</a> has a commit for each part in the series</p>
+
+<p>Note: I didn't spend much time showing how to unit/integration test as this topic was focused on how to setup testem + grunt. If you want to see an example like this with an integration test helper + unit tests that actually import a production module checkout my other project <a href="https://github.com/toranb/ember-grunt-example">ember-grunt-example</a> on github.</p>

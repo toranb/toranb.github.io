@@ -1,0 +1,90 @@
+---
+layout: post
+title:  "Writing your first unit test in objective-c"
+date:   2010-12-04 18:00:00
+categories: blog archive
+---
+
+<p><a href='http://toranbillups.com/blog/archive/2010/12/04/Setup-your-first-Xcode-project-with-unit-testing-in-mind'>Last time</a> we got a simple <a href='http://www.apple.com/iphone/'>iPhone</a> project started in <a href='http://developer.apple.com/technologies/tools/xcode.html'>Xcode</a> with a test target.  We didn't do much more than build it so this time around we will write some code and attempt to understand it.</p>
+
+<p>We started with the below template test class. Notice that you need to import a testing specific library from the SenTestingKit.  In my last post we did the actual import of the framework itself, this single import statement felt like nothing more than a simple xunit like assembly being added to the project so we could use the assert methods without having to write them from scratch.</p>
+
+{% highlight objc linenos %}
+#import <SenTestingKit/SenTestingKit.h>
+
+@interface SampleUnitTest : SenTestCase {
+}
+
+- (void) testString;
+
+@end
+
+@implementation SampleUnitTest
+
+- (void) testString
+{
+  STAssertEquals(@'hi', @'hi', @'the first string did not match the second');
+}
+
+@end
+{% endhighlight %}
+
+<p>Next you will notice the @interface is declared above the @implementation.  From my c# mind this didn't feel all that strange except that it's required.  The interface (.h file) simply defines the 'what' and the implementation (.m file) defines the 'how'.</p>
+
+<p>Since we have a test method called 'testString' we will need to declare this in the interface.  Notice it doesn't have a return type so we mark it void.  Similar to any xunit like test I've written in c# - we let the failures occur in the assert statements rather than return a boolean value.</p>
+
+<p>In the implementation we provide a method that has a simple assert equals defined to show the string 'hi' is equal to the string 'hi'.  The message to the right is only shown when the test fails.</p>
+
+<p>One thing I found strange at first was that every time you do a build in Xcode of the test target it will not only compile the src but it will also run the tests.  Don't belive me?  Change the first string from 'hi' to 'bye' and do a build.  It should fail now because the assert is invalid.</p>
+
+<p>I said strange above only because I've never been able to do this in my c# projects because of performance issues.  But as these tests are all running fast it makes sense to get the feedback sooner rather than later.  Just something to make you aware of because the first time I had one of these failing I couldn't figure out the cryptic error message and thought it was related to a syntax error.</p>
+
+<p>To get a better unit test for this string we should create a new string.  The syntax for this is a little strange to be kind, but to create a new object of type string we do the following</p>
+
+{% highlight objc linenos %}
+NSString* str = [[NSString alloc] init];
+{% endhighlight %}
+
+<p>What is actually happening on the right side of this statement is that we ask objective-c to set asside the physical memory for the string object in the first block using the alloc keyword.  Next in the outside init call we simply call the init method on the NSString object and this will return a pointer that we can assign to our local variable 'str'.</p>
+
+<p>I wouldn't expect anyone to 'like' this syntax at first, or even find this to look normal.  It's a bit strange but to be clear it's not the only way to new up an object.  You can also do something like NSString* str = [NSString new] but I quickly found that most experienced objective-c developers prefer the syntax listed above instead.</p>
+
+<p>Next we need to alter the state of the object.  A simple assignment statement will work.</p>
+
+{% highlight objc linenos %}
+str = @'hi';
+{% endhighlight %}  
+
+<p>Now we can alter the assert to compare a raw string to this object and see if it's working as expected.</p>
+
+{% highlight objc linenos %}
+#import <SenTestingKit/SenTestingKit.h>
+
+@interface SampleUnitTest : SenTestCase {
+}
+
+- (void) testString;
+
+@end
+
+@implementation SampleUnitTest
+
+- (void) testString
+{
+  NSString* str = [[NSString alloc] init];
+  
+  str = @'hi';  
+
+  STAssertEquals(@'hi', str, @'done');
+
+  [str release]; 
+}
+
+@end
+{% endhighlight %}
+
+<p>In the final implementation you can see that I only left out one line of code.  The final line in the method [str release].  This is needed to release the memory we had allocated earlier in the [NSString alloc] line.  I won't go into memory management here because it's a huge topic all it's own, but I will say that the rule of thumb around memory management is this: </p>
+
+<blockquote><p>If you create it, you need to release it.  If you don't create it, don't attempt to manage it.</p></blockquote>
+
+<p>This was a simple exercise in how to unit test a string, but what about unit testing my own object?  That's coming up in my next post so stay tuned!</p>

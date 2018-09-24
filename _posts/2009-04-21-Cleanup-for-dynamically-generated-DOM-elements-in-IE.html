@@ -1,0 +1,130 @@
+---
+layout: post
+title:  "Cleanup for dynamically generated DOM elements in IE"
+date:   2009-04-21 18:00:00
+categories: blog archive
+---
+
+<p>I was lucky enough to work alongside a very talented software developer when I landed my first .NET job back in June of 2006.  And to this day, I find myself using many of the client side techniques he showed me to provide an amazing user experience for my customers.  </p>
+
+<p>The example found <a href='/content/examples/Cleanup-for-dynamically-generated-DOM-elements-in-IE.html' target='_blank'>here</a> shows this technique, but the basis of the concept is that if you have a subset of data in tabular form and your customer wants the ability to view additional information with a simple click of the mouse (and no post-back) ... you can request this data from the server and dynamically insert a few DOM elements to reflect the changes client side.</p>
+
+<p>As I mentioned above, I have been using this since the day it was introduced because I enjoy building applications that have my customer asking the other developers I work with 'can you do this without a flash of the screen like this other application Toran did?' -sorry but I have to be honest!  But it was not until my latest application was being user tested that I paused to think about what our fabulous IE6 browser was doing with all these dynamically generated DOM elements.  </p>
+
+<p>To give some background on the application and how it might be different than my previous implementations- A user of my latest app will come in and be assigned x amounts of work that will be represented in a simple html table.  They will then expand each unit of work to view a level of detail to determine if they need to drill down to yet another level.  If they do need to expand the next level down the amount of dynamic elements could be close to 200+ </p>
+
+<p>When I was working in the application for about 10 minutes, the DOM elements grew from 529 to over 2700.  And as this grew so did the memory footprint of the browser.  Now at first glance I thought 'this junk IE6 and the never ending memory leaks' but as it turns out IE 6/7/8 all had this very problem when I would profile the DOM elements using <a href='http://home.orange.nl/jsrosman/' target='_blank'>Drip / IE Sieve</a>.</p>
+
+<p>So as always, I post my <a href='http://stackoverflow.com/questions/768621/how-to-dispose-of-dom-elements-in-javascript-to-avoid-memory-leaks' target='_blank'>question</a> on <a href='http://stackoverflow.com' target='_blank'>stackoverflow</a>.  The first answer I got was the usual 'obvious' no help until I asked the question in more 'simple' terms.</p>
+
+<blockquote><p>You cannot dispose of them in such a way that when the javascript garbage collector comes around, these elements are removed from memory?</p></blockquote>
+
+<p>And it was this comment that got the reply I needed.  The person made a comment linking to <a href='http://social.msdn.microsoft.com/Forums/en-US/iewebdevelopment/thread/c76967f0-dcf8-47d0-8984-8fe1282a94f5' target='_blank'>this</a> msdn thread about 'IE appendChild/removeChild memory problem'. BINGO!  The main reply in this thread that got me the results I wanted was this quote</p>
+
+<blockquote><p>I figured it out. I guess it is a psuedo leak it gets cleaned up on page refresh but the problem is i guess the browser for whatever reason keeps a reference to the removed child somewhere so you have to set the innerHTML of the parent to a empty string and it fixes it. no idea why it was behaving differently on different machines tho.</p></blockquote>
+
+<p>And so from this I found that if I altered my remove child code to the below, IE would actually remove the dynamically generated DOM elements! w00t!  But this alone did not solve 100% of the issue so I took note of the 2nd answer mentioned and found that I should filter the server generated html before I append it to the DOM (instead of after as I had it previously).  The main reason I had to parse the server generated html in the first place was that I typically need to use aspnet controls like a gridview or dropdownlist and if you use these they need to live inside an aspnet form tag that generates some nasty elements such as -viewstate, eventargs and another form element.  But as I only want the DOM elements with detailed information, I simply parse that pre DOM append now as seen below</p>
+
+<p>On success of the AJAX call I create a tr, td and div element.  but instead of appending all the markup, I first call into the 'removeExtraFormData' function</p>
+
+{% highlight javascript linenos %}
+function ToggleProductDetails(obj, id) {
+    obj.blur();
+
+    if (lastSelectedItem == id) {
+        collapseDetails(obj);
+    } else {
+        if (document.getElementById('detailTR')) {
+            collapseDetails(obj);
+        }
+        GetProductDetails(obj, id);
+    }
+}
+function GetProductDetails(obj, id) {
+    $.ajax({
+        type: 'GET',
+        url: 'ProductDetailsView.aspx?id=' + id,
+        dataType: 'html',
+        beforeSend: function() { lastSelectedItem = id; },
+        error: function(XMLHttpRequest, textStatus, errorThrown) {
+            alert(XMLHttpRequest.responseText);
+        },
+        success: function(xhtml) {
+            var tr = document.createElement('tr');
+            tr.id = 'detailTR';
+
+            var td = document.createElement('td');
+            td.colSpan = 3;
+
+            var container = document.createElement('div');
+            container.id = 'fillDiv';
+
+            obj.parentNode.parentNode.parentNode.insertBefore(tr, obj.parentNode.parentNode.nextSibling);
+
+            td.appendChild(container);
+            tr.appendChild(td);
+
+            //cleanup the html from aspnet and append the
+	    //new elements to the DOM
+            removeExtraFormData(xhtml, $('#fillDiv'));
+        }
+    });
+}
+{% endhighlight %}
+
+<p>The single responsibility of this function is to take the server generated markup and parse it to remove the form, viewstate and event args that are not needed</p>
+
+{% highlight javascript linenos %}
+    function removeExtraFormData(xhtml, parentObj) {
+      var div = document.createElement('div');
+      $(div).html(xhtml);
+
+      $(div).children().each(
+            function() {
+              if ($(div).find('div').filter(function() { return $(this).attr('id') == ''; }).remove());
+            }
+        );
+
+      var children = $(div).find('form').children();
+
+      $(div).find('form').remove();
+
+      // append the correct child element back to the DOM
+      parentObj.append(children);
+
+      div = null;
+    }
+    {% endhighlight %}
+
+<p>This helped reduce the amount of DOM objects being appended in the first place.  Next I found if I used a more complete node removal function that went through and removed every child node in addition to using a special hack to reduce the IE memory leak issue, I got the results I was looking for.</p>
+
+{% highlight javascript linenos %}
+    function collapseDetails(obj) {
+        if (document.getElementById('detailTR')) {
+            removeChildSafe(document.getElementById('detailTR'));
+            lastSelectedItem = null;
+        }
+    }
+    function removeChildSafe(el) {
+        //before deleting el, recursively delete all of its children.
+        while (el.childNodes.length > 0) {
+            removeChildSafe(el.childNodes[el.childNodes.length - 1]);
+        }
+        el.parentNode.removeChild(el);
+        discardElement(el);
+    }
+    function discardElement(el) {
+        var bin = document.getElementById('IELeakGarbageBin');
+
+        if (!bin) {
+            bin = document.createElement('DIV');
+            bin.id = 'IELeakGarbageBin';
+            document.body.appendChild(bin);
+        }
+
+        bin.appendChild(el);
+        bin.innerHTML = '';
+    }
+    {% endhighlight %}
+
+<p>Now when I profile this application I notice the number of DOM elements gets reduced when the collapseDetails method is called!</p>

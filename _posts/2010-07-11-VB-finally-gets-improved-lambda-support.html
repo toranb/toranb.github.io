@@ -1,0 +1,66 @@
+---
+layout: post
+title:  "VB finally gets improved lambda support"
+date:   2010-07-11 18:00:00
+categories: blog archive
+---
+
+<p><a href='http://toranbillups.com/blog/archive/2009/10/09/Writing-your-first-unit-test-with-Rhino-Mocks-in-VB'>Last year</a> I was working with <a href='http://en.wikipedia.org/wiki/Visual_Basic_.NET'>Visual Basic</a> a great deal and found the lambda support to be only half baked.  For instance if you wrote a lambda expression it required that the expression return a value.  But if you wanted to write something for a simple sub routine that had no return value, you had to write some very confusing code to workaround this language limitation.</p>
+
+<p>For example, in the test method below I'm using <a href='http://www.ayende.com/projects/rhino-mocks.aspx'>Rhino Mocks</a> to prove a method called SaveUser was called during the controller action.  But because this SaveUser method isn't a function that returns a value I had to instead create a wrapper function that returned nothing (as object).</p>
+
+{% highlight vbnet linenos %} 
+<TestClass()> _
+Public Class UserControllerTest
+ 
+    <TestMethod()> _
+    Public Sub Should_UpdateModel_And_Call_Save_When_ID_Provided_To_The_Controller_Returns_A_Valid_User()
+        Dim Service As IUserService = MockRepository.GenerateStub(Of IUserService)()
+        Dim Controller As UserController = New UserController(Service)
+ 
+        Dim User = New User()
+ 
+        Service.Stub(Function(x) x.GetUserById(1)).[Return](User)
+ 
+        Dim GetResult As ViewResult = Controller.Edit(1, Nothing)
+ 
+        Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+ 
+        Service.AssertWasCalled(Function(x) Wrap_SaveUser(x, User))
+    End Sub
+	
+    Function Wrap_SaveUser(ByVal Service As IUserService, ByVal User As User) As Object
+        Service.SaveUser(User)
+ 
+        Return Nothing
+    End Function
+ 
+End Class
+{% endhighlight %} 
+
+<p>But with the latest compiler <a href='http://msdn.microsoft.com/en-us/library/ee336123.aspx'>improvements</a> you no longer need to write this confusing code.  And assuming you have Visual Studio 2010 installed, this trick works for both dotnet 3.5 and 4.0!</p>
+
+{% highlight vbnet linenos %} 
+<TestClass()> _
+Public Class UserControllerTest
+ 
+    <TestMethod()> _
+    Public Sub Should_UpdateModel_And_Call_Save_When_ID_Provided_To_The_Controller_Returns_A_Valid_User()
+        Dim Service As IUserService = MockRepository.GenerateStub(Of IUserService)()
+        Dim Controller As UserController = New UserController(Service)
+ 
+        Dim User = New User()
+ 
+        Service.Stub(Function(x) x.GetUserById(1)).[Return](User)
+ 
+        Dim GetResult As ViewResult = Controller.Edit(1, Nothing)
+ 
+        Dim GetModel As User = DirectCast(GetResult.ViewData.Model, User)
+ 
+        Service.AssertWasCalled(Sub(x) x.SaveUser(User))
+    End Sub
+ 
+End Class
+{% endhighlight %}
+
+<p>I wanted to highlight this because I found the workaround above to be very painful in previous versions of VB.  Now that is some coevolution that I can get excited about!</p>

@@ -1,0 +1,29 @@
+---
+layout: post
+title: "Hot reloading in the ember ecosystem"
+date:   2016-09-28 18:00:00
+categories: blog archive
+---
+
+<p>I still remember the initial reaction I had watching <a href="https://twitter.com/dan_abramov">Dan Abramov</a> speak at React-Europe about <a href="https://www.youtube.com/watch?v=xsSnOQynTHs">Hot Reloading with Time Travel</a>. It was like nothing I'd ever seen before and quickly turned into something of an obsession for me.
+
+<p>When I started down this journey I intended to prove that both hot reloading and time travel wouldn't be helpful to anyone building real software. The first challenge was that I needed to actually use it before I could learn of it's benefits (or lack thereof).</p>
+
+<p>In the ember ecosystem to this point no one had built or released a hot reloader that I was aware of so I started doing some research on the subject. What I learned is that this would likely involve several moving parts so I thought to document it for future me.</p>
+
+<p>First I would need to better understand the broccoli pipeline for change detection. I found an interesting project that unlocked hot reloading of css before it was supported out of the box in ember-cli called <a href="https://github.com/xomaczar/ember-cli-styles-reloader">ember-cli-styles-reloader</a>. I found the surface area to be minimal as it handled listening for a file change and firing a message off to the web socket connection.</p>
+
+<p>Next the browser picks it up to determine if the change was css related. The <a href="https://github.com/livereload/livereload-js">livereload</a> project is responsible for this work and comes by way of another ember-cli project called <a href="https://github.com/ember-cli/ember-cli-inject-live-reload">ember-cli-inject-live-reload</a>. In the readme of this project you can see that livereload.js is actually served up courtesy of the <a href="https://github.com/mklabs/tiny-lr">tiny-lr</a> (tiny livereload) dependency.</p>
+
+<p>At this point I knew enough to detect a change and push an event to the browser but the more difficult part was ahead. I didn't yet know how ember would apply that changeset and re-render the component. About this time I ran into a very talented developer by the name of <a href="https://twitter.com/mamadero">Miguel Madero</a> and it turns out he was also very interested in solving this problem.</p>
+
+<p>Funny enough, he actually approached this problem from the other end, meaning he had a fairly good handle on how to re-render a given component but no real progress was made to detect a change with broccoli and push it to the web socket. It was a perfect match so we started collaborating to unlock hot (re)loading for ember components. I'll let Miguel tell the full story at some point about the magic re-render trick but I can tell you that I've learned a ton about the resolver and the project wouldn't exist today without his guidance and knowledge of ember internals.</p>
+
+<p>Just this past weekend Miguel did a ton of work to squash issues and generally improve upon the original version he and I released back in August. You can find the <a href="https://github.com/toranb/ember-cli-hot-loader">v0.1.1 release</a> out on npm and it even has support for ember 1.13. Keep in mind the project is still focused on ember components but we do hope to expand that in the future (including reducers for those <a href="https://github.com/toranb/ember-redux">ember-redux</a> fans in the audience).</p>
+</p>
+
+<p>Now that I had a hot (re)loader that was ember-cli friendly, I got busy building an application to see if it would live up to the hype. I could give away the conclusion here but decided instead to record a side-by-side comparison to show the new tech in action.</p>
+
+<p><a href="https://vimeo.com/180477839">Side by side: hot reloading vs full page reloading</a></p>
+
+<iframe src="https://player.vimeo.com/video/180477839" width="800" height="501" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>

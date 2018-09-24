@@ -1,0 +1,165 @@
+---
+layout: post
+title:  "Writing a WCF service with NHibernate"
+date:   2009-09-28 18:00:00
+categories: blog archive
+---
+
+<p><b>Update:</b> Back when I wrote this post I was pulling a great deal of information from Donald Belcham, as he did a ton of in depth research on the subject.  He recently wrote me asking that I update my blog because the code I show in the post below is not stable due to some WCF multi-threading issues.  Using IServiceBehavior instead of IContractBehavior is the solution that you&#145;ll need going forward.  So if anyone new happens to find my post be sure to checkout the updated code from Donald <a href='http://www.igloocoder.com/archive/2009/04/23/wcf-and-nhibernate-redux.aspx'>here</a> and <a href='http://www.igloocoder.com/archive/2009/05/01/a-little-more-wcf-nhibernate.aspx'>here</a></p>
+
+<p>After getting comfortable with <a href='https://www.hibernate.org/343.html' target='_blank'>NHibernate</a> in the web context, I wanted to find out how easy it would be to reuse some functionality via <a href='http://en.wikipedia.org/wiki/Web_service' target='_blank'>web services</a>.  I started with the usual <a href='http://msdn.microsoft.com/en-us/netframework/aa663324.aspx' target='_blank'>WCF</a> <a href='http://en.wikipedia.org/wiki/SOAP' target='_blank'>SOAP</a> implementation and found that no session was available.  It turns out the http module that creates the session and binds it to the aspnet session context was not being called when a client requested something from the service.</p>
+
+<p>So I started looking for a solution to prove I could create a session when a WCF web service was called.  The first example I <a href='http://igloocoder.com/archive/2008/07/21/nhibernate-on-wcf.aspx' target='_blank'>found</a> worked great on a 'per call' basis.  And although you could read the post I referenced, I wanted to include my spin on how to get this implemented. </p>
+
+<p>As I mentioned above, this implementation is based on the 'per call' context meaning that each service call will be a unit of work.  To me this was the obvious way to go because I isolate each web service anyway as it should represent a single piece of business functionality decoupled from other services with different responsibilities.</p>
+
+<p>What does this 'per call' concept mean to someone familiar with traditional WCF services?  That you must tell WCF explicitly what InstanceContextMode to use.  In your service contract, apply the following attribute to express the service behavior.</p>
+
+{% highlight c# linenos %}
+[ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall)]
+public class UserService : IUserService
+{
+    public User GetUserById(int id) { }
+}
+{% endhighlight %}
+
+<p>Once you apply this attribute, WCF will create a new service context each time the service is called.  Again this is a good idea because WCF will give you a new Instance Context object that will have its own execution area separate from any other call coming in.</p>
+
+<p>After learning how this worked I thought 'ok, so how can I tell WCF to create a new session when I call a service?'.  I wish I could say 'simple ...', but having zero experience with creating a custom WCF attribute, I spent a lot of time wrapping my head around new concepts that were required to work with NHibernate in this 'per call' way.</p>
+
+<p>First you need to create the attribute itself that will be applied to each service using NHibernate.  I called this attribute 'NHibernateContext' and the implementation is shown below.</p>
+
+{% highlight c# linenos %}
+    public class NHibernateContextAttribute : Attribute, IContractBehavior
+    {
+        private ISessionFactory _SessionFactory;
+
+        public ISessionFactory SessionFactory
+        {
+            private get { return _SessionFactory; }
+            set { _SessionFactory = value; }
+        }
+
+        public void AddBindingParameters(System.ServiceModel.Description.ContractDescription contractDescription, System.ServiceModel.Description.ServiceEndpoint endpoint, System.ServiceModel.Channels.BindingParameterCollection bindingParameters)
+        {
+        }
+
+        public void ApplyClientBehavior(System.ServiceModel.Description.ContractDescription contractDescription, System.ServiceModel.Description.ServiceEndpoint endpoint, System.ServiceModel.Dispatcher.ClientRuntime clientRuntime)
+        {
+        }
+
+        public void ApplyDispatchBehavior(System.ServiceModel.Description.ContractDescription contractDescription, System.ServiceModel.Description.ServiceEndpoint endpoint, System.ServiceModel.Dispatcher.DispatchRuntime dispatchRuntime)
+        {
+            dispatchRuntime.InstanceContextInitializers.Add(new NHibernateContextInitializer());
+        }
+
+        public void Validate(System.ServiceModel.Description.ContractDescription contractDescription, System.ServiceModel.Description.ServiceEndpoint endpoint)
+        {
+        }
+    }
+{% endhighlight %}
+
+<p>Now this class is just one small piece of the puzzle because it only has a single property for the session factory and one implemented behavior 'ApplyDispatchBehavior'.  This is where we need to initialize the actual context by calling another class that will have the responsibility of creating the actual NHibernate session.</p>
+
+{% highlight c# linenos %}
+    public class NHibernateContextInitializer : IInstanceContextInitializer
+    {
+        public void Initialize(InstanceContext instanceContext, Message message)
+        {
+            instanceContext.Extensions.Add(new NHibernateContextExension(NHibernateFactory.OpenSession()));
+        }
+    }
+{% endhighlight %}
+
+<p>Notice the above class simply asks the SessionFactory for a new session and hands that session off to the class that does the real work.  The NHibernateContextExtension class holds the relevant session acting as our unit of work.  It then begins the unit of work by calling the 'BeginTransaction' method on the session object.  And finally a delegate is added so that each session is committed when the InstanceContext is closed.</p>
+
+{% highlight c# linenos %}
+    public class NHibernateContextExension : IExtension<InstanceContext>
+    {
+
+        public NHibernateContextExension(ISession session__1)
+        {
+            Session = session__1;
+        }
+
+        private ISession _Session;
+        public ISession Session
+        {
+            get { return _Session; }
+            private set { _Session = value; }
+        }
+
+        public void Attach(System.ServiceModel.InstanceContext owner)
+        {
+            _Session.BeginTransaction();
+
+            //also make sure when the per call is done we close out the transaction and close the session
+            owner.Closed += new EventHandler(delegate(object sender, EventArgs args)
+            {
+                this.CallDetach((InstanceContext)sender);
+            });
+        }
+
+        private void CallDetach(System.ServiceModel.InstanceContext owner)
+        {
+            if (_Session != null)
+            {
+                try
+                {
+                    _Session.Transaction.Commit();
+                }
+                catch (Exception ex)
+                {
+                    _Session.Transaction.Rollback();
+                }
+                finally
+                {
+                    _Session.Close();
+                }
+            }
+        }
+
+        public void Detach(System.ServiceModel.InstanceContext owner) { }
+    }
+{% endhighlight %}
+
+<p>But how can you actually get to this session without diving into the internals of WCF each time the user needs an object?  One last WCF specific class named 'NHibernateContext' that will provide access to the current InstanceContext so you can pull out the session object.</p>
+
+{% highlight c# linenos %}
+        public static NHibernateContextExension Current()
+        {
+            return OperationContext.Current.InstanceContext.Extensions.Find<NHibernateContextExension>();
+        }
+{% endhighlight %}
+
+<p>And to abstract this away even further I simply created a variation of the base repository that overrides the 'GetSession' method to instead query NHibernateContext for the current session.</p>
+
+{% highlight c# linenos %}
+    public abstract class WCFNHibernateRepository<T> : NHibernateRepository<T> where T : class
+    {
+        public WCFNHibernateRepository() : base()
+        {
+        }
+
+        protected override ISession GetSession()
+        {
+            return NHibernateContext.Current().Session;
+        }
+    }
+{% endhighlight %}
+
+<p>Now you have a functional attribute that can be applied to any service that requires an NHibernate session.  The below is one example of how you might decorate a service with both the 'per call' attribute and the special 'NHibernateContext' attribute.</p>
+
+{% highlight c# linenos %}
+[ServiceBehavior(InstanceContextMode = InstanceContextMode.PerCall)]
+[NHibernateContext()]
+public class UserService : IUserService
+{
+    public User GetUserById(int id)
+    {
+        return mRepository.GetUserById(id);
+    }
+}
+{% endhighlight %}
+
+<p>If I missed anything, be sure to <a href='/content/downloads/NHibernateWCF.zip'>download</a> the source code and play with the sample application.  In addition to the WCF server and WCF client samples I also included a separate <a href='/content/downloads/MyFramework.zip'>download</a> for the base class library that contains all the WCF classes shown above.</p>

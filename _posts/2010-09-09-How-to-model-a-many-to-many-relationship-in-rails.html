@@ -1,0 +1,120 @@
+---
+layout: post
+title:  "How to model a many-to-many relationship in rails"
+date:   2010-09-09 18:00:00
+categories: blog archive
+---
+
+<p>Any rails screencast will usually show a simple blog example to get you started.  But often they skip the many-to-many relationship and jump to the less complex one-to-many implementation of comments and posts.  I instead wanted to start with the seemingly more difficult many tags to many posts relationship.</p>
+
+<h3>Scaffold out the objects and join table</h3>
+
+<p>First create a new rails application using a MySQL backend</p>
+
+<pre>rails new blog -d mysql</pre>
+
+<p>Change to the directory of your new rails app</p>
+
+<pre>cd blog</pre>
+
+<p>Next we need to scaffold out the post and tag objects</p>
+
+<pre>rails generate scaffold Post title:string body:text</pre>
+<pre>rails generate scaffold Tag description:string</pre>
+
+<p>But this is where it gets a little tricky. Rails won't build the many-to-many join table so you will need to generate a specific migration that will hold these primary key values</p>
+
+<pre>rails generate migration create_posts_tags_join</pre>
+
+<p>After you have this file created you need to alter it.  You can find this file under db/migrate/.  It Should be named something like 0000000_create_posts_tags_join.rb.  It's important to note that you must put these in alpha order ( ie p comes before t )</p>
+
+{% highlight ruby linenos %}
+class CreatePostsTagsJoin < ActiveRecord::Migration
+  def self.up
+    create_table 'posts_tags', :id => false do |t|
+      t.column 'post_id', :integer
+      t.column 'tag_id', :integer
+    end
+  end
+
+  def self.down
+    drop_table 'posts_tags'
+  end
+end
+</pre>
+{% endhighlight %}
+
+<p>Next in the post model add the following.  This can be found under app/models</p>
+
+<pre>has_and_belongs_to_many :tags</pre>
+
+<p>And in the tag model add the following</p>
+
+<pre>has_and_belongs_to_many :posts</pre>
+
+<p>And finally do <b>rake db:create</b> followed by <b>rake db:migrate</b> from the command line to get your database setup correctly.</p>
+
+<h3>Alter your views to reflect this relationship</h3>
+
+<p>To get a working view first edit your _form.html.erb to include a checkbox of tags. This can be found under app/views/posts/</p>
+
+<img src='/content/images/tagmarkupform.jpg' alt='tag markup form'/>
+
+<p>Next in the controller you need to add a variable for each element using the form. You can find this class under app/controllers/</p>
+
+{% highlight ruby linenos %}
+def edit
+  @tags = Tag.all
+  ...
+end
+
+def new
+  @tags = Tag.all
+  ...
+end
+</pre>
+{% endhighlight %}
+
+<p>Next alter the show.html.erb so we can see each tag for a given post - found under app/views/posts</p>
+
+<img src='/content/images/tagmarkupshow.jpg' alt='tag markup show'/>
+
+<p>Next you need to add a line to your show controller action that returns only the tags for a given post - again the posts_controller</p>
+
+{% highlight ruby linenos %}
+def show
+    @post = Post.find(params[:id])
+    @tags = @post.tags
+
+    respond_to do |format|
+      format.html # show.html.erb
+      format.xml  { render :xml => @post }
+    end
+end
+{% endhighlight %}
+
+<p>And one last tweak to fix an issue with a 'no many-to-many' update.  Alter your update method to show the tag_ids array as null when it's empty.  This will clear the collection from @post when you submit a form post without any tags selected.</p>
+
+{% highlight ruby linenos %}
+def update
+  params[:post][:tag_ids] ||= []
+  @post = Post.find(params[:id])
+  ...
+end
+{% endhighlight %}
+
+<p>Lets see this in action.  Fire up the rails web server</p>
+
+<pre>rails server</pre>
+
+<p>Now after you have the above in place go to the url below and add a few tags so we have some to play with</p>
+
+<pre>http://localhost:3000/tags</pre>
+
+<p>Next go to the post url below and add a post, but you should see a checkbox at the bottom that allows you to mark a post with a specific tag</p>
+
+<pre>http://localhost:3000/tags</pre>
+
+<p>Check a few and click update. Next edit it and remove them all.  You now have your first many-to-many relationship working in rails 3</p>
+
+<p>If you want the source for the finished blog application you can download it <a href='/content/downloads/railsblog.zip'>here</a></p>

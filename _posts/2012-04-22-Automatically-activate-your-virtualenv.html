@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "Automatically activate your virtualenv"
+date:   2012-04-22 18:00:00
+categories: blog archive
+---
+
+<p>Since I started writing python last year I've spent the majority of my time developing with <a href='http://toranbillups.com/blog/archive/2011/12/22/How-to-install-pip-virtualenv-and-django-on-ubuntu'>virtualenv</a>. This is a great way to silo your python environment from system python so you run different versions of a dependency without having to worry about upgrading every app that's running on your development machine / production web server / etc.</p>
+
+<p>One of the annoying things about working with virtualenv on your development machine is that you need to explicitly 'workon' or activate the python environment each time you open a new terminal window or change directories. This got me thinking -why not write a simple bash script that would automatically activate a virtualenv when it found one that matched the directory name.</p>
+
+<div data-gist=2372372><script src='https://gist.github.com/toranb/2372372.js'></script></div>
+
+<p>The above can be put into your .bashrc file if you want this same auto workon behavior I was looking for. The script does assume 3 things</p>
+
+<ul>
+<li>You only consider a directory that has a git repository</li>
+<li>You must name the virtualenv the same as the directory that contains your project</li>
+<li>You want the script to deactivate one virtualenv and workon another when you switch between different project directories</li>
+</ul>
+
+<p>I decided to be a little more strict about when to auto workon a virtualenv because this script runs each time you execute the 'cd' command. So by first making sure you had a .git file and second by making sure the name even existed as a virtualenv on your system it might save some would be wasted effort trying to activate something that wasn't needed or didn't exist altogether. </p>

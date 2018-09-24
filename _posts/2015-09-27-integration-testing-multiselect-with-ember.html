@@ -1,0 +1,42 @@
+---
+layout: post
+title:  "Integration testing multiselect with ember.js"
+date:   2015-09-27 18:00:00
+categories: blog archive
+---
+
+<p>Earlier this year <a href="https://github.com/rwjblue/ember-qunit">ember-qunit</a> introduced the ability to test components in isolation. At first I didn't know what all the hype was about but as I began writing more and more components I found this type of test was extremely valuable for anyone building large apps. One of the biggest wins is that you don't need to spin up the entire app like a traditional acceptance test would so they provide blazing fast feedback.</p>
+
+<p>When I first started writing integration tests I didn't realize how much I would miss the mature helper library that has been shipping with ember since 1.3 (visit/fillIn,andThen). I had to re-learn how I would interact with the DOM manually in test code. I found that I was able to ramp up quickly and learn the basics but one tricky problem presented itself a few weeks back that I wanted to write about.</p>
+
+<p>I was adding a multiselect and needed a way to "alter" the selected items but using val would always deselect anything already highlighted. I asked around but not a single person had blogged about this issue so here goes :)</p>
+
+<h3>The select component</h3>
+
+<p>If you haven't seen a simple multiselect it looks something like this</p>
+
+<div data-gist=f9e43aded9e0023c7561><script src='https://gist.github.com/toranb/f9e43aded9e0023c7561.js'></script></div>
+
+<p>To make it a little more ember component friendly I've added an onchange that lets me pass the user model in addition to the selected role id (target.value in the below -gives us the "value" of the selected option). I also added a quick in-list helper to know if something is selected (using a simple in-memory list for this example).<p>
+
+<div data-gist=9290287542933fcdd886><script src='https://gist.github.com/toranb/9290287542933fcdd886.js'></script></div>
+
+<h3>The integration test</h3>
+
+<p>In the first iteration I pass along the required data, render the component, and ask how many are selected</p>
+
+<div data-gist=3110d7a8b285263f603d><script src='https://gist.github.com/toranb/3110d7a8b285263f603d.js'></script></div>
+
+<h3>The failing test</h3>
+
+<p>Like anyone hacking the DOM I tried using $component.val but quickly found that my test was now failing because it only had one item selected.<p>
+
+<div data-gist=7cd3c8724368017b332e><script src='https://gist.github.com/toranb/7cd3c8724368017b332e.js'></script></div>
+
+<h3>The solution</h3>
+
+<p>I found using the special prop("selected", true) would keep my original item selected, while truly adding another!</p>
+
+<div data-gist=895edb1021947b91ea5c><script src='https://gist.github.com/toranb/895edb1021947b91ea5c.js'></script></div>
+
+<p>If you want the full blown sample project with a handful of other tests/validation/identity map/ember 2.1/etc checkout <a href="https://github.com/toranb/ember-testing-multi-select-example">this project</a> on github.</p>

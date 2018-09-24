@@ -1,0 +1,46 @@
+---
+layout: post
+title: "Why ember redux?"
+date:   2017-08-02 18:00:00
+categories: blog archive
+---
+
+<p>I started a small open source project back in Janurary 2016 that I hoped would unlock <a href="https://github.com/reactjs/redux">redux</a> for the <a href="https://github.com/emberjs/ember.js/">ember</a> community. Often I'm asked "but why? we already have ember-data..." so I decided to write up a short summary of the benefits I find writing apps with <a href="https://github.com/ember-redux/ember-redux">ember-redux</a>.</p>
+
+<h2>functional programming</h2>
+
+<p>With redux you will find yourself writing code in a functional style. If this is a first, I encourage you to approach the subject with an open mind and avoid the dogmatic "OOP or FRP" debates you find online. I've found that learning another style of programming simply adds another weapon to your problem solving arsenal.</p>
+
+<p>Two attributes of functional programming that I benefit from most often are <a href="https://medium.com/javascript-scene/master-the-javascript-interview-what-is-a-pure-function-d1c076bec976">pure functions</a> and <a href="https://en.wikipedia.org/wiki/Idempotence">idempotence</a>. Skipping past the computer science jargon these provide a more predictable, repeatable, data in/data out paradigm resulting in reduced cognitive load.</p>
+
+<h2>explicit > implicit</h2>
+
+<p>My favorite <a href="https://twitter.com/kentbeck/status/258316233068396544?lang=en">quote</a> from Kent Beck goes something like...</p>
+
+<blockquote><p>first you learn the value of abstraction, then you learn the cost of abstraction, then you're ready to engineer. - Kent Beck</p></blockquote>
+
+<p>This tweet perfectly describes my software journey. Early in my career I wanted implicit apis that did all the heavy lifting for me. But these days I much prefer to write each instruction myself.</p>
+
+<p>The trick is understanding what you gain from either choice and what it will cost you (pros/cons). Explicit instructions provide more control over the task you need executed but not without a cost. The downside being that you must provide each instruction ... and those must all be written without error.</p>
+
+<p>The philosophy mismatch here in ember land is that we (as the wider ember community) prefer a good deal of abstraction because it yields productivity. That said, I've found a healthy amount of explicit data flow often pays dividends in 6/12/18 months when you need more traceability into "why did this blow up/ render/ not render"</p>
+
+<h2>more javascript, less ember object</h2>
+
+<p>One of my favorite side effects of using redux in ember is that I can write plain javascript again. More javascript means you spend less of your time writing get/set and less time spelunking in chrome dev tools to inspect ember objects.</p>
+
+<p>Another benefit that goes hand in hand with "more javascript" is the ability to leverage <a href="https://www.typescriptlang.org/">TypeScript</a> hassle free. The <a href="https://github.com/emberwatch/ember-cli-typescript">ember-cli-typescript</a> project is maturing rapidly but experience has taught me that the further you get away from Ember.Object the easier it is to adopt TypeScript.</p>
+
+<h2>immutable data</h2>
+
+<p>Never changing the state of your app provides some interesting opportunities. The most notable is the <a href="https://github.com/zalmoxisus/redux-devtools-extension">redux dev tooling</a>. Each action is logged of course, but because you never alter anything you can easily travel back in time with the click of a button. This also unlocks more sane QA/Dev collaboration because engineers can export the state and later import it to triage a bug.</p>
+
+<p>Another powerful benefit that appears when you never change any state is that you can leverage reference based equality (instead of value based, deep equal like equality checks). For example, when you know for certain one object is equal to another reference you can skip the re-render because nothing has changed. I know glimmerJS has embraced this paradigm and I'd be surprised if ember isn't evolving in this direction as well.</p>
+
+<h2>simple > easy</h2>
+
+<p>An <a href="https://www.infoq.com/presentations/Simple-Made-Easy">influental talk</a> from Rich Hickey a few years back defines the word "simple" and "easy" for those who use them interchangeably like myself. The core emphasis here is that simplicity is objective and easy is subjective. Since watching this talk I've become more aware of the abstractions I use and just how intertwined (complex) most of them are.</p>
+
+<blockquote><p>Simplicity is a prerequisite for reliability. - Edsger W. Dtra</p></blockquote>
+
+<p>The quote above has had a real impact on my career in the past 12 months. I've always been one to consider the total cost of ownership above initial productivity but this line of thinking has started to heavily inform my api decisions day to day.</p>

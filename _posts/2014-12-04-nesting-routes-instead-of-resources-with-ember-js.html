@@ -1,0 +1,40 @@
+---
+layout: post
+title:  "Nesting routes instead of resources with ember.js"
+date:   2014-12-04 18:00:00
+categories: blog archive
+---
+
+<p>I've been building <a href="http://emberjs.com/">ember.js</a> web apps with <a href="http://eviltrout.com/2014/05/03/getting-started-with-es6.html">ES6</a> for so long now that I almost forgot how to do it with pure globals. Just the other day I was looking at an older ember.js app and remembered one of the pain points surrounding nested routes pre ES6 modules. If you wanted your templates/routes/controllers/views to match the url you would do so with the understanding that your global object names would also be nested.</p>
+
+<p>As you can imagine, these object names got verbose very quickly. So instead most people would skip the true nesting concept and use resources instead. This had the wonderful side effect of less verbose object names, but came at the cost of a flat file system that didn't mirror the nested url structure.</p>
+
+<p>For example, the router defined below would yield a set of routes ...</p>
+
+<blockquote><p>AccountsRoute</p></blockquote>
+<blockquote><p>DetailRoute</p></blockquote>
+<blockquote><p>UsersRoute</p></blockquote>
+
+<div data-gist=aecb43b20d4d560d2865>
+  <script src='https://gist.github.com/toranb/aecb43b20d4d560d2865.js'></script>
+</div>
+
+<p>And if we <a href="https://github.com/toranb/ember-nested-routes/tree/8a178f4894401d9e987481f79703f69f7c5b16a7/js/templates">take a look</a> at the templates folder you will see that each file is a "top-level" resource even when the router had several nested urls defined.</p>
+
+<p>If you prefer the templates/routes/controllers/views are instead nested, you would update the router to look like the below.</p>
+
+<div data-gist=0e6e6afe46c5023aca1d>
+  <script src='https://gist.github.com/toranb/0e6e6afe46c5023aca1d.js'></script>
+</div>
+
+<p>But now that we have truly nested routes those route object names are suddenly more complex.</p>
+
+<blockquote><p>AccountsRoute</p></blockquote>
+<blockquote><p>AccountsDetailRoute</p></blockquote>
+<blockquote><p>AccountsDetailUsersRoute</p></blockquote>
+
+<p>Lucky for us, in the modern ember.js ecosystem you simply don't feel the pain you did with globals because you no longer need to actually type out the full name. In fact, you can skip naming your objects altogether and just do an "export default" saving yourself all that typing. In addition, your templates/routes/controllers/views will reflect the same nesting that you defined in the router!</p>
+
+<p>The <a href="https://github.com/toranb/ember-nested-routes">entire project</a> is up on github with my typical "before and after" commit style so you can see exactly what was required to switch from nested resources to nested routes</p>
+
+<p>note: in the example project I still named the routes using the verbose names but that name is not required and could be anything -the resolver will still pick it up correctly. I do this to help me navigate around my projects in vim with ctags.</p>

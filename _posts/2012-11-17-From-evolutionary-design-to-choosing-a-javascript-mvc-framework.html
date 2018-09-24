@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "From evolutionary design to choosing a javascript mvc framework"
+date:   2012-11-17 18:00:00
+categories: blog archive
+---
+
+<p>Earlier this year I decided the way I was writing javascript heavy web apps was less than optimal. To clarify, I was writing testable / modular / robust javascript code but regardless of how I spin it, the resulting code looked and felt like glue. I always ended up with some frankenstein model where 33% of my source was jQuery selectors / dom manipulation hacks => followed by 33% hand coded html / string manipulation => followed by 33% actual javascript (the language).</p>
+
+<p>The test-driven part of my brain is screaming 'just refactor to a better design' and you will feel better. And as I do this I can't help but wonder 'at what point am I just reinventing the wheel?'</p>
+
+<p>I actually tried to avoid the <a href='http://en.wikipedia.org/wiki/Not_invented_here'>not invented here</a> syndrome by <a href='http://www.toranbillups.com/blog/archive/2012/10/14/Getting-started-with-ember-js/'>learning ember.js</a> a few months back, but I ended up with more questions than answers after that little experiment. It's not that I don't love <a href='http://emberjs.com/'>ember.js</a> or what the core team is trying to accomplish, but it's a true framework in every sense of the word. And having seen both extremes from 'we don't use frameworks here' to 'don't reinvent the wheel when we can be solving business problems' I was stuck asking myself a difficult question that I don't yet have the answer to …</p>
+
+<blockquote>At what point does a team building a javascript heavy front-end decide it's time to ditch the hand rolled framework they've built through evolutionary design and pick a real library / framework?</blockquote>
+
+<p>This question is indeed more complicated for me personally because I lack any real experience with the minimal javascript libraries, like <a href='http://backbonejs.org/'>backbone</a> for example. Having used ember.js I can honestly say it's not for every situation and in a true moment of clarity I would say you shouldn't use it if you are just getting into javascript. So having realized this as I learned the framework earlier this year, it got me thinking … what would I do before I truly needed a framework the size of ember? And how would a small team migrate from a home grown library to something like ember?</p>
+
+<p>I imagine a team could start small with a base set of requirements and slowly build the minimum amount of javascript code to solve a given problem. Then at some point this team decides they have started to extract the same basic components of a library like backbone and because they haven't yet implemented data-binding (and now need it) they throw away the smaller home grown library and adopt the standard library to help them get more done with less. Then a few weeks/months after the product has launched they start hearing from clients (that stay around on a single page for a good part of the day) that the browser is really slow after an hour or so (memory management turns out to be the culprit lets say). At this point they do some research and decide that hand rolling their own view manager to do client side memory management is silly when the full featured frameworks like ember.js are built with this in mind, so they adapt again and switch to ember.</p>
+
+<p>The above is a fictitious and over simplified version of how I imagine this might happen inside a small product company but I've not yet done this myself. So I ask the question => how does evolutionary design and picking a library/framework work in the real world?</p>
+
+<p>I ask the question because when I start writing a web application today I don't think to myself 'I'll start without django/rails/aspnet mvc and build only what I need through the evolutionary design process'. Instead it's just assumed that I'll start with a framework because I know it will save time/money/other developers know it/ etc. So why don't we do the same thing when we start a javascript heavy front-end project today?</p>
