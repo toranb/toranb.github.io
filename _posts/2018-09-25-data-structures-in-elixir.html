@@ -1,0 +1,64 @@
+---
+layout: post
+title: "Data Structures in Elixir"
+date:   2018-09-25 18:00:00
+categories: blog archive
+---
+<p>In part 2 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll be highlighting the various data structures and some of their performance characteristics.</p>
+
+<h3>Data Structures</h3>
+
+<p>Tuples are ordered collections of values. Unlike lists in Elixir tuples are stored uninterrupted, or contiguously in memory. This means that getting the size of the data structure or accessing an element in the tuple by index is fast. The tradeoff is that updating or adding elements to a tuple is costly because it requires creating a new tuple in memory.</p>
+
+<blockquote>{ 1, 2 }</blockquote>
+<blockquote>{ :ok, 5, "foo" }</blockquote>
+
+<p>Tuples usually have 2-4 elements. If you need more you should look at using a map instead. Tuples are commonly seen in Elixir as return values from functions and this unlocks a great deal of pattern matching.</p>
+
+<p>Lists are linked data structures. They are easy to traverse linearly but they are expensive to access in random order.</p>
+
+<blockquote>a = [1, 2, 3]</blockquote>
+
+<p>You can combine 2 lists using the ++ operator. Returns [1, 2, 3, 4, 5]</p>
+
+<blockquote>[1, 2, 3] ++ [4, 5]</blockquote>
+
+<p>You can diff 2 lists using the -- operator. Returns [1, 3]</p>
+
+<blockquote>[1, 2, 3] -- [2]</blockquote>
+
+<p>You can ask if a element is in a given list. Returns a boolean of true in this case</p>
+
+<blockquote>1 in [1, 2, 3]</blockquote>
+
+<p>You can create a list of tuples made up of key/values using a shorthand.</p>
+
+<blockquote>[ name: "Toran", city: "foo" ]</blockquote>
+
+<p>This will then be converted into ...</p>
+
+<blockquote>[{ :name, "Toran" }, { :city, "foo" }]</blockquote>
+
+<p>Map is a collection of key/value pairs. Maps allow any value as a key. Maps' keys do not follow any ordering.</p>
+
+<blockquote>states = %{ "IA" => "Iowa", "WI" => "Wisconsin" }</blockquote>
+
+<p>If the key is an atom you can use a shorthand.</p>
+
+<blockquote>colors = %{ red: "red", green: "green" }</blockquote>
+
+<p>This will then be converted into ...</p>
+
+<blockquote>%{ :red => "red", :green => "green" }</blockquote>
+
+<p>You can access any value of the map by using the key. Returns the value "Iowa"</p>
+
+<blockquote>iowa = states["IA"]</blockquote>
+
+<p>You can use the built in Map functions to get with a given key</p>
+
+<blockquote>Map.get(%{:a => 1, :b => 2}, :a)</blockquote>
+
+<p>You can use the built in Map functions to put a new key/value into the data structrue</p>
+
+<blockquote>Map.put(%{:a => 1, :b => 2}, :c, 3)</blockquote>
