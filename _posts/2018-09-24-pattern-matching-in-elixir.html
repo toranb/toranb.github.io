@@ -4,9 +4,9 @@ title: "Pattern Matching in Elixir"
 date:   2018-09-24 18:00:00
 categories: blog archive
 ---
-<p>Earlier this year I started learning Elixir but for whatever reason I didn't blog about it or write much software to document the learning process. In the past when I would learn something new I'd jump into code and build something straight away. This time around I decided to stretch myself and learn only by reading about the language, platform and ecosystem.</p>
+<p>Earlier this year I started learning <a href="https://elixir-lang.org/">Elixir</a> but for whatever reason I didn't blog about it or write much software to document the learning process. In the past when I would learn something new I'd jump into code and build something straight away. This time around I decided to stretch myself and learn only by reading about the language, platform and ecosystem.</p>
 
-<p>I'm finally making my way back to the language after a few months off and decided I would blog about my experience. I'll be reading the <a href="https://pragprog.com/book/elixir16/programming-elixir-1-6">programming elixir 1.6 book</a> from <a href="https://twitter.com/pragdave">Dave Thomas</a> and taking notes. Unlike my previous writing style I plan to make this go round less formal so I can forcus more on the language and my journey through it.</p>
+<p>I'm finally making my way back to the language after a few months off and decided I would blog about my experience. I'll be reading the <a href="https://pragprog.com/book/elixir16/programming-elixir-1-6">programming elixir 1.6 book</a> from <a href="https://twitter.com/pragdave">Dave Thomas</a> and taking notes. Unlike my previous writing style I plan to make this go round less formal so I can focus more on the language and my journey through it.</p>
 
 <h3>Pattern Matching</h3>
 
@@ -20,7 +20,9 @@ categories: blog archive
 <blockquote>1 = a</blockquote>
 <blockquote>2 = a</blockquote>
 
-<p>The last statement above results in a match error. it's like asserting 2 = 1 -Also, Elixir will only change the value of the variable on the left side of an equal sign.</p>
+<p>The last statement above results in a match error. it's like asserting 2 = 1</p>
+
+<p>Also, Elixir will only change the value of the variable on the left side of an equal sign.</p>
 
 <blockquote>[a, b, c] = list</blockquote>
 
@@ -40,8 +42,8 @@ categories: blog archive
 
 <blockquote>[a^, b, c] = [3, 2, 1]</blockquote>
 
-<p>This^ statement would result in a match error if a was already assigned the value of 1</p>
+<p>This statement would result in a match error if a was already assigned the value of 1</p>
 
 <blockquote>[a^, b, c] = [1, 2, 3]</blockquote>
 
-<p>This^ statement would NOT result in a match error if a was already assigned the value of 1</p>
+<p>This statement would NOT result in a match error if a was already assigned the value of 1</p>
