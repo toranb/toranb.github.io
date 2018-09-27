@@ -34,10 +34,7 @@ categories: blog archive
 
 <p>A single function definition may have many different implementations. The order that these functions appear is important. Working top down the first that has a match for the arguments you are passing will win.</p>
 
-<code>defmodule Foo do</code>
-<code> def my_func({name}) do IO.puts("#{name}") end</code>
-<code> def my_func({name, number}) do IO.puts("#{name} #{number}") end</code>
-<code>end</code>
+<div data-gist=7b072896fc307c937dbabd5233374eb8><script src='https://gist.github.com/toranb/7b072896fc307c937dbabd5233374eb8.js'></script></div>
 
 <p>You can run this script with mix to try it</p>
 

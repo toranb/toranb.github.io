@@ -10,15 +10,6 @@ categories: blog archive
 
 <p>One example I found just fascinating in Elixir is how the pinned operator works along with matching when used as part of the function params.</p>
 
-<code>defmodule Robot do</code>
-<code></code>
-<code> def speak(name, phrase) do</code>
-<code>  fn</code>
-<code>   (^name) -> "hello! #{name}, #{phrase}"</code>
-<code>   (_)     -> "sorry ... don't know this name"</code>
-<code>  end</code>
-<code> end</code>
-<code></code>
-<code>end</code>
+<div data-gist=71a3594d279fbbb8bacd3a9068bfdb01><script src='https://gist.github.com/toranb/71a3594d279fbbb8bacd3a9068bfdb01.js'></script></div>
 
 <p>My shallow understanding of the pin operator before using them with functions was simply "do not re-bind this variable". In functions it works much the same way but in the example above you begin to see the real power of pattern matching. The 2nd function having just an underscore acts like a default implementation. Using pattern matching and the pinned operator helps avoid what would otherwise be a conditional.</p>
