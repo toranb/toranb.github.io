@@ -1,0 +1,90 @@
+---
+layout: post
+title: "Functions in Elixir"
+date:   2018-09-26 18:00:00
+categories: blog archive
+---
+<p>In part 3 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll be sharing some about functions.</p>
+
+<h3>Functions</h3>
+
+<p>A simple function is defined using the `fn` keyword. Directly following you take the arguments followed by the -> symbol. Next the function body followed by the `end`</p>
+
+<code>total = fn (a, b) -> a + b end</code>
+
+<p>You would then invoke this function like so</p>
+
+<code>total.(1, 2)</code>
+
+<p>Even when your function doesn't take any parameters ...</p>
+
+<code>word = fn -> IO.puts "hello world" end</code>
+
+<p>You must still invoke it using parentheses</p>
+
+<code>word.()</code>
+
+<p>You can omit parentheses in the function definition</p>
+
+<code>total = fn a, b -> a + b end</code>
+<code>total.(3, 4)</code>
+
+<p>It's important to note that when we pass parameters to a function Elixir is doing a match.</p>
+
+<code>{a, b} = {2, 3}</code>
+
+<p>A single function definition may have many different implementations. The order that these functions appear is important. Working top down the first that has a match for the arguments you are passing will win.</p>
+
+<code>def my_func({:whereis_name, name}) do</code>
+<code>def my_func({:register_name, name, number}) do</code>
+
+<p>The first function above is invoked when you call it like so</p>
+
+<code>my_func.({:whereis_name, "foo"})</code>
+
+<p>And to invoke the 2nd implementation ...</p>
+
+<code>my_func.({:register_name, "foo", 123})</code>
+
+<p>Functions can indeed return other functions. In the example below we first bind the `add` variable to the function returned.</p>
+
+<code>add = fn -> fn -> "hello world" end end</code>
+
+<p>We can simply invoke this switch to see the output "hello world"</p>
+
+<code>add.().()</code>
+
+<p>To see the power of functions that return functions we should create a function for add that allows us to create new functions and call those w/ some value. In the example below we create a function that explicitly adds 3 to whatever you pass it.</p>
+
+<code>add = fn (a) -> fn (b) -> a + b end end</code>
+
+<p>To create the first function we only need to invoke the first function</p>
+
+<code>add_three = add.(3)</code>
+
+<p>Next we can use the add_three function to add any other number we pass</p>
+
+<code>add_three.(4)</code>
+<code>add_three.(5)</code>
+<code>add_three.(6)</code>
+
+<p>One trick to make the inner most function body more clear is to wrap it with parentheses</p>
+
+<code>add = fn (a) -> (fn (b) -> a + b end) end</code>
+
+<p>In the add examples above the `a` variable is bound in the scope of the outer function. But when the inner most function is defined, it will inherit this same scope... meaning we have just seen our first closure in action!</p>
+
+<p>Because functions are just values in Elixir, we can pass them to other functions.</p>
+
+<code>add_one = fn (a) -> a + 1 end</code>
+<code>apply = fn (fun, value) -> fun.(value) end</code>
+<code>apply.(add_one, 9)</code>
+
+<p>In the example above we create a function `add_one` only to pass it into another `apply` that invokes it and returns the value 10</p>
+
+<p>Another example of this using the built in Enum module that might be a little more familiar</p>
+
+<code>list = [1, 2, 3]</code>
+<code>Enum.map(list, fn (e) -> e + 1 end)</code>
+
+<p>This will enumerate the list and return a new list with values [2, 3, 4]</p>
