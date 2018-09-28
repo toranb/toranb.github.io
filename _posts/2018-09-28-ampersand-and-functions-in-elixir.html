@@ -1,0 +1,39 @@
+---
+layout: post
+title: "Ampersand and functions in Elixir"
+date:   2018-09-28 18:00:00
+categories: blog archive
+---
+<p>In part 5 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to share a little about the `&` operator you see often.</p>
+
+<h3>Ampersand</h3>
+
+<p>Functions are at the center of almost everything in Elixir so you might be asking yourself "does a short(er) syntax exist to create them?". Take the anonymous function below that adds `2` to any number you pass it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add_two = fn (a) -> a + 2 end</code>
+  </pre>
+</div>
+
+<p>As luck would have it, the `&` operator in Elixir allows us to write the same function in a more concise syntax.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add_two = &(&1 + 2)</code>
+  </pre>
+</div>
+
+<p>The `&1` placeholder you see inside the parentheses represents the first parameter to the function. I find the `&` operator used frequently when using the Enum module like you see below.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">list = [1, 2, 3]</code>
+    <code class="language-elixir"># verbose</code>
+    <code class="language-elixir">Enum.map(list, fn (e) -> e + 1 end)</code>
+    <code class="language-elixir"># concise</code>
+    <code class="language-elixir">Enum.map(list, &(&1 + 1))</code>
+  </pre>
+</div>
+
+<p>I'll admit this syntax was fairly terse and confusing when I first started learning Elixir. As I spend more time with the language and ecosystem I've found this both useful and intuitive.</p>
