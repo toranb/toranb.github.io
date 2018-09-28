@@ -10,27 +10,47 @@ categories: blog archive
 
 <p>A simple function is defined using the `fn` keyword. Directly following you take the arguments followed by the -> symbol. Next the function body followed by the `end`</p>
 
-<code>total = fn (a, b) -> a + b end</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">total = fn (a, b) -> a + b end</code>
+  </pre>
+</div>
 
 <p>You would then invoke the function like this</p>
 
-<code>total.(1, 2)</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">total.(1, 2)</code>
+  </pre>
+</div>
 
 <p>Even if the function doesn't take any parameters, you are still required to invoke it using parentheses.</p>
 
-<code>word = fn -> IO.puts "hello" end</code>
-<code>word.()</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">word = fn -> IO.puts "hello" end</code>
+    <code class="language-elixir">word.()</code>
+  </pre>
+</div>
 
 <p>You can omit parentheses in the function definition (optional). I've personally found this less explicit but you might prefer it.</p>
 
-<code>total = fn a, b -> a + b end</code>
-<code>total.(3, 4)</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">total = fn a, b -> a + b end</code>
+    <code class="language-elixir">total.(3, 4)</code>
+  </pre>
+</div>
 
 <p>It's important to note that when we pass parameters to a function Elixir is doing a match, not assignment like we might think traditionally.</p>
 
-<code>total = fn (a, b) -> a + b end</code>
-<code>total.(1, 2)</code>
-<code>{a, b} = {1, 2}</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">total = fn (a, b) -> a + b end</code>
+    <code class="language-elixir">total.(1, 2)</code>
+    <code class="language-elixir">{a, b} = {1, 2}</code>
+  </pre>
+</div>
 
 <p>A single function definition may have many different implementations. The order that these functions appear is important. Working top down the first that has a match for the arguments you are passing will win.</p>
 
@@ -38,55 +58,99 @@ categories: blog archive
 
 <p>You can run this script with mix to try it</p>
 
-<code>iex -S mix run foo.exs</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix run foo.exs</code>
+  </pre>
+</div>
 
 <p>Mix will give you an interactive prompt that you can use to learn the language. To invoke the first function above pass only the name parameter.</p>
 
-<code>Foo.my_func({"toran"})</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Foo.my_func({"toran"})</code>
+  </pre>
+</div>
 
 <p>To invoke the 2nd implementation pass both name and number.</p>
 
-<code>Foo.my_func({"toran", 123})</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Foo.my_func({"toran", 123})</code>
+  </pre>
+</div>
 
 <p>Functions can return other functions. In the example below we first bind the `word` variable to the function returned.</p>
 
-<code>word = fn -> fn -> "hello" end end</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">word = fn -> fn -> "hello" end end</code>
+  </pre>
+</div>
 
 <p>We can invoke this returned function to see the output "hello". Note: if we only invoke the first function we won't see the value "hello" so instead we must invoke it twice.</p>
 
-<code>word.().()</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">word.().()</code>
+  </pre>
+</div>
 
 <p>To see the power of functions that return functions we should create a function for `add` that allows us to create new functions and call those with some value. In the example below we create a function that explicitly adds 3 to whatever you pass it.</p>
 
-<code>add = fn (a) -> fn (b) -> a + b end end</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add = fn (a) -> fn (b) -> a + b end end</code>
+  </pre>
+</div>
 
 <p>To create the first function we only need to invoke the first function</p>
 
-<code>add_three = add.(3)</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add_three = add.(3)</code>
+  </pre>
+</div>
 
 <p>Next we can use the add_three function to add any other number we pass</p>
 
-<code>add_three.(4)</code>
-<code>add_three.(5)</code>
-<code>add_three.(6)</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add_three.(4)</code>
+    <code class="language-elixir">add_three.(5)</code>
+    <code class="language-elixir">add_three.(6)</code>
+  </pre>
+</div>
 
 <p>One trick to make the inner most function body more clear is to wrap it with parentheses</p>
 
-<code>add = fn (a) -> (fn (b) -> a + b end) end</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add = fn (a) -> (fn (b) -> a + b end) end</code>
+  </pre>
+</div>
 
 <p>In the add examples above the `a` variable is bound in the scope of the outer function. But when the inner most function is defined, it will inherit this same scope... meaning we have just seen our first closure in action! You might have heard this referred to as lexical scoping. To learn more checkout the Elixir language <a href="https://elixir-lang.readthedocs.io/en/latest/technical/scoping.html">documentation</a>.</p>
 
 <p>Because functions are just values in Elixir, we can pass them to other functions.</p>
 
-<code>add_one = fn (a) -> a + 1 end</code>
-<code>apply = fn (fun, value) -> fun.(value) end</code>
-<code>apply.(add_one, 9)</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">add_one = fn (a) -> a + 1 end</code>
+    <code class="language-elixir">apply = fn (fun, value) -> fun.(value) end</code>
+    <code class="language-elixir">apply.(add_one, 9)</code>
+  </pre>
+</div>
 
 <p>In the example above we create a function `add_one` and then pass it to another function `apply` that invokes it and returns the value 10</p>
 
 <p>Below is another example of this behavior using the Enum module to transform a list of numbers.</p>
 
-<code>list = [1, 2, 3]</code>
-<code>Enum.map(list, fn (e) -> e + 1 end)</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">list = [1, 2, 3]</code>
+    <code class="language-elixir">Enum.map(list, fn (e) -> e + 1 end)</code>
+  </pre>
+</div>
 
 <p>This will enumerate the list and return a new list with values [2, 3, 4]</p>

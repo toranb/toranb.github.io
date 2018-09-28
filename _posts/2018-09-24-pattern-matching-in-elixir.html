@@ -12,38 +12,66 @@ categories: blog archive
 
 <p>The equals operator in Elixir is not about assignment, but rather matching. It succeeds if Elixir can find a way to make the left side equal the right side.</p>
 
-<code>a = 1</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">a = 1</code>
+  </pre>
+</div>
 
 <p>Elixir can make the match true by binding the variable a to value 1</p>
 
-<code>a = 1</code>
-<code>1 = a</code>
-<code>2 = a</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">a = 1</code>
+    <code class="language-elixir">1 = a</code>
+    <code class="language-elixir">2 = a</code>
+  </pre>
+</div>
 
 <p>The last statement above results in a match error. it's like asserting 2 = 1</p>
 
 <p>Also, Elixir will only change the value of the variable on the left side of an equal sign.</p>
 
-<code>[a, b, c] = list</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[a, b, c] = list</code>
+  </pre>
+</div>
 
 <p>Variables will bind only once per match</p>
 
-<code>[a, a] = [1, 1]</code>
-<code>[b, b] = [1, 2]</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[a, a] = [1, 1]</code>
+    <code class="language-elixir">[b, b] = [1, 2]</code>
+  </pre>
+</div>
 
 <p>The last statement above results in a match error because b cannot have 2 different values.</p>
 
 <p>After you assign a variable it will never change (immutability at work). But you may re-bind that variable like so ...</p>
 
-<code>a = 1</code>
-<code>[a, b, c] = [3, 2, 1]</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">a = 1</code>
+    <code class="language-elixir">[a, b, c] = [3, 2, 1]</code>
+  </pre>
+</div>
 
 <p>You could force Elixir not to re-bind a variable by using the pin operator.</p>
 
-<code>[a^, b, c] = [3, 2, 1]</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[a^, b, c] = [3, 2, 1]</code>
+  </pre>
+</div>
 
 <p>This statement would result in a match error if a was already assigned the value of 1</p>
 
-<code>[a^, b, c] = [1, 2, 3]</code>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[a^, b, c] = [1, 2, 3]</code>
+  </pre>
+</div>
 
 <p>This statement would NOT result in a match error if a was already assigned the value of 1</p>

@@ -12,4 +12,31 @@ categories: blog archive
 
 <div data-gist=71a3594d279fbbb8bacd3a9068bfdb01><script src='https://gist.github.com/toranb/71a3594d279fbbb8bacd3a9068bfdb01.js'></script></div>
 
-<p>My shallow understanding of the pin operator before using them with functions was simply "do not re-bind this variable". In functions it works much the same way but in the example above you begin to see the real power of pattern matching. The 2nd function having just an underscore acts like a default implementation. Using pattern matching and the pinned operator helps avoid what would otherwise be a conditional.</p>
+<p>You can run this script with mix to try it</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix run foo.exs</code>
+  </pre>
+</div>
+
+<p>Mix will give you an interactive prompt that you can use to learn the language. To invoke the function above pass both a name and phrase parameter.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">speaker = Robot.speak("toran", "you rawk!")</code>
+  </pre>
+</div>
+
+<p>Next we can use the function returned by speak to generate a greeting with different inputs. Notice how pattern matching works with this new pinned parameter.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">IO.puts speaker.("toran")</code>
+    <code class="language-elixir">IO.puts speaker.("rando")</code>
+  </pre>
+</div>
+
+<p>My shallow understanding of the pin operator before using them with functions was simply "do not re-bind this variable". In functions it works much the same way but in the example above you begin to see the real power of pattern matching. Using pattern matching and the pinned operator helps avoid what would otherwise be a conditional.</p>
+
+<p>Note: the 2nd match having just an underscore acts like a fall through or default implementation.</p>
