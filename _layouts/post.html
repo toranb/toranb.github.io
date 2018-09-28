@@ -1,12 +1,12 @@
 ---
 layout: default
 ---
-<h1>{{ page.title }}</h1>
+<section>
+  <h1>{{ page.title }}</h1>
 
-<p class="subtext">
-Published on {{ page.date | date: '%B %d, %Y' }} by <a href="/">Toran Billups</a>
-</p>
+  <p class="mb-16">
+    <small>Published {{ page.date | date: '%B %d, %Y' }} by <a href="/">Toran Billups</a></small>
+  </p>
 
-<div id="post">
-{{ content }}
-</div>
+  <div class="content">{{ content }}</div>
+</section>

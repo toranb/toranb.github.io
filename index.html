@@ -2,12 +2,17 @@
 layout: default
 title: ParadigmShift - the endless journey of a software professional
 ---
-<h1>{{ site.name }}</h1>
-
-<p class="subtext">the endless journey of a software professional</p>
-
-<ol class="posts home">
+<div>
+  <h1 class="text-5xl"><a href="/">{{ site.name }}</a></h1>
+  <p class="text-xl">the endless journey of a software professional</p>
+</div>
+<div>
   {% for post in site.posts %}
-    <li><span class="date">{{ post.date | date_to_string }}</span> &raquo; <a href="{{ post.url }}">{{ post.title }}</a></li>
+  <div class="my-8 md:flex justify-between items-center">
+    <h3 class="font-normal">
+      <a href="{{ post.url }}">{{ post.title }}</a>
+    </h3>
+    <p><small>{{ post.date | date_to_string }}</small></p>
+  </div>
   {% endfor %}
-</ol>
+</div>
