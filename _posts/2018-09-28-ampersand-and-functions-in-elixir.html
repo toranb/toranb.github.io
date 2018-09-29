@@ -36,4 +36,19 @@ categories: blog archive
   </pre>
 </div>
 
+<p>Another use of the `&` operator is that it allows you to create an anonymous function that acts like an alias.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">list = [1, 2, 3]</code>
+    <code class="language-elixir"># traditional count</code>
+    <code class="language-elixir">Enum.count(list)</code>
+    <code class="language-elixir"># count with alias</code>
+    <code class="language-elixir">len = &Enum.count/1</code>
+    <code class="language-elixir">len.(list)</code>
+  </pre>
+</div>
+
+<p>In the example above I've created a variable `len` that holds a new function for `Enum.count` so we can call it without the full `Module.function` path.</p>
+
 <p>I'll admit this syntax was fairly terse and confusing when I first started learning Elixir. As I spend more time with the language and ecosystem I've found this both useful and intuitive.</p>

@@ -18,7 +18,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Elixir can make the match true by binding the variable a to value 1</p>
+<p>Elixir can make the match true by binding the variable `a` to value 1</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -34,6 +34,7 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
+    <code class="language-elixir">list = [1, 2, 3]</code>
     <code class="language-elixir">[a, b, c] = list</code>
   </pre>
 </div>
@@ -47,9 +48,9 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The last statement above results in a match error because b cannot have 2 different values.</p>
+<p>The last statement above results in a match error because `b` cannot have 2 different values.</p>
 
-<p>After you assign a variable it will never change (immutability at work). But you may re-bind that variable like so ...</p>
+<p>After you assign a variable the value will never change (immutability at work). But you will find that Elixir lets you re-bind that variable.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -62,7 +63,7 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">[a^, b, c] = [3, 2, 1]</code>
+    <code class="language-elixir">[^a, b, c] = [3, 2, 1]</code>
   </pre>
 </div>
 
@@ -70,8 +71,8 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">[a^, b, c] = [1, 2, 3]</code>
+    <code class="language-elixir">[^a, b, c] = [1, 2, 3]</code>
   </pre>
 </div>
 
-<p>This statement would NOT result in a match error if a was already assigned the value of 1</p>
+<p>This statement would NOT result in a match error if `a` was already assigned the value of 1</p>
