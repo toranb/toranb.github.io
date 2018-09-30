@@ -10,7 +10,18 @@ categories: blog archive
 
 <p>One example I found just fascinating in Elixir is how the pinned operator works along with matching when used as part of the function params.</p>
 
-<div data-gist=71a3594d279fbbb8bacd3a9068bfdb01><script src='https://gist.github.com/toranb/71a3594d279fbbb8bacd3a9068bfdb01.js'></script></div>
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Robot do</code>
+    <code class="language-elixir">  def speak(name, phrase) do</code>
+    <code class="language-elixir">    fn</code>
+    <code class="language-elixir">      (^name) -> "hello! #{name}, #{phrase}"</code>
+    <code class="language-elixir">      (_) -> "sorry ... don't know this name"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
 
 <p>You can run this script with mix to try it</p>
 
