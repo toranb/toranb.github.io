@@ -1,0 +1,59 @@
+---
+layout: post
+title: "Modules in Elixir"
+date:   2018-09-29 18:00:00
+categories: blog archive
+---
+<p>In part 6 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to talk about organizing functions with modules.</p>
+
+<h3>Modules</h3>
+
+<p>So far my blog series about Elixir has almost exclusively made use of the anonymous function. They offer a beginner friendly on-ramp for anyone just starting with the language but most real software eventually requires additional organization. In Elixir we use modules and within those modules we use named functions.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def triple(n) do</code>
+    <code class="language-elixir">    n * 3</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In this example we create a module definition using the `defmodule` keyword followed by the module name. Now that we have a module we can define what is known as a named function. This named function is defined using the `def` keyword followed by the function name.</p>
+
+<p>A few ways we can interact with this module. First using the mix command line like you see below.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix run foo.exs</code>
+  </pre>
+</div>
+
+<p>This will provide an interactive session that allows us to use the module and named functions directly.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">nine = Math.triple(3)</code>
+  </pre>
+</div>
+
+<p>Traditionally use the `do` and `end` syntax to group functions or modules but you may also write them using `do:` as shown below.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def triple(n), do: n * 3</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>It turns out the `do` and `end` syntax is syntactic sugar that makes organizing the block easier on the eyes. The very terse syntax without `do` and `end` looks something like this.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math, do: (def triple(n), do: n * 3)</code>
+  </pre>
+</div>
+
+<p>Using parentheses can unlock a single line module like you see above but I don't believe it's optimal. Most of the time you see the shorthand used when a function body is extremely tiny. For everything else I prefer the more explicit `do` and `end` syntax myself.</p>
