@@ -8,7 +8,7 @@ categories: blog archive
 
 <h3>Modules</h3>
 
-<p>So far my blog series about Elixir has almost exclusively made use of the anonymous function. They offer a beginner friendly on-ramp for anyone just starting with the language but most real software eventually requires additional organization. In Elixir we use modules and within those modules we use named functions.</p>
+<p>So far my blog series about Elixir has almost exclusively made use of the anonymous function. They offer a beginner friendly on-ramp for anyone just starting with the language but most real software eventually requires additional organization. To accomplish this in Elixir we use modules and within those modules we use named functions.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -22,7 +22,7 @@ categories: blog archive
 
 <p>In this example we create a module definition using the `defmodule` keyword followed by the module name. Now that we have a module we can define what is known as a named function. This named function is defined using the `def` keyword followed by the function name.</p>
 
-<p>A few ways we can interact with this module. First using the mix command line like you see below.</p>
+<p>There are a few ways we can interact with this module but today we'll be using the mix command line.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -30,7 +30,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>This will provide an interactive session that allows us to use the module and named functions directly.</p>
+<p>Mix provides an interactive session that allows us to use the module and named functions directly from the terminal.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -38,7 +38,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Traditionally use the `do` and `end` syntax to group functions or modules but you may also write them using `do:` as shown below.</p>
+<p>Traditionally we use the `do` and `end` syntax to group functions or modules but you may also write them using `do:` as shown below.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -48,7 +48,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>It turns out the `do` and `end` syntax is syntactic sugar that makes organizing the block easier on the eyes. The very terse syntax without `do` and `end` looks something like this.</p>
+<p>It turns out the `do` and `end` syntax is syntactic sugar that makes organizing the block easier to read. The most extreme example without `do` and `end` looks something like this.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -56,4 +56,4 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Using parentheses can unlock a single line module like you see above but I don't believe it's optimal. Most of the time you see the shorthand used when a function body is extremely tiny. For everything else I prefer the more explicit `do` and `end` syntax myself.</p>
+<p>Using parentheses can unlock a single line module like you see above but I don't believe it's optimal for the reader. Any time you see the `do:` shorthand used with functions it's likely the body is trivial. For everything else I recommend the more explicit `do` and `end` syntax.</p>
