@@ -6,7 +6,7 @@ categories: blog archive
 ---
 <p>In part 7 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to share an example that has helped me rethink conditionals while working in the language.</p>
 
-<h3>Matching</h3>
+<h3>Branching and Conditionals</h3>
 
 <p>The first time I wrote a function with <a href="https://elixir-lang.org/getting-started/case-cond-and-if.html">conditional logic in Elixir</a> it looked a lot like any other language I'd used in the past. I took inspiration from my procedural background using `if` and `else` to branch so I could sum all the numbers in a list.</p>
 
@@ -25,25 +25,15 @@ categories: blog archive
   </pre>
 </div>
 
-<p></p>
-
-<p>You can follow along using IEx by throwing this module into a file called `foo.exs` and running the command below.</p>
-
-<div class="highlight" data-language="elixir">
-  <pre class="language-elixir">
-    <code class="language-elixir">iex -S mix run foo.exs</code>
-  </pre>
-</div>
-
-<p><a href="https://hexdocs.pm/iex/IEx.html">IEx</a> provides an interactive session that allows you to play with Elixir from the terminal.</p>
-
 <p>This function worked well enough but it turns out most Elixir engineers aren't using `if` or `else` for conditional logic but instead pattern matching.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
     <code class="language-elixir">defmodule Math do</code>
     <code class="language-elixir">  def sum([]), do: 0</code>
-    <code class="language-elixir">  def sum([head | tail]), do: head + sum(tail)</code>
+    <code class="language-elixir">  def sum([head | tail]) do</code>
+    <code class="language-elixir">    head + sum(tail)</code>
+    <code class="language-elixir">  end</code>
     <code class="language-elixir">end</code>
   </pre>
 </div>
