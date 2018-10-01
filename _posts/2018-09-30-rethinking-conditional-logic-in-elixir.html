@@ -1,0 +1,61 @@
+---
+layout: post
+title: "Rethinking conditional logic in Elixir"
+date:   2018-09-30 18:00:00
+categories: blog archive
+---
+<p>In part 7 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to share an example that has helped me rethink conditionals while working in the language.</p>
+
+<h3>Matching</h3>
+
+<p>The first time I wrote a function with <a href="https://elixir-lang.org/getting-started/case-cond-and-if.html">conditional logic in Elixir</a> it looked a lot like any other language I'd used in the past. I took inspiration from my procedural background using `if` and `else` to branch so I could sum all the numbers in a list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def sum(a) do</code>
+    <code class="language-elixir">    if (list === []) do</code>
+    <code class="language-elixir">      0</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      [head | tail] = list</code>
+    <code class="language-elixir">      head + sum(tail)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p></p>
+
+<p>You can follow along using IEx by throwing this module into a file called `foo.exs` and running the command below.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix run foo.exs</code>
+  </pre>
+</div>
+
+<p><a href="https://hexdocs.pm/iex/IEx.html">IEx</a> provides an interactive session that allows you to play with Elixir from the terminal.</p>
+
+<p>This function worked well enough but it turns out most Elixir engineers aren't using `if` or `else` for conditional logic but instead pattern matching.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def sum([]), do: 0</code>
+    <code class="language-elixir">  def sum([head | tail]), do: head + sum(tail)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>At first glance our named function `sum` has what appears to be multiple definitions. After some reading on the subject I've learned this is instead multiple clauses of the same function definition.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.sum([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>As we invoke the `sum` function Elixir tries to match the list of `[1, 2, 3]` against the first function's parameter `[]`. When the match fails it tries the second function's definition. This match is a success because Elixir can bind the list `[1, 2, 3]` to the second function's parameter `[head | tail]`</p>
+
+<p>It took some time to completely wrap my head around pattern matching as the primitive for conditional logic but as I became more familiar with the concepts I started to enjoy writing code in a more functional style.</p>
