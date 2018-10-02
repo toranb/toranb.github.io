@@ -1,0 +1,73 @@
+---
+layout: post
+title: "Guard Clauses in Elixir"
+date:   2018-10-01 18:00:00
+categories: blog archive
+---
+<p>In part 8 of my <a href="https://elixir-lang.org/">Elixir</a> journey I decided to share about using guard clauses in the language.</p>
+
+<h3>Guard Clauses</h3>
+
+<p>Pattern matching allows us to side step traditional branching logic by inspecting the parameters we pass to a given function and choosing the correct definition.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def add_one(n) do</code>
+    <code class="language-elixir">    n + 1</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In this example, the `n` variable is our only criteria and it works great when we call `add_one` with any integer value.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.add_one(1)</code>
+  </pre>
+</div>
+
+<p>But what happens when we call it with a string instead?</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.add_one("x")</code>
+  </pre>
+</div>
+
+<p>(ArithmeticError) bad argument in arithmetic expression. So my first thought was "I need a default function definition for `add_one` and pattern matching will come to my rescue..."</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def add_one(n) do</code>
+    <code class="language-elixir">    n + 1</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  def add_one(_), do: IO.puts "yolo"</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To my surprise I got the same `ArithmeticError`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.add_one("x")</code>
+  </pre>
+</div>
+
+<p>It turns out the first function definition is a match for both integer and string values so pattern matching alone won't prevent us from going down the `+` code path. This is a great use case for the <a href="https://keathley.io/2016/04/09/elixir-guard-clauses.html">guard clause in Elixir</a>! When you need to ask a question about the parameter before you execute a given function you can use the `when` keyword.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def add_one(n) when is_integer(n) do</code>
+    <code class="language-elixir">    n + 1</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  def add_one(_), do: IO.puts "yolo"</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>This simple guard clause is using a built-in Erlang function to ask if the parameter `n` is the correct type. The order of operations here is still pattern match first, guard clause second. So in this example the match does work but the string `x` does not return truthy when our guard clause is evaluated. As a result, we attempt to match using the next `add_one` function definition.</p>
