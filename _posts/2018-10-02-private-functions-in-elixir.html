@@ -1,0 +1,35 @@
+---
+layout: post
+title: "Private functions in Elixir"
+date:   2018-10-02 18:00:00
+categories: blog archive
+---
+<p>In part 9 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll be highlighting how to create functions that are only visible within a module.</p>
+
+<h3>Privacy</h3>
+
+<p>So far all the named functions I've used in this blog series have been public. Elixir does allow you to create a private function using the `defp` keyword.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  defp add(a) do</code>
+    <code class="language-elixir">    fn (b) -> a + b end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  def add_one(n) do</code>
+    <code class="language-elixir">    add_fun = add(1)</code>
+    <code class="language-elixir">    add_fun.(n)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In this example, the `add_one` function is our public api and internally this function will use `add` to create a generic function that is later used to add `1` to the parameter `n`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.add_one(4)</code>
+  </pre>
+</div>
+
+<p>The trick here is that if we try to use the private function `add` we get the error `UndefinedFunctionError function Math.add/1 is undefined or private` because the `add` function was declared using the `defp` keyword.</p>
