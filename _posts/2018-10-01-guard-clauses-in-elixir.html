@@ -8,7 +8,7 @@ categories: blog archive
 
 <h3>Guard Clauses</h3>
 
-<p>Pattern matching allows us to side step traditional branching logic by inspecting the parameters we pass to a given function and choosing the correct definition.</p>
+<p>Pattern matching allows us to side step traditional branching logic by inspecting the parameters we pass to a given function.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -36,7 +36,9 @@ categories: blog archive
   </pre>
 </div>
 
-<p>(ArithmeticError) bad argument in arithmetic expression. So my first thought was "I need a default function definition for `add_one` and pattern matching will come to my rescue..."</p>
+<p>`ArithmeticError bad argument in arithmetic expression`</p>
+
+<p>So my first thought was "I need a default function definition for `add_one` and pattern matching will come to my rescue..."</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -57,7 +59,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>It turns out the first function definition is a match for both integer and string values so pattern matching alone won't prevent us from going down the `+` code path. This is a great use case for the <a href="https://keathley.io/2016/04/09/elixir-guard-clauses.html">guard clause in Elixir</a>! When you need to ask a question about the parameter before you execute a given function you can use the `when` keyword.</p>
+<p>It turns out the first function definition is a match for both integer and string values so pattern matching alone won't prevent us from going down that code path. This is a great use case for the <a href="https://keathley.io/2016/04/09/elixir-guard-clauses.html">guard clause in Elixir</a>! When you need to ask a question about the parameter before you execute a function you can use the `when` keyword to further clarify what is required to use it.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -70,4 +72,4 @@ categories: blog archive
   </pre>
 </div>
 
-<p>This simple guard clause is using a built-in Erlang function to ask if the parameter `n` is the correct type. The order of operations here is still pattern match first, guard clause second. So in this example the match does work but the string `x` does not return truthy when our guard clause is evaluated. As a result, we attempt to match using the next `add_one` function definition.</p>
+<p>This guard clause is using a built-in Erlang function to ask if the parameter `n` is the correct type. The order of operations here is still pattern match first, guard clause second. So in this example the match does work but the string `x` does not return truthy when the guard clause is evaluated. As a result, Elixir will attempt to match using the second `add_one` function definition. Because this function definition takes any parameter the match is a success and the `IO.puts` is executed.</p>
