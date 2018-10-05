@@ -1,0 +1,53 @@
+---
+layout: post
+title: "Nested modules in Elixir"
+date:   2018-10-03 18:00:00
+categories: blog archive
+---
+<p>In part 11 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll quickly highlight how nested modules really work.</p>
+
+<h3>Modules</h3>
+
+<p>We use modules in elixir to organize our functions but something I learned today is that you can nest modules within modules.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def add(a, b), do: a + b</code>
+    <code class="language-elixir">  defmodule Moar do</code>
+    <code class="language-elixir">    def subtract(a, b), do: a - b</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In the example above we can invoke `add` by prefixing it with the outer most module `Math`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.add(2, 1)</code>
+  </pre>
+</div>
+
+<p>And like you might guess, we can invoke `subtract` by prefixing it with both the outer and inner module names `Math.Moar`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.Moar.subtract(2, 1)</code>
+  </pre>
+</div>
+
+<p>The interesting part is that Elixir actually defines all modules at the top most level. The module nesting you see above is nothing more than syntactic sugar.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def add(a, b), do: a + b</code>
+    <code class="language-elixir">end</code>
+    <code class="language-elixir">defmodule Math.Moar do</code>
+    <code class="language-elixir">  def subtract(a, b), do: a - b</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>This is important to note because it means the inner and outer modules are not connected or related in any way.</p>
