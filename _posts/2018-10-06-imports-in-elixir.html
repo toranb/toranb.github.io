@@ -1,0 +1,61 @@
+---
+layout: post
+title: "Imports in Elixir"
+date:   2018-10-06 18:00:00
+categories: blog archive
+---
+<p>In part 12 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll explore how imports work in the language.</p>
+
+<h3>Import</h3>
+
+<p>Normally I prefix a function name with the module name like you see below with `Enum.map`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Demo do</code>
+    <code class="language-elixir">  def transform(list) do</code>
+    <code class="language-elixir">    Enum.map(list, &(&1 + 1))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>But if you find yourself using a handful of functions from the same module, or even repeating the same module + function name multiple times you can `import` the specific function(s) you need by name and arity (the number of arguments expected by the function).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Demo do</code>
+    <code class="language-elixir">  def transform(list) do</code>
+    <code class="language-elixir">    import Enum, only: [map: 2]</code>
+    <code class="language-elixir">    map(list, &(&1 + 1))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Here is another example importing both `map` and `filter` from `Enum`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Demo do</code>
+    <code class="language-elixir">  def transform(list) do</code>
+    <code class="language-elixir">    import Enum, only: [map: 2, filter: 2]</code>
+    <code class="language-elixir">    map(list, &(&1 + 1))</code>
+    <code class="language-elixir">      |> filter(&(&1 === 3))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>I prefer to be explicit with `only` most of the time but technically another import option exists called `except`. This will pull in all functions for a given module except what you specifically call out.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Demo do</code>
+    <code class="language-elixir">  def transform(list) do</code>
+    <code class="language-elixir">    import Enum, except: [filter: 2]</code>
+    <code class="language-elixir">    map(list, &(&1 + 1))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
