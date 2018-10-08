@@ -1,0 +1,65 @@
+---
+layout: post
+title: "Aliases in Elixir"
+date:   2018-10-07 18:00:00
+categories: blog archive
+---
+<p>In part 13 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll share how to use aliases for modules.</p>
+
+<h3>Alias</h3>
+
+<p>If you have a long module name you can create an `alias` and use that to reference the original module.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Foo do</code>
+    <code class="language-elixir">  def add(num) do</code>
+    <code class="language-elixir">    num + 1</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  defmodule Bar do</code>
+    <code class="language-elixir">    def transform(list) do</code>
+    <code class="language-elixir">      add_one = &Foo.add/1</code>
+    <code class="language-elixir">      Enum.map(list, add_one)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  defmodule Zap do</code>
+    <code class="language-elixir">    def speak(result) do</code>
+    <code class="language-elixir">      IO.puts "hello #{inspect result}"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+    <code class="language-elixir">defmodule Baz do</code>
+    <code class="language-elixir">  alias Foo.Bar, as: Bar</code>
+    <code class="language-elixir">  def fire(list) do</code>
+    <code class="language-elixir">    Bar.transform(list)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In this example the `Bar` alias allows us to avoid typing out the full module path `Foo.Bar`. The `as` parameter defaults to the last segment of the module name referenced so in this case it's redundant.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Baz do</code>
+    <code class="language-elixir">  alias Foo.Bar</code>
+    <code class="language-elixir">  def fire(list) do</code>
+    <code class="language-elixir">    Bar.transform(list)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Alias also offers the ability to define multiple aliases in a single line when both modules share a common parent.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Baz do</code>
+    <code class="language-elixir">  alias Foo.{Bar, Zap}</code>
+    <code class="language-elixir">  def fire(list) do</code>
+    <code class="language-elixir">    Bar.transform(list)</code>
+    <code class="language-elixir">    |> Zap.speak()</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
