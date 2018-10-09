@@ -1,0 +1,24 @@
+---
+layout: post
+title: "Module Attributes in Elixir"
+date:   2018-10-08 18:00:00
+categories: blog archive
+---
+<p>In part 14 of my <a href="https://elixir-lang.org/">Elixir</a> journey I'll briefly show how module attributes work.</p>
+
+<h3>Attributes</h3>
+
+<p>You can add metadata to an Elixir module by using the `@` symbol. This attribute must be declared within the module but not inside a function.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Foo do</code>
+    <code class="language-elixir">  @name "Toran"</code>
+    <code class="language-elixir">  def speak() do</code>
+    <code class="language-elixir">    IO.puts "name was #{@name}"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>You can use this attribute from within a function as shown above. You typically see attributes used for configuration, metadata or what some consider to be a constant.</p>
