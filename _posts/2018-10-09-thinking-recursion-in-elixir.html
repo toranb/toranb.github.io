@@ -31,9 +31,9 @@ categories: blog archive
   </pre>
 </div>
 
-<p>1) `head` is the integer `1` and tail is the list `[2, 3]`</p>
-<p>2) `head` is the integer `2` and tail is the list `[3]`</p>
-<p>3) `head` is the integer `3` and tail is an empty list `[]`</p>
+<p>1) head is the integer `1` and tail is the list `[2, 3]`</p>
+<p>2) head is the integer `2` and tail is the list `[3]`</p>
+<p>3) head is the integer `3` and tail is an empty list `[]`</p>
 <p>4) empty list `[]` is a match for the first `sum` clause</p>
 
 <p>We can calculate the `sum` of our list by walking through the previous set of instructions in reverse. It's worth mentioning that each time the `sum` function calls itself, it adds to the stack. And when the `sum` function returns it will pop off the stack (hence the reverse order).</p>
