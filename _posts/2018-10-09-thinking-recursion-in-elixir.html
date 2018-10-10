@@ -4,21 +4,11 @@ title: "Thinking recursion in Elixir"
 date:   2018-10-09 18:00:00
 categories: blog archive
 ---
-<p>In part 15 of my <a href="https://elixir-lang.org/">Elixir</a> journey I will share an example that would help us think more about recursion.</p>
+<p>In part 15 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to start a dialog about recursion.</p>
 
 <h3>Recursion</h3>
 
-<p>The `Enum` module offers a ton of great opportunities to help us learn about recursion in Elixir.</p>
-
-<div class="highlight" data-language="elixir">
-  <pre class="language-elixir">
-    <code class="language-elixir">Enum.map([1, 2, 3], fn (n) -> n + 1 end)</code>
-  </pre>
-</div>
-
-<p>In the example above we enumerate each item in the list and return a new array with `[2, 3, 4]`. One of my favorite exercises in the <a href="https://pragprog.com/book/elixir16/programming-elixir-1-6">Elixir book I'm reading</a> was implementing `map` as a way of exploring how to think recursively.</p>
-
-<p>But before I got ahead of myself I decided it was a good idea to start simple. I would begin by writing a function to sum all the items in a list. This immediately required a quick refresher on pattern matching because the 2nd `sum` functions parameter makes use of it to pull apart the list.</p>
+<p>The `sum` function should enumerate each item in the list and return the total.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -31,6 +21,32 @@ categories: blog archive
   </pre>
 </div>
 
-<p>So if we invoke `sum` using the list `[1, 2, 3]` the `head` in our first iteration would be the number `1` and the tail would be another list `[2, 3]`. Then during the second iteration our `head` would be the number `2` and the tail would be a list with just one item `[3]`. Then during the third iteration our `head` would be the number `3` and the tail would be an empty list `[]`. The last call actually runs the first `sum` function because we've now have an empty list.</p>
+<p>To solve this problem in Elixir I had to think differently. Instead of using a `for loop` like I've done for so many years in imperative languages I had to (re)learn recursion.</p>
 
-<p>We can calculate the sum of our list by walking the previous paragraph in reverse and doing some addition. We start with an empty list `[]` that provided the integer `0`. The call before that provided the integer `3` + `0` (prior `sum` result). The call before that provided the integer `2` + `3` (prior `sum` result). And the very last call provided the integer `1` + `5` (prior `sum` result). The final value returned from this `sum` function is then the result of `1` + `5` (no surprise I hope).</p>
+<p>Taking a step by step approach I wanted to describe how this `sum` function works in great detail to get a sense of how the program behaves at runtime.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Math.sum([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>1) `head` is the integer `1` and tail is the list `[2, 3]`</p>
+<p>2) `head` is the integer `2` and tail is the list `[3]`</p>
+<p>3) `head` is the integer `3` and tail is an empty list `[]`</p>
+<p>4) empty list `[]` is a match for the first `sum` clause</p>
+
+<p>We can calculate the `sum` of our list by walking through the previous set of instructions in reverse. It's worth mentioning that each time the `sum` function calls itself, it adds to the stack. And when the `sum` function returns it will pop off the stack (hence the reverse order).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">0 # sum([])</code>
+    <code class="language-elixir">3 + 0 # sum([3])</code>
+    <code class="language-elixir">2 + 3 # sum([2, 3])</code>
+    <code class="language-elixir">1 + 5 # sum([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>The first call on the stack as we start to unwind executes `sum` with an empty list `[]` and returns the integer `0`. The next call on the stack executes `sum` with the list `[3]` and returns the integer `3` + `0` (prior `sum` result). The next call on the stack executes `sum` with `[2, 3]` and returns the integer `2` + `3` (prior `sum` result). The very last call on the stack invokes `sum` with `[1, 2, 3]` and returns the integer `1` + `5` (prior `sum` result). The final value returned from this `sum` function is `6` (no surprise I hope).</p>
+
+<p>This type of thinking becomes more familiar with time and offers some compelling solutions to a diverse set of problems. One day soon I hope the `for loop` concept becomes so foreign that I reach for recursion straight away.</p>
