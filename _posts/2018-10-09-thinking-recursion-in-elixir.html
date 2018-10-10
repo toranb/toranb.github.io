@@ -1,0 +1,36 @@
+---
+layout: post
+title: "Thinking recursion in Elixir"
+date:   2018-10-09 18:00:00
+categories: blog archive
+---
+<p>In part 15 of my <a href="https://elixir-lang.org/">Elixir</a> journey I will share an example that would help us think more about recursion.</p>
+
+<h3>Recursion</h3>
+
+<p>The `Enum` module offers a ton of great opportunities to help us learn about recursion in Elixir.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Enum.map([1, 2, 3], fn (n) -> n + 1 end)</code>
+  </pre>
+</div>
+
+<p>In the example above we enumerate each item in the list and return a new array with `[2, 3, 4]`. One of my favorite exercises in the <a href="https://pragprog.com/book/elixir16/programming-elixir-1-6">Elixir book I'm reading</a> was implementing `map` as a way of exploring how to think recursively.</p>
+
+<p>But before I got ahead of myself I decided it was a good idea to start simple. I would begin by writing a function to sum all the items in a list. This immediately required a quick refresher on pattern matching because the 2nd `sum` functions parameter makes use of it to pull apart the list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Math do</code>
+    <code class="language-elixir">  def sum([]), do: 0</code>
+    <code class="language-elixir">  def sum([head | tail]) do</code>
+    <code class="language-elixir">    head + sum(tail)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>So if we invoke `sum` using the list `[1, 2, 3]` the `head` in our first iteration would be the number `1` and the tail would be another list `[2, 3]`. Then during the second iteration our `head` would be the number `2` and the tail would be a list with just one item `[3]`. Then during the third iteration our `head` would be the number `3` and the tail would be an empty list `[]`. The last call actually runs the first `sum` function because we've now have an empty list.</p>
+
+<p>We can calculate the sum of our list by walking the previous paragraph in reverse and doing some addition. We start with an empty list `[]` that provided the integer `0`. The call before that provided the integer `3` + `0` (prior `sum` result). The call before that provided the integer `2` + `3` (prior `sum` result). And the very last call provided the integer `1` + `5` (prior `sum` result). The final value returned from this `sum` function is then the result of `1` + `5` (no surprise I hope).</p>
