@@ -1,0 +1,53 @@
+---
+layout: post
+title: "Writing map in Elixir"
+date:   2018-10-10 18:00:00
+categories: blog archive
+---
+<p>In part 16 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show how you might implement `Enum.map`.</p>
+
+<h3>Map</h3>
+
+<p>The `Enum` module offers a lot of opportunity to learn about recursion and today I'll be hand rolling the map function to better understand how it works under the hood.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Enum.map([1, 2, 3], fn (n) -> n + 1 end)</code>
+  </pre>
+</div>
+
+<p>The interface for this `map` function is fairly straight forward. The first parameter is a list to enumerate. The second is a function we apply to each item in the list. The return type is a new list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyEnum do</code>
+    <code class="language-elixir">  def map([], _func), do: []</code>
+    <code class="language-elixir">  def map([head | tail], func) do</code>
+    <code class="language-elixir">    [ func.(head) | map(tail, func) ]</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The first function clause acts as our starting point returning an empty list. The less obvious part for anyone new to Elixir like myself is the intentional underscore in the parameter `_func`. This tells the compiler we'd like to pattern match for arity of 2 but once that happens we will ignore the 2nd parameter altogether. Without an underscore at the front of this variable name Elixir will throw a warning.</p>
+
+<p>In the second function clause we get to work by invoking `func` using the `head` we pattern matched. The result from this function call will represent the new head of our list. The tail will then be thrown into the subsequent `map` and that result will represent the new tail of our list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.map([1, 2, 3], fn (n) -> n + 1 end)</code>
+  </pre>
+</div>
+
+<p>We can calculate the new list returned from `map` by walking through the steps our program will execute in reverse. It's worth mentioning that each time the `map` function calls itself, it adds to the stack. And when the `map` function returns it will pop off the stack (hence the reverse order).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[]             # map([])</code>
+    <code class="language-elixir">[ 4 | [] ]     # map([3])</code>
+    <code class="language-elixir">[ 3 | [4] ]    # map([2, 3])</code>
+    <code class="language-elixir">[ 2 | [3, 4] ] # map([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>If the syntax `[ 2 | [3, 4] ]` isn't familiar yet be sure to open <a href="https://hexdocs.pm/iex/IEx.html">IEx</a> and evaluate it. This is easily one of the most essential tools for those learning the language.</p>
