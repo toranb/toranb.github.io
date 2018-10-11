@@ -43,11 +43,24 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">[]             # map([])</code>
-    <code class="language-elixir">[ 4 | [] ]     # map([3])</code>
-    <code class="language-elixir">[ 3 | [4] ]    # map([2, 3])</code>
-    <code class="language-elixir">[ 2 | [3, 4] ] # map([1, 2, 3])</code>
+    <code class="language-elixir">[ ]              # map([])</code>
+    <code class="language-elixir">[ 4 | [ ] ]      # map([3])</code>
+    <code class="language-elixir">[ 3 | [ 4 ] ]    # map([2, 3])</code>
+    <code class="language-elixir">[ 2 | [ 3, 4 ] ] # map([1, 2, 3])</code>
   </pre>
 </div>
 
 <p>If the syntax `[ 2 | [3, 4] ]` isn't familiar yet be sure to open <a href="https://hexdocs.pm/iex/IEx.html">IEx</a> and evaluate it. This is easily one of the most essential tools for those learning the language.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix run</code>
+  </pre>
+</div>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[ 2 | [ 3, 4 ] ]</code>
+    <code class="language-elixir"># returns [ 2, 3, 4 ]</code>
+  </pre>
+</div>
