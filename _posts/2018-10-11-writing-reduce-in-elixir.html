@@ -1,0 +1,53 @@
+---
+layout: post
+title: "Writing reduce in Elixir"
+date:   2018-10-11 18:00:00
+categories: blog archive
+---
+<p>In part 17 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show how you might implement `Enum.reduce`.</p>
+
+<h3>Reduce</h3>
+
+<p><a href="https://toranbillups.com/blog/archive/2018/10/10/writing-map-in-elixir/">Last time</a> around we implemented `map` to get a sense of how recursion works when the rubber hits the road. Today we'll dive a little deeper by hand rolling `reduce` to learn even more about the wonders of recursion.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Enum.reduce([1, 2, 3], 0, &(&1 + &2))</code>
+  </pre>
+</div>
+
+<p>The interface for this `reduce` function is fairly straight forward. The first parameter is a list to enumerate. The second is an initial value that we choose to start from. The third is a function we apply to each item in the list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyEnum do</code>
+    <code class="language-elixir">  def reduce([], init, _func), do: init</code>
+    <code class="language-elixir">  def reduce([head | tail], init, func) do</code>
+    <code class="language-elixir">    reduce(tail, func.(head, init), func)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The first function clause acts as our starting point returning our initial value. We include 3 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
+
+<p>In the second function clause we invoke `reduce` with the tail, a new `init` value and the `func` parameter. The magic here is that we compute a new `init` value with each call to `reduce` using the function.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.reduce([1, 2, 3], 0, &(&1 + &2))</code>
+  </pre>
+</div>
+
+<p>We can calculate the value returned from `reduce` by walking through the steps our program will execute in reverse. It's worth mentioning that each time the `reduce` function calls itself, it adds to the stack. And when the `reduce` function returns it will pop off the stack (hence the reverse order).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">0       # reduce([])</code>
+    <code class="language-elixir">(3 + 0) # reduce([3])</code>
+    <code class="language-elixir">(2 + 3) # reduce([2, 3])</code>
+    <code class="language-elixir">(1 + 5) # reduce([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>With each `Enum` function I implement I can feel myself stretching muscles I've not used in years!</p>
