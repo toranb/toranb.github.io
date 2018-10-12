@@ -31,7 +31,7 @@ categories: blog archive
 
 <p>The first function clause acts as our starting point returning our initial value. We include 3 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
 
-<p>In the second function clause we invoke `reduce` with the tail, a new `value` value and the `func` parameter. The magic here is that we compute a new `value` with each call to `reduce` using the `func` supplied.</p>
+<p>In the second function clause we invoke `reduce` with the tail, a new `value` and the `func` parameter. The magic here is that we compute a new `value` with each call to `reduce` using the `func` supplied.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
