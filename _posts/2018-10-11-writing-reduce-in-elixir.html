@@ -8,7 +8,7 @@ categories: blog archive
 
 <h3>Reduce</h3>
 
-<p><a href="https://toranbillups.com/blog/archive/2018/10/10/writing-map-in-elixir/">Last time</a> around we implemented `map` to get a sense of how recursion works when the rubber hits the road. Today we'll dive a little deeper by hand rolling `reduce` to learn even more about the wonders of recursion.</p>
+<p><a href="https://toranbillups.com/blog/archive/2018/10/10/writing-map-in-elixir/">Last time</a> around I implemented `map` to get a sense of how recursion works when the rubber hits the road. Today I'll dive a little deeper by hand rolling `reduce` to learn even more about the wonders of recursion.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -21,9 +21,9 @@ categories: blog archive
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
     <code class="language-elixir">defmodule MyEnum do</code>
-    <code class="language-elixir">  def reduce([], init, _func), do: init</code>
-    <code class="language-elixir">  def reduce([head | tail], init, func) do</code>
-    <code class="language-elixir">    reduce(tail, func.(head, init), func)</code>
+    <code class="language-elixir">  def reduce([], value, _func), do: value</code>
+    <code class="language-elixir">  def reduce([head | tail], value, func) do</code>
+    <code class="language-elixir">    reduce(tail, func.(head, value), func)</code>
     <code class="language-elixir">  end</code>
     <code class="language-elixir">end</code>
   </pre>
@@ -31,7 +31,7 @@ categories: blog archive
 
 <p>The first function clause acts as our starting point returning our initial value. We include 3 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
 
-<p>In the second function clause we invoke `reduce` with the tail, a new `init` value and the `func` parameter. The magic here is that we compute a new `init` value with each call to `reduce` using the function.</p>
+<p>In the second function clause we invoke `reduce` with the tail, a new `value` value and the `func` parameter. The magic here is that we compute a new `value` with each call to `reduce` using the `func` supplied.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -39,7 +39,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>We can calculate the value returned from `reduce` by walking through the steps our program will execute in reverse. It's worth mentioning that each time the `reduce` function calls itself, it adds to the stack. And when the `reduce` function returns it will pop off the stack (hence the reverse order).</p>
+<p>We can calculate the return value from `reduce` by walking through the steps our program will execute in reverse. It's worth mentioning that each time the `reduce` function calls itself, it adds to the stack. And when the `reduce` function returns it will pop off the stack (hence the reverse order).</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
