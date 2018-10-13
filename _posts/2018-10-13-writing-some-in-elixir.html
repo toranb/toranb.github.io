@@ -4,7 +4,7 @@ title: "Writing some in Elixir"
 date:   2018-10-13 18:00:00
 categories: blog archive
 ---
-<p>In part 19 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show how you might implement the Elixir equivalent of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some">Array.prototype.some</a> from javascript.</p>
+<p>In part 19 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show how you might implement the Elixir equivalent of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some">Array.prototype.some</a> from javascript. This functionality can also be found in Elixir as `Enum.any`</p>
 
 <h3>Some</h3>
 
@@ -27,7 +27,12 @@ categories: blog archive
     <code class="language-elixir">      true -></code>
     <code class="language-elixir">        true</code>
     <code class="language-elixir">      false -></code>
-    <code class="language-elixir">        some(tail, func)</code>
+    <code class="language-elixir">        case some(tail, func) do</code>
+    <code class="language-elixir">          true -></code>
+    <code class="language-elixir">            true</code>
+    <code class="language-elixir">          _ -></code>
+    <code class="language-elixir">            false</code>
+    <code class="language-elixir">        end</code>
     <code class="language-elixir">    end</code>
     <code class="language-elixir">  end</code>
     <code class="language-elixir">end</code>
@@ -50,6 +55,23 @@ categories: blog archive
   <pre class="language-elixir">
     <code class="language-elixir">true         # some([2, 3])</code>
     <code class="language-elixir">(falsy) true # some([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>If we search for a number that does not exist we expect to get `false` as our return value.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.some([1, 2, 3], &(&1 == 4))</code>
+  </pre>
+</div>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">(falsy)  # some([])</code>
+    <code class="language-elixir">(falsy)  # some([3])</code>
+    <code class="language-elixir">(falsy)  # some([2, 3])</code>
+    <code class="language-elixir">(falsy)  # some([1, 2, 3])</code>
   </pre>
 </div>
 
