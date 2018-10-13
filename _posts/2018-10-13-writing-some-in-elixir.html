@@ -21,18 +21,13 @@ categories: blog archive
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
     <code class="language-elixir">defmodule MyEnum do</code>
-    <code class="language-elixir">  def some([], _func), do: []</code>
+    <code class="language-elixir">  def some([], _func), do: false</code>
     <code class="language-elixir">  def some([head | tail], func) do</code>
     <code class="language-elixir">    case func.(head) do</code>
     <code class="language-elixir">      true -></code>
     <code class="language-elixir">        true</code>
     <code class="language-elixir">      false -></code>
-    <code class="language-elixir">        case some(tail, func) do</code>
-    <code class="language-elixir">          true -></code>
-    <code class="language-elixir">            true</code>
-    <code class="language-elixir">          _ -></code>
-    <code class="language-elixir">            false</code>
-    <code class="language-elixir">        end</code>
+    <code class="language-elixir">        some(tail, func)</code>
     <code class="language-elixir">    end</code>
     <code class="language-elixir">  end</code>
     <code class="language-elixir">end</code>
@@ -54,7 +49,7 @@ categories: blog archive
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
     <code class="language-elixir">true         # some([2, 3])</code>
-    <code class="language-elixir">(falsy) true # some([1, 2, 3])</code>
+    <code class="language-elixir">(false) true # some([1, 2, 3])</code>
   </pre>
 </div>
 
@@ -68,10 +63,10 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">(falsy)  # some([])</code>
-    <code class="language-elixir">(falsy)  # some([3])</code>
-    <code class="language-elixir">(falsy)  # some([2, 3])</code>
-    <code class="language-elixir">(falsy)  # some([1, 2, 3])</code>
+    <code class="language-elixir">(false)  # some([])</code>
+    <code class="language-elixir">(false)  # some([3])</code>
+    <code class="language-elixir">(false)  # some([2, 3])</code>
+    <code class="language-elixir">(false)  # some([1, 2, 3])</code>
   </pre>
 </div>
 
