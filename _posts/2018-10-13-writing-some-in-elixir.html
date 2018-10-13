@@ -1,0 +1,56 @@
+---
+layout: post
+title: "Writing some in Elixir"
+date:   2018-10-13 18:00:00
+categories: blog archive
+---
+<p>In part 19 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show how you might implement the Elixir equivalent of <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some">Array.prototype.some</a> from javascript.</p>
+
+<h3>Some</h3>
+
+<p>Today I'll be hand rolling `some` and using it to confirm a number exists in a list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.some([1, 2, 3], &(&1 == 2))</code>
+  </pre>
+</div>
+
+<p>The interface for this `some` function is fairly straight forward. The first parameter is a list to enumerate. The second parameter is a function we apply to each item in the list. If this function evaluates as truthy the `some` function returns immediately with the value `true`. The return type is a boolean.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyEnum do</code>
+    <code class="language-elixir">  def some([], _func), do: []</code>
+    <code class="language-elixir">  def some([head | tail], func) do</code>
+    <code class="language-elixir">    case func.(head) do</code>
+    <code class="language-elixir">      true -></code>
+    <code class="language-elixir">        true
+    <code class="language-elixir">      false -></code>
+    <code class="language-elixir">        some(tail, func)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The first function clause acts as our starting point returning an empty list. We include 2 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
+
+<p>In the second function clause we invoke `func` with the `head` of the list and when truthy we bail out of `some` altogether returning the value `true`. If the result of `func` is not truthy we continue searching down the list by invoking `some` with the `tail` and `func`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.some([1, 2, 3], &(&1 == 2))</code>
+  </pre>
+</div>
+
+<p>We can calculate the return value from `some` by walking through the steps our program will execute in reverse. It's worth mentioning that each time the `some` function calls itself, it adds to the stack. And when the `some` function returns it will pop off the stack (hence the reverse order).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">true         # filter([2, 3])</code>
+    <code class="language-elixir">(falsy) true # filter([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>Implementing `some` was a lot like `filter` in that we used the `case` control flow structure. All good with me as I could use some repetition but next time I'll explore something radically different.</p>
