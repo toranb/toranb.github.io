@@ -1,0 +1,66 @@
+---
+layout: post
+title: "Writing filter in Elixir"
+date:   2018-10-12 18:00:00
+categories: blog archive
+---
+<p>In part 18 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show how you might implement `Enum.filter`.</p>
+
+<h3>Filter</h3>
+
+<p>Today I'll be hand rolling `filter` to return even and odd numbers in a list. Note: the `rem` function is short for remainder and proves useful when trying to determine if an integer is even or odd.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Enum.filter([1, 2, 3], &(rem(&1, 2) == 0))</code>
+  </pre>
+</div>
+
+<p>The interface for this `filter` function is fairly straight forward. The first parameter is a list to enumerate. The second parameter is a function we apply to each item in the list. Ideally this function should return true or false. The return type is a new list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyEnum do</code>
+    <code class="language-elixir">  def filter([], _func), do: []</code>
+    <code class="language-elixir">  def filter([head | tail], func) do</code>
+    <code class="language-elixir">    case func.(head) do</code>
+    <code class="language-elixir">      true -></code>
+    <code class="language-elixir">        [ head | filter(tail, func) ]</code>
+    <code class="language-elixir">      false -></code>
+    <code class="language-elixir">        filter(tail, func)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The first function clause acts as our starting point returning an empty list. We include 2 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
+
+<p>In the second function clause we invoke `filter` with the tail and `func`. When the anonymous function returns `true` we also include the `head` value. When it instead returns `false` we omit the `head` to avoid returning it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.filter([1, 2, 3], &(rem(&1, 2) == 0))</code>
+  </pre>
+</div>
+
+<p>We can calculate the return value from `filter` by walking through the steps our program will execute in reverse. It's worth mentioning that each time the `filter` function calls itself, it adds to the stack. And when the `filter` function returns it will pop off the stack (hence the reverse order).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[ ]         # filter([])</code>
+    <code class="language-elixir">[ ]         # filter([3])</code>
+    <code class="language-elixir">[ 2 | [ ] ] # filter([2, 3])</code>
+    <code class="language-elixir">[ ]         # filter([1, 2, 3])</code>
+  </pre>
+</div>
+
+<p>Because `filter` is robust we can also use it to return odd numbers in a list like you'd expect with `Enum.filter`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyEnum.filter([1, 2, 3], &(rem(&1, 2) == 1))</code>
+  </pre>
+</div>
+
+<p>Implementing `filter` was a little more fun than `filter` because I had to learn about the `case` control flow structures. This provides a gateway to even more Elixir goodness!</p>
