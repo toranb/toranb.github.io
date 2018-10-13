@@ -8,7 +8,7 @@ categories: blog archive
 
 <h3>Filter</h3>
 
-<p>Today I'll be hand rolling `filter` to return even and odd numbers in a list. Note: the `rem` function is short for remainder and proves useful when trying to determine if an integer is even or odd.</p>
+<p>Today I'll be hand rolling `filter` and using it to return even numbers in a list. Note: the `rem` function is short for remainder and proves useful when trying to determine if an integer is even or odd.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -36,7 +36,7 @@ categories: blog archive
 
 <p>The first function clause acts as our starting point returning an empty list. We include 2 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
 
-<p>In the second function clause we invoke `filter` with the tail and `func`. When the anonymous function returns `true` we also include the `head` value. When it instead returns `false` we omit the `head` to avoid returning it.</p>
+<p>In the second function clause we invoke `filter` with the tail and `func`. When the anonymous function returns `true` we also include the `head` value. When it returns `false` we omit the `head` to avoid returning it of course.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -63,4 +63,4 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Implementing `filter` was a little more fun than `filter` because I had to learn about the `case` control flow structures. This provides a gateway to even more Elixir goodness!</p>
+<p>Implementing `filter` was a little more fun than `reduce` because I had to learn about the `case` control flow structures. This provides a gateway to even more Elixir goodness!</p>
