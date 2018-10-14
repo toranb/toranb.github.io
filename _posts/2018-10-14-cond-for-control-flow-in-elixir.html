@@ -1,0 +1,70 @@
+---
+layout: post
+title: "Cond for control flow in Elixir"
+date:   2018-10-14 18:00:00
+categories: blog archive
+---
+<p>In part 20 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to give a quick example of how the `cond` macro differs from `case` for control flow.</p>
+
+<h3>Cond</h3>
+
+<p>The first time I looked at `case` and `cond` side by side I couldn't see why you might use one vs the other. Today I was trying to do a quick comparision for learning sake and wrote this program that would print if a number was even AND greater than 10, even AND less than 10 or odd.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">  def even(n), do: rem(n, 2) == 0</code>
+    <code class="language-elixir">  def gt(n, max), do: n > max</code>
+    <code class="language-elixir">  def calc([]), do: []</code>
+    <code class="language-elixir">  def calc([head | tail]) do</code>
+    <code class="language-elixir">    IO.puts "calculation for #{head}"</code>
+    <code class="language-elixir">    case even(head) do</code>
+    <code class="language-elixir">      true -></code>
+    <code class="language-elixir">        case gt(head, 10) do</code>
+    <code class="language-elixir">          true -></code>
+    <code class="language-elixir">            IO.puts "even and > 10"</code>
+    <code class="language-elixir">          false -></code>
+    <code class="language-elixir">            IO.puts "even and < 10"</code>
+    <code class="language-elixir">        end</code>
+    <code class="language-elixir">      false -></code>
+    <code class="language-elixir">        IO.puts "odd number"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">    calc(tail)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyProgram.calc([2, 16, 3])</code>
+  </pre>
+</div>
+
+<p>The part I disliked about this example specifically was the nested `case`. I decided to rewrite the above function using `cond` to see how it might look by comparison.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">def even(n), do: rem(n, 2) == 0</code>
+    <code class="language-elixir">def odd(n), do: rem(n, 2) == 1</code>
+    <code class="language-elixir">def gt(n, max), do: n > max</code>
+    <code class="language-elixir">def lt(n, max), do: n <= max</code>
+    <code class="language-elixir">def calc([]), do: []</code>
+    <code class="language-elixir">def calc([head | tail]) do</code>
+    <code class="language-elixir">  IO.puts "calculation for #{head}"</code>
+    <code class="language-elixir">  cond do</code>
+    <code class="language-elixir">    even(head) and gt(head, 10) -></code>
+    <code class="language-elixir">      IO.puts "even and > 10"</code>
+    <code class="language-elixir">    even(head) and lt(head, 10) -></code>
+    <code class="language-elixir">      IO.puts "even and < 10"</code>
+    <code class="language-elixir">    odd(head) -></code>
+    <code class="language-elixir">      IO.puts "odd number"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  calc(tail)</code>
+    <code class="language-elixir">end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>I found that when the control flow you need centers around a set of conditions that are driven from code you should reach for `cond` instead of `case`. I was able to visibily see the difference in that one had nesting and the other did not but that could also be my inexperience with `case` more generally.</p>
