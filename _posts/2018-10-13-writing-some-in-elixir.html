@@ -12,7 +12,7 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">Enum.any?([1, 2, 3], &(&1 == 4))</code>
+    <code class="language-elixir">Enum.any?([1, 2, 3], &(&1 == 2))</code>
   </pre>
 </div>
 
@@ -34,7 +34,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The first function clause acts as our starting point returning an empty list. We include 2 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
+<p>The first function clause acts as our starting point returning false. We include 2 parameters here only to ensure we pattern match correctly. The last parameter `_func` is not needed so to avoid the compiler warning we prefix it with an underscore.</p>
 
 <p>In the second function clause we invoke `func` with the `head` of the list and when truthy we bail out of `some` altogether returning the value `true`. If the result of `func` is not truthy we continue searching down the list by invoking `some` with the `tail` and `func`.</p>
 
@@ -71,3 +71,5 @@ categories: blog archive
 </div>
 
 <p>Implementing `some` was a lot like `filter` in that we used the `case` control flow structure. All good with me as I could use some repetition but next time I'll explore something radically different.</p>
+
+<p>Update: special thanks to Simon Olsberg for providing a much more concise version of `some`. The original solution I had was <a href="https://gist.github.com/toranb/f620aae9796dfb7a6c3f75b32f5975c5">verbose</a> to say the least.</p>
