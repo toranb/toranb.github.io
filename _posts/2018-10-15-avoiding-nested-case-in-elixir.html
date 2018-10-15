@@ -1,0 +1,86 @@
+---
+layout: post
+title: "Avoiding nested case in Elixir"
+date:   2018-10-15 18:00:00
+categories: blog archive
+---
+<p>In part 21 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to improve a messy `case` example with help from pattern matching.</p>
+
+<h3>Nested Case?</h3>
+
+<p>In my <a href="https://toranbillups.com/blog/archive/2018/10/14/cond-for-control-flow-in-elixir/">previous post</a> I did a comparison of `case` and `cond` by writing a simple program that would evaluate if a number was even or odd. If the number was even it would also check to see if that number was greater than 10.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">  def even(n), do: rem(n, 2) == 0</code>
+    <code class="language-elixir">  def gt(n, max), do: n > max</code>
+    <code class="language-elixir">  def calc([]), do: []</code>
+    <code class="language-elixir">  def calc([head | tail]) do</code>
+    <code class="language-elixir">    IO.puts "calculation for #{head}"</code>
+    <code class="language-elixir">    case even(head) do</code>
+    <code class="language-elixir">      true -></code>
+    <code class="language-elixir">        case gt(head, 10) do</code>
+    <code class="language-elixir">          true -></code>
+    <code class="language-elixir">            IO.puts "even and > 10"</code>
+    <code class="language-elixir">          false -></code>
+    <code class="language-elixir">            IO.puts "even and < 10"</code>
+    <code class="language-elixir">        end</code>
+    <code class="language-elixir">      false -></code>
+    <code class="language-elixir">        IO.puts "odd number"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">    calc(tail)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The program would take a list of numbers as input and simply print out the result using `IO.puts`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyProgram.calc([2, 16, 3])</code>
+  </pre>
+</div>
+
+<p>The first implementation seems like the wrong use of `case` altogether because of the nesting required to solve this problem. My next thought was to reach for pattern matching as a means to improve clarity for the reader.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">  def even(n), do: rem(n, 2) == 0</code>
+    <code class="language-elixir">  def gt(n, max), do: n > max</code>
+    <code class="language-elixir">  def go(true, true), do: IO.puts "even and > 10"</code>
+    <code class="language-elixir">  def go(true, false), do: IO.puts "even and < 10"</code>
+    <code class="language-elixir">  def go(false, _), do: IO.puts "odd number"</code>
+    <code class="language-elixir">  def calc([]), do: []</code>
+    <code class="language-elixir">  def calc([head | tail]) do</code>
+    <code class="language-elixir">    IO.puts "calculation for #{head}"</code>
+    <code class="language-elixir">    go(even(head), gt(head, 10))</code>
+    <code class="language-elixir">    calc(tail)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>While pattern matching did eliminate the nesting problem, having a function with 2 unlabeled boolean values didn't feel much like an improvement in readability. I started searching for a trick that would allow me to pattern match with a named arguments or something equivalent.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">def even(n), do: rem(n, 2) == 0</code>
+    <code class="language-elixir">def gt(n, max), do: n > max</code>
+    <code class="language-elixir">def go(%{ even: true, gt: true }), do: IO.puts "even and > 10"</code>
+    <code class="language-elixir">def go(%{ even: true, gt: false }), do: IO.puts "even and < 10"</code>
+    <code class="language-elixir">def go(%{ even: false, gt: _ }), do: IO.puts "odd number"</code>
+    <code class="language-elixir">def calc([]), do: []</code>
+    <code class="language-elixir">def calc([head | tail]) do</code>
+    <code class="language-elixir">  IO.puts "calculation for #{head}"</code>
+    <code class="language-elixir">  go(%{ even: even(head), gt: gt(head, 10) })</code>
+    <code class="language-elixir">  calc(tail)</code>
+    <code class="language-elixir">end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>I found that using a map would allow me to pattern matching against the key name. I'll continue to explore the problem space that plagues me with nested `case` as a path to learning more about control flow in the language.</p>
