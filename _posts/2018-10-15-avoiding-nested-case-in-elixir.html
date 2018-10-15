@@ -68,17 +68,17 @@ categories: blog archive
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
     <code class="language-elixir">defmodule MyProgram do</code>
-    <code class="language-elixir">def even(n), do: rem(n, 2) == 0</code>
-    <code class="language-elixir">def gt(n, max), do: n > max</code>
-    <code class="language-elixir">def go(%{ even: true, gt: true }), do: IO.puts "even and > 10"</code>
-    <code class="language-elixir">def go(%{ even: true, gt: false }), do: IO.puts "even and < 10"</code>
-    <code class="language-elixir">def go(%{ even: false, gt: _ }), do: IO.puts "odd number"</code>
-    <code class="language-elixir">def calc([]), do: []</code>
-    <code class="language-elixir">def calc([head | tail]) do</code>
-    <code class="language-elixir">  IO.puts "calculation for #{head}"</code>
-    <code class="language-elixir">  go(%{ even: even(head), gt: gt(head, 10) })</code>
-    <code class="language-elixir">  calc(tail)</code>
-    <code class="language-elixir">end</code>
+    <code class="language-elixir">  def even(n), do: rem(n, 2) == 0</code>
+    <code class="language-elixir">  def gt(n, max), do: n > max</code>
+    <code class="language-elixir">  def go(%{ even: true, gt: true }), do: IO.puts "even and > 10"</code>
+    <code class="language-elixir">  def go(%{ even: true, gt: false }), do: IO.puts "even and < 10"</code>
+    <code class="language-elixir">  def go(%{ even: false, gt: _ }), do: IO.puts "odd number"</code>
+    <code class="language-elixir">  def calc([]), do: []</code>
+    <code class="language-elixir">  def calc([head | tail]) do</code>
+    <code class="language-elixir">    IO.puts "calculation for #{head}"</code>
+    <code class="language-elixir">    go(%{ even: even(head), gt: gt(head, 10) })</code>
+    <code class="language-elixir">    calc(tail)</code>
+    <code class="language-elixir">  end</code>
     <code class="language-elixir">end</code>
   </pre>
 </div>
