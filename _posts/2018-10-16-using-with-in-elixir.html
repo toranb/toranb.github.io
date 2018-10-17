@@ -1,0 +1,89 @@
+---
+layout: post
+title: "Using with in Elixir"
+date:   2018-10-16 18:00:00
+categories: blog archive
+---
+<p>In part 22 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to share a quick example I put together to help wrap my head around `with` in the language.</p>
+
+<h3>With</h3>
+
+<p>When I first read the Elixir <a href="https://elixir-lang.org/getting-started/mix-otp/docs-tests-and-with.html#with">getting started</a> documentation for `with` I learned that it's a common solution to the nested `case` problem I frequently run into. To illustrate this I wrote a program that will sum all the numbers in a list. The catch is we only want to do this if no duplicates exist in that list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">  def calc(list) do</code>
+    <code class="language-elixir">    case duplicate(list) do</code>
+    <code class="language-elixir">      {:ok} -></code>
+    <code class="language-elixir">        case sum(list) do</code>
+    <code class="language-elixir">          {:ok, total} -></code>
+    <code class="language-elixir">            IO.puts "total #{total}"</code>
+    <code class="language-elixir">          {:error} -></code>
+    <code class="language-elixir">            IO.puts "error"</code>
+    <code class="language-elixir">        end</code>
+    <code class="language-elixir">      {:error} -></code>
+    <code class="language-elixir">        IO.puts "duplicate found!"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>If you run the program with any duplicates you will see `IO.puts` complaining about a duplicate. If you run the program with unique numbers you will see the total.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">MyProgram.calc([1, 1, 2])</code>
+  </pre>
+</div>
+
+<p>The power of `with` is that instead of nesting you can chain together a series of match clauses and Elixir will apply something like a circuit break for you. In this scenario, if the `duplicate` function fails to match, Elixir will simply omit execution of the `sum` function altogether.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">  def calc(list) do</code>
+    <code class="language-elixir">    with {:ok} <- duplicate(list),</code>
+    <code class="language-elixir">         {:ok, total} <- sum(list) do</code>
+    <code class="language-elixir">      IO.puts "total #{total}"</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      {:error} -></code>
+    <code class="language-elixir">        IO.puts "duplicate found!"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The entire module can be seen below. I excluded this above only to help contrast `case` and `with`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule MyProgram do</code>
+    <code class="language-elixir">  def sum([head | tail]) do</code>
+    <code class="language-elixir">    {:ok, Enum.reduce(tail, head, &(&1 + &2))}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  def duplicate([]), do: {:ok}</code>
+    <code class="language-elixir">  def duplicate([head | tail]) do</code>
+    <code class="language-elixir">    case Enum.any?(tail, &(&1 == head)) do</code>
+    <code class="language-elixir">      true -></code>
+    <code class="language-elixir">        {:error}</code>
+    <code class="language-elixir">      false -></code>
+    <code class="language-elixir">        duplicate(tail)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  def calc(list) do</code>
+    <code class="language-elixir">    with {:ok} <- duplicate(list),</code>
+    <code class="language-elixir">         {:ok, total} <- sum(list) do</code>
+    <code class="language-elixir">      IO.puts "total #{total}"</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      {:error} -></code>
+    <code class="language-elixir">        IO.puts "duplicate found!"</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p></p>
