@@ -4,11 +4,11 @@ title: "Using with in Elixir"
 date:   2018-10-16 18:00:00
 categories: blog archive
 ---
-<p>In part 22 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to share a quick example I put together to help wrap my head around `with` in the language.</p>
+<p>In part 22 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to share a quick example I put together that helped me wrap my head around `with` in the language.</p>
 
 <h3>With</h3>
 
-<p>When I first read the Elixir <a href="https://elixir-lang.org/getting-started/mix-otp/docs-tests-and-with.html#with">getting started</a> documentation for `with` I learned that it's a common solution to the nested `case` problem I frequently run into. To illustrate this I wrote a program that will sum all the numbers in a list. The catch is we only want to do this if no duplicates exist in that list.</p>
+<p>When I first read the Elixir <a href="https://elixir-lang.org/getting-started/mix-otp/docs-tests-and-with.html#with">getting started</a> documentation for `with` I learned that it's a common solution to the nested `case` problem I frequently run into. To illustrate this I wrote a program that adds together all the numbers in a list. The catch is we only want to `sum` if that list has no duplicate numbers.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -30,7 +30,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>If you run the program with any duplicates you will see `IO.puts` complaining about a duplicate. If you run the program with unique numbers you will see the total.</p>
+<p>If you run the program with any duplicates you will see `IO.puts` complaining about a duplicate. If you run the program with unique numbers you will instead see the total.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -56,7 +56,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The entire module can be seen below. I excluded this above only to help contrast `case` and `with`</p>
+<p>The entire module including both `sum` and `duplicate` functions for anyone interested.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
