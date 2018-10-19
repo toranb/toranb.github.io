@@ -1,0 +1,76 @@
+---
+layout: post
+title: "Comprehensions in Elixir"
+date:   2018-10-18 18:00:00
+categories: blog archive
+---
+<p>In part 23 of my <a href="https://elixir-lang.org/">Elixir</a> journey I wanted to show the comprehension syntax by example.</p>
+
+<h3>Comprehensions</h3>
+
+<p>I use map and filter together enough that I starting searching for a shorthand that offers both but in a more expressive syntax.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Enum.filter([1, 2, 12], &(&1 < 10))</code>
+    <code class="language-elixir">  |> Enum.map(&(&1 * 2))</code>
+  </pre>
+</div>
+
+<p>I found comprehensions in Elixir offer a powerful and concise syntax to transform various data structures.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">for x <- [1, 2, 12], x < 10, do: x * 2</code>
+  </pre>
+</div>
+
+<p>Lucky for me I did a good deal of python years ago so the syntax was vaguely familiar. If you are new to the idea, here is a conceptual look at what is happening.</p>
+
+<blockquote>for `generator`, `filter`, do: expression</blockquote>
+
+<p>The `generator` can be thought of as simply "how you extract data from the collection". Any variable you match here is then available to the entire comprehension including the block (ie: after the `do`). You can use the shorthand block syntax or expand to a more verbose block if necessary.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">for x <- [1, 2, 12], x < 10 do</code>
+    <code class="language-elixir">  x * 2</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To get the result of the comprehension you simply bind a variable like you would any `Enum` function.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">result = for x <- [1, 2, 12], x < 10, do: x * 2</code>
+    <code class="language-elixir">total = Enum.reduce(result, 0, &(&1 + &2))</code>
+    <code class="language-elixir">IO.puts "total #{total}"</code>
+  </pre>
+</div>
+
+<p>The filter is optional if that wasn't clear from the examples above.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">for x <- [1, 2, 12], do: x * 2</code>
+  </pre>
+</div>
+
+<p>One example from the <a href="https://elixir-lang.org/getting-started/comprehensions.html">Elixir documentation</a> that was worth duplicating shows how you would pattern match as part of the comprehension.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">numbers = [even: 2, odd: 3, even: 4, odd: 5, even: 6]</code>
+    <code class="language-elixir">for {:even, n} <- numbers, do: n * 2</code>
+  </pre>
+</div>
+
+<p>The result of any comprehension is a list by default but you can alter the data structure returned by using `into`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">numbers = %{one: 1, two: 2, three: 3}</code>
+    <code class="language-elixir">for {key, val} <- numbers, into: %{}, do: {key, val * 2}</code>
+  </pre>
+</div>
