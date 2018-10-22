@@ -1,0 +1,97 @@
+---
+layout: post
+title: "Adding supervision"
+date:   2018-10-21 18:00:00
+categories: blog archive
+---
+<p>In part 3 of the url shortener adventure we add a `Supervisor` to recover from process failure.</p>
+
+<h3>Part 3: Supervision</h3>
+
+<p>Currently the application has 1 process and if that process blows up for any reason the program will completely die.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">pid = GenServer.whereis(EX.Worker)</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+    <code class="language-elixir">Process.exit(pid, :kill)</code>
+  </pre>
+</div>
+
+<p>To make the software more reliable in Elixir we have a primitive that allows us to <a href="https://elixir-lang.org/getting-started/mix-otp/supervisor-and-application.html">recover from failures</a> with ease. Start by adding a module called `EX.Supervisor`. This supervisor will monitor the `EX.Worker` process and restart it if any failure is detected. The `:one_for_one` strategy tells Elixir that if a child process dies only that process should be restarted. Other strategies exist that offer a more aggressive restart if that becomes a requirement in your application.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Supervisor do</code>
+    <code class="language-elixir">  use Supervisor</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(opts) do</code>
+    <code class="language-elixir">    Supervisor.start_link(__MODULE__, :ok, opts)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    children = [EX.Worker]</code>
+    <code class="language-elixir">    Supervisor.init(children, strategy: :one_for_one)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To see this module in action we next write a unit test to exercise the Supervisor. You can run this from the command line using `mix test`. Note: I found using `Process.exit` wasn't a good fit for testing this Supervisor (maybe because it's asynchronous). If instead I used `GenServer.stop` the test would wait until the child process (EX.Worker) was truly down.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.SupervisorTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  setup do</code>
+    <code class="language-elixir">    start_supervised!(EX.Supervisor)</code>
+    <code class="language-elixir">    :ok</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "a new child process will restart as needed" do</code>
+    <code class="language-elixir">    [{_, pid, _, _}] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert EX.Worker.get(pid, "x") === :undefined</code>
+    <code class="language-elixir">    GenServer.stop(pid, :normal)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    [{_, new_pid, _, _}] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir">    assert new_pid !== pid</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert EX.Worker.get(new_pid, "x") === :undefined</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Before we spin up the application with IEx first open the file `lib/example.ex` and alter the `start` method to use this new Supervisor module.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Application do</code>
+    <code class="language-elixir">  use Application</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start(_type, _args) do</code>
+    <code class="language-elixir">    EX.Supervisor.start_link(name: EX.Supervisor)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To play around with this module in IEx run this command `iex -S mix run`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir"># pattern match to get the worker pid</code>
+    <code class="language-elixir">[{id, pid, type, module}] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+    <code class="language-elixir">EX.Worker.put(pid, "x", "google.com")</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+    <code class="language-elixir"># kill the worker process</code>
+    <code class="language-elixir">Process.exit(pid, :kill)</code>
+    <code class="language-elixir"># pattern match again. notice the worker pid is different</code>
+    <code class="language-elixir">[{id, pid, type, module}] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir"># note: the worker state was lost</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+  </pre>
+</div>
