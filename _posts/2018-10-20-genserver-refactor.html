@@ -1,0 +1,123 @@
+---
+layout: post
+title: "GenServer refactor"
+date:   2018-10-20 18:00:00
+categories: blog archive
+---
+<p>In part 2 of the url shortener adventure we skip ahead to take advantage of server processes in <a href="https://elixir-lang.org/">Elixir</a>.</p>
+
+<h3>Part 2: GenServer</h3>
+
+<p>Now that we have a working url shortener it's time to build the process phoenix will use when we start to implement the web interface at some point down the road. <a href="https://elixir-lang.org/getting-started/mix-otp/genserver.html">GenServer</a> is the primitive we will use to do the heavy lifting for us. Start by adding a module called `EX.Worker`. This worker will listen for messages and shorten urls using the existing module `Shortener`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Worker do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(args) do</code>
+    <code class="language-elixir">    GenServer.start_link(__MODULE__, :ok, args)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    state = Shortener.new()</code>
+    <code class="language-elixir">    {:ok, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def get(pid, hash) do</code>
+    <code class="language-elixir">    GenServer.call(pid, {:get, hash})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def put(pid, hash, url) do</code>
+    <code class="language-elixir">    GenServer.cast(pid, {:put, hash, url})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_call({:get, hash}, _timeout, state) do</code>
+    <code class="language-elixir">    {:reply, Shortener.get_url(state, hash), state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_cast({:put, hash, url}, state) do</code>
+    <code class="language-elixir">    new_state = Shortener.create_short_url(state, hash, url)</code>
+    <code class="language-elixir">    {:noreply, new_state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>A lot to unpack here so let's start with the public api for the client code. The `get` and `put` methods are what other processes will use to interact with this GenServer. The functions `handle_call` and `handle_cast` are considered server callbacks. What seemed strange to me at first was that we have both client and server functions inside this one Elixir module. Without a <a href="https://becoming-functional.com/getting-started-with-elixirs-genserver-ed05a9202bef">further deep dive</a> into processes and <a href="https://www.manning.com/books/elixir-in-action-second-edition">OTP</a> you might accept this as encapsulation for now and go on faith that the runtime has more to offer as we progress in our Elixir journey.</p>
+
+<p>The `@impl` annotations you see above help the compiler warn you about incorrect server callback signatures. If I remove the `_timeout` and `state` parameters from `handle_call` for example I get this warning.</p>
+
+<blockquote>warning: got "@impl GenServer" for function handle_call/1 but this behaviour does not specify such callback. The known callbacks are:</blockquote>
+<p></p>
+<ul>
+  <li>GenServer.handle_call/3 (function)</li>
+  <li>GenServer.handle_cast/2 (function)</li>
+  <li>GenServer.handle_info/2 (function)</li>
+  <li>GenServer.init/1 (function)</li>
+  <li>GenServer.terminate/2 (function)</li>
+</ul>
+
+<p>To see this module in action we next write a unit test to exercise the GenServer. You can run this from the command line using `mix test`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.WorkerTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  setup do</code>
+    <code class="language-elixir">    pid = start_supervised!(EX.Worker)</code>
+    <code class="language-elixir">    %{pid: pid}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "get and put work", %{pid: pid} do</code>
+    <code class="language-elixir">    assert EX.Worker.get(pid, "x") === :undefined</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    EX.Worker.put(pid, "x", "google.com")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert EX.Worker.get(pid, "x") === "google.com"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Before we can spin up the application with IEx we first need to alter the file `mix.exs` to explicitly tell Elixir about our new `Application` (module) with the name `EX.Application`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def application do</code>
+    <code class="language-elixir">  [</code>
+    <code class="language-elixir">    extra_applications: [:logger],</code>
+    <code class="language-elixir">    mod: {EX.Application, []}</code>
+    <code class="language-elixir">  ]</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next open the file `lib/example.ex` and update the module name to `EX.Application`. Also add the `use Application` statement and a `start` method that spins up the process we are using with the name `EX.Worker`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Application do</code>
+    <code class="language-elixir">  use Application</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start(_type, _args) do</code>
+    <code class="language-elixir">    EX.Worker.start_link(name: EX.Worker)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To play around with this module in IEx run this command `iex -S mix run`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">pid = GenServer.whereis(EX.Worker)</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+    <code class="language-elixir">EX.Worker.put(pid, "x", "google.com")</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+  </pre>
+</div>
