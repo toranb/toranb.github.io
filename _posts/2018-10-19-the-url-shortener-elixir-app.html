@@ -1,0 +1,71 @@
+---
+layout: post
+title: "The url shortener Elixir app"
+date:   2018-10-19 18:00:00
+categories: blog archive
+---
+<p>So far my <a href="https://elixir-lang.org/">Elixir</a> journey has focused more on independent features of the language and less about real app construction. The next 15/20 days will be a bit different because I'm now ready to apply everything I've learned in hopes of going deeper. With each iteration I'll be adding something new or improving some functionality from a previous post.</p>
+
+<p>The application itself will be simple and much less the focus of this series as you might imagine. The url shortener has a small api surface area and offers enough (primitive) "real world" requirements that it should make for a great learning playground.</p>
+
+<h3>Part 1: mix new</h3>
+
+<p>The first step is to run `mix new` from the command line. This will scaffold everything we need to kickstart a simple project in Elixir.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">mix new example</code>
+  </pre>
+</div>
+
+<p>Before we dive into building the web interface or anything to make this concurrent I first wanted to write the most basic module required. Start by adding a module called `Shortener`. In this module we will first implement a function called `create_short_url` that is responsible for inserting the url and hash (alias). Next implement a function called `get_url` that is responsible for retrieving the url given some hash (alias).</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Shortener do</code>
+    <code class="language-elixir">  def new(), do: %{}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def create_short_url(state, hash, url) do</code>
+    <code class="language-elixir">    Map.put(state, hash, url)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def get_url(state, hash) do</code>
+    <code class="language-elixir">    Map.get(state, hash, :undefined)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To see this in action we next write a unit test to exercise the 2 functions together. You can run this from the command line using `mix test`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ShortenerTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  setup do</code>
+    <code class="language-elixir">    Shortener.new()</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "create will add key/value given url and hash", state do</code>
+    <code class="language-elixir">    assert Shortener.get_url(state, "x") === :undefined</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    new_state = Shortener.create_short_url(state, "x", "google.com")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert Shortener.get_url(new_state, "x") === "google.com"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Note: the state returned from `setup` is made available to each unit test as `state` just before the `do`</p>
+
+<p>To play around with this module in IEx run this command `iex -S mix run`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">state = Shortener.new()</code>
+    <code class="language-elixir">new_state = Shortener.create_short_url(state, "x", "google.com")</code>
+    <code class="language-elixir">Shortener.get_url(new_state, "x")</code>
+  </pre>
+</div>
