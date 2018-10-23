@@ -47,9 +47,15 @@ categories: blog archive
   </pre>
 </div>
 
-<p>A lot to unpack here so let's start with the public api for the client code. The `get` and `put` methods are what other processes will use to interact with this GenServer. The functions `handle_call` and `handle_cast` are considered server callbacks. What seemed strange to me at first was that we have both client and server functions inside this one Elixir module. Without a <a href="https://becoming-functional.com/getting-started-with-elixirs-genserver-ed05a9202bef">further deep dive</a> into processes and <a href="https://www.manning.com/books/elixir-in-action-second-edition">OTP</a> you might accept this as encapsulation for now and go on faith that the runtime has more to offer as we progress in our Elixir journey.</p>
+<p>A lot to unpack here so let's start with the public api for the client code. The `get` and `put` methods are what other processes will use to interact with this GenServer. The functions `handle_call` and `handle_cast` are considered server callbacks.</p>
 
-<p>The `@impl` annotations you see above help the compiler warn you about incorrect server callback signatures. If I remove the `_timeout` and `state` parameters from `handle_call` for example I get this warning.</p>
+<p>Note: if organizing both client and server code together in the same module seems strange at first, know that you are not alone. I can still remember wrestling with this idea for some time before I fully understand how message passing worked with the GenServer primitive.</p>
+
+<blockquote>Warning: blatant hand-waving ahead</blockquote>
+
+<p>Without a <a href="https://becoming-functional.com/getting-started-with-elixirs-genserver-ed05a9202bef">further deep dive</a> into processes and OTP you might accept this as encapsulation for now and assume the runtime has more to offer, with regard to concurrency, as a result of this implementation. If you want a legit resource that covers this topic in great detail be sure to checkout the Manning book <a href="https://www.manning.com/books/elixir-in-action-second-edition">Elixir in Action, Second Edition</a> by <a href="https://twitter.com/sasajuric">Saša Jurić</a>.</p>
+
+<p>The `@impl` annotations you see above help the compiler warn you about incorrect server callback signatures for `GenServer`. If you remove the `_timeout` and `state` parameters from `handle_call` for example this warning will show up if you try to compile the application.</p>
 
 <blockquote>warning: got "@impl GenServer" for function handle_call/1 but this behaviour does not specify such callback. The known callbacks are:</blockquote>
 <p></p>
@@ -84,7 +90,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Before we can spin up the application with IEx we first need to alter the file `mix.exs` to explicitly tell Elixir about our new `Application` (module) with the name `EX.Application`.</p>
+<p>Before we can spin up the application with IEx first update the file `mix.exs` to explicitly tell Elixir about our new `Application` (module) with the name `EX.Application`.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
