@@ -1,0 +1,232 @@
+---
+layout: post
+title: "Process registration"
+date:   2018-10-25 18:00:00
+categories: blog archive
+---
+<p>In part 4 of the url shortener adventure we add another layer to the architecture and learn about the role of process registration.</p>
+
+<blockquote>Warning: this post details my learning experience with GenServers and the Elixir Registry. I plan to look back on this one day very soon to track how far I've come. Much of what you read here can be best described as learning for learning sake.</blockquote>
+
+<h3>Part 4: The case for process registration</h3>
+
+<p>In the <a href="/blog/archive/2018/10/21/adding-supervision/">previous post</a> we bolted on a Supervisor that would restart the worker process when it blew up. One problem we found was that our process lost all state when it was restarted.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[{id, pid, type, module}] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir">EX.Worker.put(pid, "x", "google.com")</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+    <code class="language-elixir">Process.exit(pid, :kill)</code>
+    <code class="language-elixir">[{id, pid, type, module}] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir"># notice the worker state is reset</code>
+    <code class="language-elixir">EX.Worker.get(pid, "x")</code>
+  </pre>
+</div>
+
+<p>In a future post this state will be persisted to the file system but today we will add a new process to solve the immediate problem. Start by adding a module called `EX.Cache`. This process will cache the state of our application and provide it to the `EX.Worker` process on start up.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Cache do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(args) do</code>
+    <code class="language-elixir">    GenServer.start_link(__MODULE__, :ok, args)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    {:ok, %{}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def all(pid) do</code>
+    <code class="language-elixir">    GenServer.call(pid, {:all})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def put(pid, key, value) do</code>
+    <code class="language-elixir">    GenServer.cast(pid, {:put, key, value})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_call({:all}, _timeout, state) do</code>
+    <code class="language-elixir">    {:reply, state, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_cast({:put, key, value}, state) do</code>
+    <code class="language-elixir">    {:noreply, Map.put(state, key, value)}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To read more about caching process state in Elixir with ETS checkout <a href="https://elixirforum.com/t/how-to-bootstrap-one-process-with-state-from-another/17464/5">my question</a> about it on <a href="https://elixirforum.com">elixirforum.com</a>. Thanks to @peerreynders for the ETS <a href="http://steve.vinoski.net/blog/2011/03/23/dont-lose-your-ets-tables/">resource</a> he linked.</p>
+
+<p>To see this module in action we next write a unit test to exercise the cache process. You can run this from the command line using `mix test`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule CacheTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  setup do</code>
+    <code class="language-elixir">    %{pid: start_supervised!(EX.Cache)}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "all returns state and put updates it", %{pid: pid} do</code>
+    <code class="language-elixir">    assert EX.Cache.all(pid) === %{}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    EX.Cache.put(pid, "x", "google.com")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert EX.Cache.all(pid) === %{"x" => "google.com"}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Before we spin up the application with IEx first consider how this new cache process will hydrate `EX.Worker`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Worker do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    state = EX.Cache.all(:cache)</code>
+    <code class="language-elixir">    {:ok, state, {:continue, :init}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_continue(:init, state) do</code>
+    <code class="language-elixir">    {:noreply, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>A handful of new things worth talking about here. First it seems before OTP 21 lazy initialization was tricky because `start_link` is blocking so if you had some long running, async or otherwise expensive operation it would hold up the linking process. I found a concise <a href="https://michal.muskala.eu/2018/06/20/my-otp-21-highlights.html#new-callback-in-genserver-handle_continue2">blog post</a> on the subject detailing how you can use the new `handle_continue` callback to avoid blocking on initialization.</p>
+
+<p>Next you may have noticed I'm not using a `pid` to identify the cache process when calling the function `EX.Cache.all`. The short version is that from `EX.Worker` we don't know what the `pid` of `EX.Cache` is at runtime. And if we decide to add a supervision tree in the future that `pid` value becomes a moving target. This represents a big shift in thinking and opens the door to a wider topic centered around process registration.</p>
+
+<p>From a high level the concept is fairly straight forward. Instead of relying on the `pid` value we will instead use a name, type or some other human friendly key to uniquely identify each process. So what all is required to adopt this new process lookup and how can we remain productive in Elixir as we do it?</p>
+
+<p>As luck would have it <a href="https://elixir-lang.org/blog/2017/01/05/elixir-v1-4-0-released/">Elixir v1.4</a> added a Registry that we can bolt on without much effort. In its simplest form this Registry is nothing more than a key-value store. Typically this process registry is used to handle all the bookkeeping involved with mapping names to `pid` values. And as `pid` values change over time, because of restarts for example, the <a href="https://hexdocs.pm/elixir/master/Registry.html">Registry</a> does all the monitoring and re-mapping necessary.</p>
+
+<p>Circling all the way back to `EX.Cache.all` ...behind the scenes this Registry is doing a lookup of the cache process with the name `:cache` allowing us to be ignorant of the actual `pid` value. The first step to use this involves updating the `EX.Supervisor` module to ensure we start up and link the Registry itself.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Supervisor do</code>
+    <code class="language-elixir">  use Supervisor</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(opts) do</code>
+    <code class="language-elixir">    Supervisor.start_link(__MODULE__, :ok, opts)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    children = [</code>
+    <code class="language-elixir">      {Registry, keys: :unique, name: EX.Registry},</code>
+    <code class="language-elixir">      EX.Cache,</code>
+    <code class="language-elixir">      EX.Worker</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir">    Supervisor.init(children, strategy: :one_for_one)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next add a module called `EX.Registry` that will act as an extension point. The `via` function returns a universally accepted tuple that many Elixir developers use to track and lookup processes. Today we accept any arbitrary `name` but you can just as easily imagine a combination of values that help you identify a given process.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Registry do</code>
+    <code class="language-elixir">  def via(name) do</code>
+    <code class="language-elixir">    {:via, Registry, {__MODULE__, {name}}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The next change is in the `EX.Cache` module itself. As we link up it's important to explicitly set the name so other processes can find it without having to know the `pid`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Cache do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(_args) do</code>
+    <code class="language-elixir">    GenServer.start_link(__MODULE__, :ok, name: via(:cache))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp via(name), do: EX.Registry.via(name)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The next change is in the `EX.Worker` module. Similar to the `EX.Cache` module when this process links up we set an explicit name.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Worker do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias EX.Shortener</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(_args) do</code>
+    <code class="language-elixir">    GenServer.start_link(__MODULE__, :ok, name: via(:worker))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp via(name), do: EX.Registry.via(name)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now that all the infrastructure is functional we can use `EX.Cache` from the `EX.Worker` module with ease. In the `handle_cast` method we push any hash/url to the cache so if we restart `EX.Worker` the state is rehydrated in `handle_continue`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Worker do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    state = EX.Cache.all(:cache)</code>
+    <code class="language-elixir">    {:ok, state, {:continue, :init}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_continue(:init, state) do</code>
+    <code class="language-elixir">    {:noreply, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_cast({:put, hash, url}, state) do</code>
+    <code class="language-elixir">    new_state = Shortener.create_short_url(state, hash, url)</code>
+    <code class="language-elixir">    EX.Cache.put(:cache, hash, url)</code>
+    <code class="language-elixir">    {:noreply, new_state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<blockquote>Note: clearly we don't get a ton of value pushing this state into the `EX.Cache` module just yet but I wanted to understand the conceptual model at its simplest before we start expanding out.</blockquote>
+
+<p>To play around with this module in IEx run this command `iex -S mix run`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[{id, pid, type, module}, _, _] = Supervisor.which_children(EX.Supervisor)</code>
+    <code class="language-elixir">EX.Worker.put(:worker, "x", "google.com")</code>
+    <code class="language-elixir">EX.Worker.get(:worker, "x")</code>
+    <code class="language-elixir">Process.exit(pid, :kill)</code>
+    <code class="language-elixir"># notice the worker state was rehydrated</code>
+    <code class="language-elixir">EX.Worker.get(:worker, "x")</code>
+  </pre>
+</div>
+
+<p>I also did a refactor of the test suite to accomidate this but because I'm still not happy with it I'll save the details for another post. You can see the updated tests in the repository below for reference. Running `mix test` does produce a green build at the moment but I'm unsure how predictable, repeatable this is at the moment.</p>
+
+<p>You can track my progress on github <a href="https://github.com/toranb/elixir-url-shortener/commits/master">commit by commit</a>. If you just want the code for this post checkout this <a href="https://github.com/toranb/elixir-url-shortener/commit/19c5e2ec1de2ff9c2e8bb8cf04e3430b68221e0f">commit specifically</a>.</p>
