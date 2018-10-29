@@ -1,0 +1,109 @@
+---
+layout: post
+title: "Storing data with the file system"
+date:   2018-10-28 18:00:00
+categories: blog archive
+---
+<p>In part 5 of the url shortener adventure we persist our data to the file system.</p>
+
+<h3>Part 5: The file system</h3>
+
+<p>In the <a href="/blog/archive/2018/10/25/process-registration/">previous post</a> we added a cache process that would rehydrated the worker between (worker process) restarts. The next problem with the url shortener is that if we restart the <a href="https://hexdocs.pm/iex/IEx.html">IEx</a> session all application state is lost because it's only stored in memory.</p>
+
+<p>The first pass at persisting this is to store all the data on the file system. Start by altering the `init` of `EX.Cache` to make a new directory that will be responsible for storing the application state. You may have noticed I'm using the `handle_continue` callback because I'm unsure how slow the `File.mkdir_p` operation is and figured at worst it would prevent the linking process from blocking.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Cache do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @database "./database"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    File.mkdir_p!(@database)</code>
+    <code class="language-elixir">    {:ok, %{}, {:continue, :init}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_continue(:init, state) do</code>
+    <code class="language-elixir">    {:noreply, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The first step to hydrate process state from the file system requires we fetch a list of files from the directory `./database` we designated above. Next we use this list of filenames to generate a tuple with key/value pairs using the file name and file contents. Finally we take the list of tuples and throw this into a `Map` and return it so `EX.Worker` can operate as it did before this refactor.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Cache do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @database "./database"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_call({:all}, _timeout, _state) do</code>
+    <code class="language-elixir">    files = list_files()</code>
+    <code class="language-elixir">    state =</code>
+    <code class="language-elixir">      Enum.map(files, &tuple_from_filesystem/1)</code>
+    <code class="language-elixir">      |> Enum.into(%{})</code>
+    <code class="language-elixir">    {:reply, state, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp list_files() do</code>
+    <code class="language-elixir">    case :file.list_dir(@database) do</code>
+    <code class="language-elixir">      {:ok, files} -> files</code>
+    <code class="language-elixir">      {:error, _} -> []</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp tuple_from_filesystem(key) do</code>
+    <code class="language-elixir">    {:ok, contents} = File.read(file_name(@database, key))</code>
+    <code class="language-elixir">    {key, :erlang.binary_to_term(contents)}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp file_name(database, key) do</code>
+    <code class="language-elixir">    Path.join(database, to_string(key))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The last step is to alter `handle_cast` which is responsible for inserting data into the process state. We use `File.write` to create a new file in the `./database` directory using `key` for the file name and `value` for the file contents.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule EX.Cache do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @database "./database"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_cast({:put, key, value}, state) do</code>
+    <code class="language-elixir">    @database</code>
+    <code class="language-elixir">      |> file_name(key)</code>
+    <code class="language-elixir">      |> File.write!(:erlang.term_to_binary(value))</code>
+    <code class="language-elixir">    {:noreply, Map.put(state, key, value)}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp file_name(database, key) do</code>
+    <code class="language-elixir">    Path.join(database, to_string(key))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now if you play around with this module in IEx `iex -S mix run` you can restart without losing any state!</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">EX.Worker.get(:worker, 'x')</code>
+    <code class="language-elixir">EX.Worker.put(:worker, 'x', 'google.com')</code>
+    <code class="language-elixir">EX.Worker.put(:worker, 'y', 'amazon.com')</code>
+    <code class="language-elixir">EX.Worker.put(:worker, 'z', 'ebay.com')</code>
+    <code class="language-elixir">EX.Worker.get(:worker, 'x')</code>
+  </pre>
+</div>
+
+<p>You can track my progress on github <a href="https://github.com/toranb/elixir-url-shortener/commits/master">commit by commit</a>. If you just want the code for this post checkout this <a href="https://github.com/toranb/elixir-url-shortener/commit/6f47898cb870ebb3bd3031f1883b1696372638b9">commit</a>.</p>
