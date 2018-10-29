@@ -8,9 +8,9 @@ categories: blog archive
 
 <h3>Part 5: The file system</h3>
 
-<p>In the <a href="/blog/archive/2018/10/25/process-registration/">previous post</a> we added a cache process that would rehydrated the worker between (worker process) restarts. The next problem with the url shortener is that if we restart the <a href="https://hexdocs.pm/iex/IEx.html">IEx</a> session all application state is lost because it's only stored in memory.</p>
+<p>In the <a href="/blog/archive/2018/10/25/process-registration/">previous post</a> we added a cache process that would rehydrate the workers' state between restarts. The next problem with the url shortener is that if we restart the <a href="https://hexdocs.pm/iex/IEx.html">IEx</a> session all application state is lost because it's only stored in memory.</p>
 
-<p>The first pass at persisting this is to store all the data on the file system. Start by altering the `init` of `EX.Cache` to make a new directory that will be responsible for storing the application state. You may have noticed I'm using the `handle_continue` callback because I'm unsure how slow the `File.mkdir_p` operation is and figured at worst it would prevent the linking process from blocking.</p>
+<p>The first pass at solving this problem is to store all application state on the file system. Start by modifying the `init` function to make a new directory on start up. The files we put in this directory will be used to store the cache process state. I'm using the `handle_continue` callback now because `File.mkdir_p` could potentially block the linking process.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -33,7 +33,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The first step to hydrate process state from the file system requires we fetch a list of files from the directory `./database` we designated above. Next we use this list of filenames to generate a tuple with key/value pairs using the file name and file contents. Finally we take the list of tuples and throw this into a `Map` and return it so `EX.Worker` can operate as it did before this refactor.</p>
+<p>The first step to hydrate process state from the file system requires we fetch a list of files from the directory `./database` we designated above. Next we transform that original list of filenames into a list of tuples with file name and file contents. Finally we take the list of tuples and throw this into a `Map` and return it so `EX.Worker` can operate as it did before this refactor.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -70,7 +70,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The last step is to alter `handle_cast` which is responsible for inserting data into the process state. We use `File.write` to create a new file in the `./database` directory using `key` for the file name and `value` for the file contents.</p>
+<p>And finally we enhance the insert functionality to persist process state to the file system. We use `File.write` to create a new file in the `./database` directory using file name for the `key` and file contents for the `value`.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -94,7 +94,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Now if you play around with this module in IEx `iex -S mix run` you can restart without losing any state!</p>
+<p>Now if you play around with this module in IEx you can restart without losing any state!</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -103,6 +103,15 @@ categories: blog archive
     <code class="language-elixir">EX.Worker.put(:worker, 'y', 'amazon.com')</code>
     <code class="language-elixir">EX.Worker.put(:worker, 'z', 'ebay.com')</code>
     <code class="language-elixir">EX.Worker.get(:worker, 'x')</code>
+  </pre>
+</div>
+
+<p>To see if the cache process was hydrated correctly on start up checkout the `get_state` command.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">pid = GenServer.whereis({:via, Registry, {EX.Registry, {:cache}}})</code>
+    <code class="language-elixir">:sys.get_state(pid)</code>
   </pre>
 </div>
 
