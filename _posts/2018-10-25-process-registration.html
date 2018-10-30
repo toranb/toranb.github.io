@@ -6,8 +6,6 @@ categories: blog archive
 ---
 <p>In part 4 of the url shortener adventure we add another layer to the architecture and learn about the role of process registration.</p>
 
-<blockquote>Warning: this post details my learning experience with GenServers and the Elixir Registry. I plan to look back on this one day very soon to track how far I've come. Much of what you read here can be best described as learning for learning sake.</blockquote>
-
 <h3>Part 4: The case for process registration</h3>
 
 <p>In the <a href="/blog/archive/2018/10/21/adding-supervision/">previous post</a> we bolted on a Supervisor that would restart the worker process when it blew up. One problem we found was that our process lost all state when it was restarted.</p>
