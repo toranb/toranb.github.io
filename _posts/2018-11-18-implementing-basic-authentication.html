@@ -1,0 +1,292 @@
+---
+layout: post
+title: "Implementing basic authentication"
+date:   2018-11-18 18:00:00
+categories: blog archive
+---
+<p>In part 7 of the url shortener adventure we restrict access to the url routes by requiring an authenticated session.</p>
+
+<h3>Part 7: Authentication</h3>
+
+<p>Today anyone can create a shortened url by doing an http post but ideally we'd like to limit this feature to only those with a valid account. To support this we need to implement a login flow that confirms the user's credentials and creates a session to identify them as authenticated.</p>
+
+<p>We begin by adding GET and POST <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/router.ex#L20-L21">routes</a> for the new <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/controllers/session_controller.ex">SessionController</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.Router do</code>
+    <code class="language-elixir">  use ExampleWeb, :router</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  pipeline :browser do</code>
+    <code class="language-elixir">    plug :accepts, ["html"]</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  scope "/", ExampleWeb do</code>
+    <code class="language-elixir">    pipe_through(:browser)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    get "/login", SessionController, :new</code>
+    <code class="language-elixir">    post "/login", SessionController, :create</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/controllers/session_controller.ex">controller</a> will take the username/password form data and lookup the associated user. If the user is found we push that user's `id` into the session and redirect them. If no user is found we render the login form and no session is generated meaning the user remains unauthenticated.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.SessionController do</code>
+    <code class="language-elixir">  use ExampleWeb, :controller</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  import Plug.Conn, only: [put_session: 3]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def new(conn, _) do</code>
+    <code class="language-elixir">    render(conn, "new.html")</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def create(conn, %{"username" => username, "password" => password}) do</code>
+    <code class="language-elixir">    case Example.User.get_by_username_and_password(:user, username, password) do</code>
+    <code class="language-elixir">      nil -></code>
+    <code class="language-elixir">        render(conn, "new.html")</code>
+    <code class="language-elixir">      id -></code>
+    <code class="language-elixir">        conn</code>
+    <code class="language-elixir">          |> put_session(:user_id, id)</code>
+    <code class="language-elixir">          |> redirect(to: user_path(conn, :show, "#{id}"))</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To drive the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/controllers/session_controller.ex">controller</a> from the browser we need a login form that will allow any registered user to authenticate. We add both a <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/views/session_view.ex">view</a> and the html <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/templates/session/new.html.eex">template</a> to complete the login requirement.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">&lt;h1&gt;Login&lt;/h1&gt;</code>
+    <code class="language-elixir">&lt;form action="/login" method="POST"&gt;</code>
+    <code class="language-elixir">  &lt;input name="username" type="text" value="" /&gt;</code>
+    <code class="language-elixir">  &lt;input name="password" type="password" value="" /&gt;</code>
+    <code class="language-elixir">  &lt;input type="submit" value="Submit" /&gt;</code>
+    <code class="language-elixir">&lt;/form&gt;</code>
+  </pre>
+</div>
+
+<p>To see this in action we next write an integration <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/test/session_controller_test.exs">test</a> to exercise the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/router.ex">router</a> and <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/controllers/session_controller.ex">controller</a>. You can run this from the command line using `mix test test/session_controller_test.exs`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.SessionControllerTest do</code>
+    <code class="language-elixir">  use ExampleWeb.ConnCase</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  import Plug.Conn, only: [get_session: 2]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @id "01D3CC"</code>
+    <code class="language-elixir">  @username "toranb"</code>
+    <code class="language-elixir">  @toran %{"id" => @id, "username" => @username}</code>
+    <code class="language-elixir">  @data %{username: @username, password: "abc123"}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "create will put user id into session and redirect", %{conn: conn} do</code>
+    <code class="language-elixir">    result = post(conn, user_path(conn, :create, %{user: @data}))</code>
+    <code class="language-elixir">    assert json_response(result, 200) == @toran</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    login = post(conn, session_path(conn, :create, @data))</code>
+    <code class="language-elixir">    assert html_response(login, 302) =~ "redirected"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    session_id = get_session(login, :user_id)</code>
+    <code class="language-elixir">    assert session_id == @id</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>When you run this test you get an `ArgumentError` that states `session not fetched, call fetch_session/2`. To solve this, simply alter the `browser` pipeline in the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/router.ex#L6">router</a> to call `fetch_session`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.Router do</code>
+    <code class="language-elixir">  use ExampleWeb, :router</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  pipeline :browser do</code>
+    <code class="language-elixir">    plug :accepts, ["html"]</code>
+    <code class="language-elixir">    plug :fetch_session</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>After adding `fetch_session` you will see a different `ArgumentError` that states `cannot fetch session without a configured session plug`. To solve this, just include `Plug.Session` in the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/endpoint.ex#L13-L16">endpoint</a> file.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.Endpoint do</code>
+    <code class="language-elixir">  use Phoenix.Endpoint, otp_app: :example</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  plug Plug.Session,</code>
+    <code class="language-elixir">    store: :cookie,</code>
+    <code class="language-elixir">    key: "_example_key",</code>
+    <code class="language-elixir">    signing_salt: "8ixXSdpw"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now that we have a passing <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/test/session_controller_test.exs">test</a> it's time to take this login functionality for a test drive with the browser to confirm our <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/views/session_view.ex">view</a> and <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/templates/session/new.html.eex">template</a> are working as designed. Start up <a href="https://phoenixframework.org/">Phoenix</a> with IEx using the command `iex -S mix phx.server` and visit `localhost:4000/login` to submit the login form. When successful, the network tab should reveal a session cookie coming back in the http response headers.</p>
+
+<p>Next we can use this session to prevent unauthenticated users from viewing or creating shortened urls. Open the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/controllers/url_controller.ex">UrlController</a> and add a function to redirect users who don't have a valid session. In this case we are using a special map found on <a href="https://hexdocs.pm/plug/Plug.Conn.html">Plug.Conn</a> called `assigns` to extract the `current_user`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.UrlController do</code>
+    <code class="language-elixir">  use ExampleWeb, :controller</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  plug :redirect_unauthorized</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def redirect_unauthorized(conn, _opts) do</code>
+    <code class="language-elixir">    current_user = Map.get(conn.assigns, :current_user)</code>
+    <code class="language-elixir">    if current_user != nil and current_user.username != nil do</code>
+    <code class="language-elixir">      conn</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      conn</code>
+    <code class="language-elixir">        |> redirect(to: session_path(conn, :new))</code>
+    <code class="language-elixir">        |> halt()</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To populate `conn.assigns` we need a custom <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/authenticator.ex">authentication plug</a> that will inspect the session and assign `current_user` when that session is properly authenticated.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.Authenticator do</code>
+    <code class="language-elixir">  import Plug.Conn, only: [get_session: 2, assign: 3]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def init(opts), do: opts</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def call(conn, _opts) do</code>
+    <code class="language-elixir">    case get_session(conn, :user_id) do</code>
+    <code class="language-elixir">      nil -></code>
+    <code class="language-elixir">        conn</code>
+    <code class="language-elixir">      id -></code>
+    <code class="language-elixir">        username = Example.User.get(:user, "#{id}")</code>
+    <code class="language-elixir">        assign(conn, :current_user, %{id: id, username: username})</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To incorporate this new authentication plug update the `browser` and `api` pipelines in the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/router.ex#L8">router</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.Router do</code>
+    <code class="language-elixir">  use ExampleWeb, :router</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  pipeline :browser do</code>
+    <code class="language-elixir">    plug :accepts, ["html"]</code>
+    <code class="language-elixir">    plug :fetch_session</code>
+    <code class="language-elixir">    plug ExampleWeb.Authenticator</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  pipeline :api do</code>
+    <code class="language-elixir">    plug :accepts, ["json"]</code>
+    <code class="language-elixir">    plug :fetch_session</code>
+    <code class="language-elixir">    plug ExampleWeb.Authenticator</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To see the authentication logic in action we next write an integration <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/test/authenticator_test.exs">test</a> to exercise the <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/router.ex">router</a>, <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/authenticator.ex">authenticator</a> and <a href="https://github.com/toranb/elixir-url-shortener/blob/7c9c7caedffe135b17a7de6e7637a101d9f3e006/lib/example_web/controllers/url_controller.ex">controller</a>. You can run this from the command line using `mix test test/authenticator_test.exs`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.AuthenticatorTest do</code>
+    <code class="language-elixir">  use ExampleWeb.ConnCase</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "login will authenticate the user and redirect unauthenticated requests", %{conn: conn} do</code>
+    <code class="language-elixir">    id = "055577"</code>
+    <code class="language-elixir">    url = "google.com"</code>
+    <code class="language-elixir">    data = %{username: "toranb", password: "abc123"}</code>
+    <code class="language-elixir">    toran = %{"id" => "01D3CC", "username" => "toranb"}</code>
+    <code class="language-elixir">    google = %{"id" => id, "url" => url}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    post_result = post(conn, url_path(conn, :create, %{link: %{url: url}}))</code>
+    <code class="language-elixir">    assert html_response(post_result, 302) =~ "redirected"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    get_result = get(conn, url_path(conn, :show, id))</code>
+    <code class="language-elixir">    assert html_response(get_result, 302) =~ "redirected"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    result = post(conn, user_path(conn, :create, %{user: data}))</code>
+    <code class="language-elixir">    assert json_response(result, 200) == toran</code>
+    <code class="language-elixir">    authenticated = post(result, session_path(conn, :create, data))</code>
+    <code class="language-elixir">    assert html_response(authenticated, 302) =~ "redirected"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    post_result = post(authenticated, url_path(conn, :create, %{link: %{url: url}}))</code>
+    <code class="language-elixir">    assert json_response(post_result, 200) == google</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    get_result = get(authenticated, url_path(conn, :show, id))</code>
+    <code class="language-elixir">    assert json_response(get_result, 200) == google</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>You can also verify the application works end to end with curl. Start up the Phoenix app from the command line with IEx.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix phx.server</code>
+  </pre>
+</div>
+
+<p>First make a POST request with curl to create a user you will login with.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">curl --request POST \</code>
+    <code class="language-elixir">--url http://localhost:4000/api/users \</code>
+    <code class="language-elixir">--header 'content-type: application/json' \</code>
+    <code class="language-elixir">--data '{"user": {"username": "toranb", "password": "abc123"}}'</code>
+  </pre>
+</div>
+
+<p>Next make a POST request with curl to login with the username and password. Note: I'm using `--verbose` to see the `set-cookie` value returned in the response as we need it for the url controller POST request.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">curl --request POST \</code>
+    <code class="language-elixir">--url http://localhost:4000/login \</code>
+    <code class="language-elixir">--data 'username=toranb&password=abc123' \</code>
+    <code class="language-elixir">--verbose</code>
+  </pre>
+</div>
+
+<p>Finally, take the `set-cookie` value from the previous request and make another POST request with curl to insert the url you'd like to shorten with the api.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">curl --request POST \</code>
+    <code class="language-elixir">--url http://localhost:4000/api/urls \</code>
+    <code class="language-elixir">--header 'content-type: application/json' \</code>
+    <code class="language-elixir">--data '{"link": {"url": "google.com"}}' \</code>
+    <code class="language-elixir">--cookie '_example_key=FOO;'</code>
+  </pre>
+</div>
+
+<p>Notice that without the cookie you get redirected.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">curl --request POST \</code>
+    <code class="language-elixir">--url http://localhost:4000/api/urls \</code>
+    <code class="language-elixir">--header 'content-type: application/json' \</code>
+    <code class="language-elixir">--data '{"link": {"url": "google.com"}}'</code>
+  </pre>
+</div>
+
+<p>You can track my progress on github <a href="https://github.com/toranb/elixir-url-shortener/commits/master">commit by commit</a>. If you just want the code for this post checkout this <a href="https://github.com/toranb/elixir-url-shortener/commit/7c9c7caedffe135b17a7de6e7637a101d9f3e006">commit</a>.</p>
