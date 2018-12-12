@@ -1,0 +1,296 @@
+---
+layout: post
+title: "From file system to ecto"
+date:   2018-12-11 18:00:00
+categories: blog archive
+---
+<p>In part 8 of the url shortener adventure we migrate away from the file system and learn how to use <a href="https://github.com/elixir-ecto/ecto">Ecto</a> and <a href="https://www.postgresql.org/">Postgres</a>.</p>
+
+<h3>Part 8: Ecto</h3>
+
+<p>Today we write each shortened url to the file system and this helps us restore application state between restarts. While that solved the problem originally, most real <a href="https://github.com/elixir-lang/elixir">Elixir</a> applications store data in a database such as <a href="https://www.postgresql.org">Postgres</a> or <a href="https://www.mysql.com/">MySQL</a>.</p>
+
+<p>We begin by adding a few dependencies to the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/mix.exs">mix.exs file</a> that explicitly pull in <a href="https://hex.pm/packages/ecto_sql">ecto_sql</a>, <a href="https://hex.pm/packages/postgrex">postgrex</a> and <a href="https://hex.pm/packages/phoenix_ecto">phoenix_ecto</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.MixProject do</code>
+    <code class="language-elixir">  use Mix.Project</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp deps do</code>
+    <code class="language-elixir">    [</code>
+    <code class="language-elixir">      ...</code>
+    <code class="language-elixir">      {:phoenix_ecto, "~> 4.0"},</code>
+    <code class="language-elixir">      {:ecto_sql, "~> 3.0"},</code>
+    <code class="language-elixir">      {:postgrex, ">= 0.0.0"}</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Install these new dependencies using mix on the command line.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">mix deps.get</code>
+  </pre>
+</div>
+
+<p>Next add a new file named <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/lib/example/repo.ex">repo.ex</a> that will tell Ecto about the adapter we are using for this project.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Repo do</code>
+    <code class="language-elixir">  use Ecto.Repo,</code>
+    <code class="language-elixir">    otp_app: :example,</code>
+    <code class="language-elixir">    adapter: Ecto.Adapters.Postgres</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Before we can use this <a href="https://hexdocs.pm/ecto/Ecto.Repo.html">Repo</a> we need to update the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/lib/example/application.ex">application.ex</a> file. Add an entry for `Example.Repo` to the child process list.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Application do</code>
+    <code class="language-elixir">  use Application</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start(_type, _args) do</code>
+    <code class="language-elixir">    import Supervisor.Spec</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    children = [</code>
+    <code class="language-elixir">      supervisor(Example.Repo, []),</code>
+    <code class="language-elixir">      supervisor(ExampleWeb.Endpoint, []),</code>
+    <code class="language-elixir">      ...</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    opts = [strategy: :one_for_one, name: Example.Supervisor]</code>
+    <code class="language-elixir">    Supervisor.start_link(children, opts)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now we can add a <a href="https://hexdocs.pm/ecto/Ecto.Schema.html#content">schema</a> that defines the link data structure we plan to store in the database. Add the file <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/lib/example/link.ex">link.ex</a> and include 2 fields along with a simple timestamp to capture `inserted_at` along with `updated_at` datetimes.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Link do</code>
+    <code class="language-elixir">  use Ecto.Schema</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  schema "links" do</code>
+    <code class="language-elixir">    field :hash, :string</code>
+    <code class="language-elixir">    field :url, :string</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    timestamps()</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next we need to add some configuration to wire up our Ecto repository. Open the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/config/config.exs">config.exs</a> file and add a line to point `ecto_repos` at the Repo we created earlier.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">use Mix.Config</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">config :example,</code>
+    <code class="language-elixir">  ecto_repos: [Example.Repo]</code>
+    <code class="language-elixir">...</code>
+  </pre>
+</div>
+
+<p>Now in the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/config/dev.exs">dev.exs</a> file we need to configure the username, password, database, and hostname to connect with Postgres.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir"># Configure your database</code>
+    <code class="language-elixir">config :example, Example.Repo,</code>
+    <code class="language-elixir">  username: "postgres",</code>
+    <code class="language-elixir">  password: "postgres",</code>
+    <code class="language-elixir">  database: "example_dev",</code>
+    <code class="language-elixir">  hostname: "localhost",</code>
+    <code class="language-elixir">  pool_size: 10</code>
+  </pre>
+</div>
+
+<p>We now have enough code in place to run a few ecto commands with mix to see if we can create the database we've configured.</p>
+
+<blockquote>note: this step does assume you've got postgres installed and running</blockquote>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">mix ecto.create</code>
+    <code class="language-elixir">mix ecto.gen.migration create_links</code>
+  </pre>
+</div>
+
+<p>Next open the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/priv/repo/migrations/20181127131116_create_links.exs">create_links.exs</a> migration file and fill out the `change` function to create our table with hash and url fields.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Repo.Migrations.CreateLinks do</code>
+    <code class="language-elixir">  use Ecto.Migration</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def change do</code>
+    <code class="language-elixir">    create table(:links) do</code>
+    <code class="language-elixir">      add :hash, :string, primary_key: true</code>
+    <code class="language-elixir">      add :url, :string</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      timestamps()</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    create unique_index(:links, [:url])</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now run that migration using mix from the command line.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">mix ecto.migrate</code>
+  </pre>
+</div>
+
+<p>Later we will run the tests to confirm this migration created the tables but a quick spot check with the `psql` command line tool will help us feel warm and fuzzy.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">psql -h localhost -d example_dev -U postgres</code>
+  </pre>
+</div>
+
+<p>If this connects run the command `\dt` to see what tables were created. You should see the `links` table we created in the migration above.</p>
+
+<p>Now that we have a schema and database connectivity we need to write a module that will let us query with Ecto. Add a new file to the project named <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/lib/example/links.ex">links.ex</a> that will serve as the interface between Elixir and Postgres.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Links do</code>
+    <code class="language-elixir">  import Ecto.Query, warn: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Example.Repo</code>
+    <code class="language-elixir">  alias Example.Link</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def all do</code>
+    <code class="language-elixir">    Repo.all(Link)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def create_link(attrs \\ %{}) do</code>
+    <code class="language-elixir">    Link</code>
+    <code class="language-elixir">    |> struct(attrs)</code>
+    <code class="language-elixir">    |> Repo.insert()</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The module in our application that persists shortened links today is <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/lib/example/cache.ex">cache.ex</a>. We've isolated the file system enough that this swap should be painless. First update `handle_call` to use the new `Links.all` function. We pull out the hash and url values and throw them into a Map. Next update `handle_cast` to use the `Links.create_link` function. We pass the hash and url arguments down using a Map that will later be transformed into a struct before Ecto does the insert.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Cache do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Example.Links</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  ...</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_call({:all}, _timeout, _state) do</code>
+    <code class="language-elixir">    state = for %Example.Link{hash: key, url: value} <- Links.all(), into: %{}, do: {key, value}</code>
+    <code class="language-elixir">    {:reply, state, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_cast({:put, key, value}, state) do</code>
+    <code class="language-elixir">    Links.create_link(%{hash: key, url: value})</code>
+    <code class="language-elixir">    {:noreply, Map.put(state, key, value)}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/test/cache_test.exs">test</a> this functionality we first need to swap out the file system helpers I wrote previously for the `DataCase` helper that ships with Phoenix.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule CacheTest do</code>
+    <code class="language-elixir">  use ExampleWeb.DataCase, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "all returns state and put updates it" do</code>
+    <code class="language-elixir">    {:ok, _} = GenServer.start_link(Example.Cache, :ok)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert Example.Cache.all(:cache) === %{}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    Example.Cache.put(:cache, "x", "google.com")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert Example.Cache.all(:cache) === %{"x" => "google.com"}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Update the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/test/test_helper.exs">test helper</a> itself to include the Sandbox adapter.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">ExUnit.start()</code>
+    <code class="language-elixir">Ecto.Adapters.SQL.Sandbox.mode(Example.Repo, :manual)</code>
+  </pre>
+</div>
+
+<p>Update the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/config/test.exs">test.exs</a> file to configure the username, password, database, and hostname to connect with Postgres.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir"># Configure your database</code>
+    <code class="language-elixir">config :example, Example.Repo,</code>
+    <code class="language-elixir">  username: "postgres",</code>
+    <code class="language-elixir">  password: "postgres",</code>
+    <code class="language-elixir">  database: "example_test",</code>
+    <code class="language-elixir">  hostname: "localhost",</code>
+    <code class="language-elixir">  pool: Ecto.Adapters.SQL.Sandbox</code>
+  </pre>
+</div>
+
+<p>Update the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/mix.exs">mix.exs</a> file to include the aliases that setup and teardown our database between tests.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.MixProject do</code>
+    <code class="language-elixir">  use Mix.Project</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def project do</code>
+    <code class="language-elixir">    [</code>
+    <code class="language-elixir">      app: :example,</code>
+    <code class="language-elixir">      ...</code>
+    <code class="language-elixir">      aliases: aliases(),</code>
+    <code class="language-elixir">      deps: deps()</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp aliases do</code>
+    <code class="language-elixir">    [</code>
+    <code class="language-elixir">      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],</code>
+    <code class="language-elixir">      "ecto.reset": ["ecto.drop", "ecto.setup"],</code>
+    <code class="language-elixir">      test: ["ecto.create --quiet", "ecto.migrate", "test"]</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now you can run the <a href="https://github.com/toranb/elixir-url-shortener/blob/472053817b364aca357ccc2d443dd7e075cc4ec5/test/cache_test.exs">cache test</a> from the command line with mix to see it work end to end.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">mix test test/cache_test.exs</code>
+  </pre>
+</div>
+
+<p>You can track my progress on github <a href="https://github.com/toranb/elixir-url-shortener/commits/master">commit by commit</a>. If you just want the code for this post checkout this <a href="https://github.com/toranb/elixir-url-shortener/commit/472053817b364aca357ccc2d443dd7e075cc4ec5">commit</a>.</p>
