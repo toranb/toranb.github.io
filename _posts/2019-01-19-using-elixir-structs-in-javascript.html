@@ -1,0 +1,122 @@
+---
+layout: post
+title: "Using Elixir structs in JavaScript"
+date:   2019-01-19 18:00:00
+categories: blog archive
+---
+<p>Today I was building a <a href="https://phoenixframework.org/">Phoenix</a> 1.4 application when I bumped into a problem. The trouble was that my exact error message didn't yield any clear results to help guide me so I decided to blog about my experience for anyone who might follow with a similar situation.</p>
+
+<h3>The problem</h3>
+
+<p>I wanted to take an Elixir <a href="https://www.culttt.com/2016/06/20/what-are-elixir-structs/">struct</a> and make it available to my JavaScript application. My first attempt looked something like this ...</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class=language-elixir">defmodule StructtWeb.PageController do</code>
+    <code class=language-elixir">  use StructtWeb, :controller</code>
+    <code class=language-elixir"></code>
+    <code class=language-elixir">  def generate_cards do</code>
+    <code class=language-elixir">    [</code>
+    <code class=language-elixir">      %StructttWeb.Card{id: 1, name: "bird", image: "/images/animals/bird.png"},</code>
+    <code class=language-elixir">      %StructttWeb.Card{id: 2, name: "bird", image: "/images/animals/bird.png"},</code>
+    <code class=language-elixir">      %StructttWeb.Card{id: 3, name: "cat", image: "/images/animals/cat.png"},</code>
+    <code class=language-elixir">      %StructttWeb.Card{id: 4, name: "cat", image: "/images/animals/cat.png"},</code>
+    <code class=language-elixir">    ]</code>
+    <code class=language-elixir">  end</code>
+    <code class=language-elixir"></code>
+    <code class=language-elixir">  def index(conn, _params) do</code>
+    <code class=language-elixir">    cards = generate_cards()</code>
+    <code class=language-elixir">    render(conn, "index.html", %{cards: cards})</code>
+    <code class=language-elixir">  end</code>
+    <code class=language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The template for this took the `cards` struct like so.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">new Vue({</code>
+    <code class="language-elixir">  el: "#app",</code>
+    <code class="language-elixir">  data: {</code>
+    <code class="language-elixir">    cards: []</code>
+    <code class="language-elixir">  },</code>
+    <code class="language-elixir">  methods: {</code>
+    <code class="language-elixir">    resetGame() {</code>
+    <code class="language-elixir">      this.cards = <%= @cards %>;</code>
+    <code class="language-elixir">    }</code>
+    <code class="language-elixir">  },</code>
+    <code class="language-elixir">  created() {</code>
+    <code class="language-elixir">    this.resetGame();</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir">});</code>
+  </pre>
+</div>
+
+<p>When I spun up Phoenix from the command line I got the following error.</p>
+
+<blockquote>lists in Phoenix.HTML and templates may only contain integers representing bytes, binaries or other lists, got invalid entry...</blockquote>
+
+<p>So I did some searching around and it turns out I needed to encode the data so I looked at <a href="https://hexdocs.pm/poison/Poison.html#encode/2">Poison.encode</a>. Before I added another dependency I did a little source diving and found that Phoenix provides a generic <a href="https://github.com/phoenixframework/phoenix/search?q=json_library&unscoped_q=json_library">json_library</a> I could use instead.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class=language-elixir">defmodule StructtWeb.PageController do</code>
+    <code class=language-elixir">  use StructtWeb, :controller</code>
+    <code class=language-elixir"></code>
+    <code class="language-elixir">  def index(conn, _params) do</code>
+    <code class="language-elixir">    {:ok, cards} =</code>
+    <code class="language-elixir">      generate_cards()</code>
+    <code class="language-elixir">      |> Phoenix.json_library().encode()</code>
+    <code class="language-elixir">    render(conn, "index.html", %{cards: cards})</code>
+    <code class="language-elixir">  end</code>
+    <code class=language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>With the struct encoded now I got the following error message from Phoenix.</p>
+
+<blockquote>Jason.Encoder protocol must always be explicitly implemented.\n\nIf you own the struct, you can derive the implementation specifying which fields should be encoded to JSON...</blockquote>
+
+<p>So throwing a struct as-is to your template won't work. I then decided to transform it into a map first before encoding it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class=language-elixir">defmodule StructtWeb.PageController do</code>
+    <code class=language-elixir">  use StructtWeb, :controller</code>
+    <code class=language-elixir"></code>
+    <code class="language-elixir">  def index(conn, _params) do</code>
+    <code class="language-elixir">    {:ok, cards} =</code>
+    <code class="language-elixir">      generate_cards()</code>
+    <code class="language-elixir">      |> Enum.map(&Map.from_struct(&1))</code>
+    <code class="language-elixir">      |> Phoenix.json_library().encode()</code>
+    <code class="language-elixir">    render(conn, "index.html", %{cards: cards})</code>
+    <code class="language-elixir">  end</code>
+    <code class=language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Phoenix was finally error free but I did see the JavaScript was heavily escaped so I had to use the `raw` keyword as shown below.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">new Vue({</code>
+    <code class="language-elixir">  el: "#app",</code>
+    <code class="language-elixir">  data: {</code>
+    <code class="language-elixir">    cards: []</code>
+    <code class="language-elixir">  },</code>
+    <code class="language-elixir">  methods: {</code>
+    <code class="language-elixir">    resetGame() {</code>
+    <code class="language-elixir">      this.cards = <%= raw(@cards) %>;</code>
+    <code class="language-elixir">    }</code>
+    <code class="language-elixir">  },</code>
+    <code class="language-elixir">  created() {</code>
+    <code class="language-elixir">    this.resetGame();</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir">});</code>
+  </pre>
+</div>
+
+<p>You can find the source code for this example on <a href="https://github.com/toranb/phoenix-struct-map-javascript">github</a></p>
