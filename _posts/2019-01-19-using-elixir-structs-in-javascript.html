@@ -32,7 +32,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The template for this took the `cards` struct like so.</p>
+<p>The template for this controller made use of the `cards` struct by setting state on the VueJS component.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -53,11 +53,11 @@ categories: blog archive
   </pre>
 </div>
 
-<p>When I spun up Phoenix from the command line I got the following error.</p>
+<p>When I started Phoenix from the command line using IEx I got the following error.</p>
 
 <blockquote>lists in Phoenix.HTML and templates may only contain integers representing bytes, binaries or other lists, got invalid entry</blockquote>
 
-<p>So I did some searching around and it turns out I needed to encode the data so I looked at <a href="https://hexdocs.pm/poison/Poison.html#encode/2">Poison.encode</a>. Before I added another dependency I did a little source diving and found that Phoenix provides a generic <a href="https://github.com/phoenixframework/phoenix/search?q=json_library&unscoped_q=json_library">json_library</a> I could use instead.</p>
+<p>I did some searching around and it turns out you need to encode the data first before rendering the html. I stumbled upon <a href="https://hexdocs.pm/poison/Poison.html#encode/2">Poison.encode</a> for this type of thing, but before I added another dependency I did a little source diving and found that Phoenix provides a generic <a href="https://github.com/phoenixframework/phoenix/search?q=json_library&unscoped_q=json_library">json_library</a> I could use instead.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -79,7 +79,7 @@ categories: blog archive
 
 <blockquote>Jason.Encoder protocol must always be explicitly implemented.\n\nIf you own the struct, you can derive the implementation specifying which fields should be encoded to JSON...</blockquote>
 
-<p>So throwing a struct as-is to your template won't work. I then decided to transform it into a map first before encoding it.</p>
+<p>So throwing a struct directly into the template won't work like I assumed it would. I was able to solve this by first transforming the struct into a map.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
