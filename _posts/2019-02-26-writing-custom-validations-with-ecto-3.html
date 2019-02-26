@@ -1,0 +1,82 @@
+---
+layout: post
+title: "Writing Custom Validations With Ecto 3"
+date:   2019-02-25 18:00:00
+categories: blog archive
+---
+<p>Recently I launched my first Phoenix app titled <a href="https://elixirmatch.com/">Elixir Match</a> and along the way I stumbled into a handful of situations that didn't provide much on google when I did a quick search for help. I've since decided to pull off an item from my backlog and blog about it weekly to help fill the void and push something useful to the top for anyone who might follow in my footsteps.
+
+<h3>The problem</h3>
+
+<p>Today I'll be detailing how to write a custom validation for Ecto 3 and Phoenix 1.4. In my specific example the signup form required an "invite code" that players would use to create an account. I wanted an excuse to learn more about <a href="https://hexdocs.pm/ecto/Ecto.html">Ecto</a> so I decided to write this logic as part of the changeset. The <a href="https://github.com/toranb/elixir-match/blob/61b2f4e599f55d0b51e54db3ca4fca3f4e8c5a8e/app/test/match/users_test.exs">unit test</a> below shows how this changeset was expected to behave when the invite code was correct.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Match.UsersTest do</code>
+    <code class="language-elixir">  use Match.DataCase, async: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Match.User</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @id "A4E3400CF711E76BBD86C57CA"</code>
+    <code class="language-elixir">  @valid_attrs %{id: @id, username: "toran", password: "abcd1234"}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "changeset is fine with correct invite code" do</code>
+    <code class="language-elixir">    attrs = @valid_attrs |&gt; Map.put(:invite, "elixir2019")</code>
+    <code class="language-elixir">    changeset = User.changeset(%User{}, attrs)</code>
+    <code class="language-elixir">    assert changeset.valid?</code>
+    <code class="language-elixir">    assert Map.get(changeset, :errors) == []</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>And this <a href="https://github.com/toranb/elixir-match/blob/61b2f4e599f55d0b51e54db3ca4fca3f4e8c5a8e/app/test/match/users_test.exs">unit test</a> shows how the changeset was expected to behave when the invite code was incorrect.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Match.UsersTest do</code>
+    <code class="language-elixir">  use Match.DataCase, async: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Match.User</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @id "A4E3400CF711E76BBD86C57CA"</code>
+    <code class="language-elixir">  @valid_attrs %{id: @id, username: "toran", password: "abcd1234"}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "changeset is invalid if invite is wrong" do</code>
+    <code class="language-elixir">    attrs = @valid_attrs |&gt; Map.put(:invite, "foo")</code>
+    <code class="language-elixir">    changeset = User.changeset(%User{}, attrs)</code>
+    <code class="language-elixir">    refute changeset.valid?</code>
+    <code class="language-elixir">    assert Map.get(changeset, :errors) == [invite: {"invalid invite code", []}]</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>After reading the documentation and a touch of trial and error I found the <a href="https://github.com/toranb/elixir-match/blob/61b2f4e599f55d0b51e54db3ca4fca3f4e8c5a8e/app/lib/match/user.ex">code</a> to solve this wasn't all that different than what I found for previous versions of Elixir and Ecto but enough that I wanted to blog about it for anyone else scratching their head.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Match.User do</code>
+    <code class="language-elixir">  use Ecto.Schema</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  import Ecto.Changeset</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def changeset(user, params \\ %{}) do</code>
+    <code class="language-elixir">    user</code>
+    <code class="language-elixir">      |&gt; cast(params, [:id, :username, :password, :icon, :invite, :hash])</code>
+    <code class="language-elixir">      |&gt; validate_required([:username, :password])</code>
+    <code class="language-elixir">      |&gt; validate_invite</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp validate_invite(%Ecto.Changeset{} = changeset) do</code>
+    <code class="language-elixir">    value = Map.get(changeset.changes, :invite)</code>
+    <code class="language-elixir">    case value == "elixir2019" do</code>
+    <code class="language-elixir">      true -&gt; changeset</code>
+    <code class="language-elixir">      false -&gt; add_error(changeset, :invite, "invalid invite code")</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>You can find the full source code for this custom validation on <a href="https://github.com/toranb/elixir-match/blob/61b2f4e599f55d0b51e54db3ca4fca3f4e8c5a8e/app/lib/match/user.ex">github</a></p>
