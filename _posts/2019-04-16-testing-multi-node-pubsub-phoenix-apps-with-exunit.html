@@ -1,0 +1,637 @@
+---
+layout: post
+title: "Testing multi-node pubsub Phoenix apps with ExUnit"
+date:   2019-04-16 18:00:00
+categories: blog archive
+---
+<p>In February I attended the "Building resilient, distributed systems with Elixir" training from <a href="https://github.com/bgmarx">Ben Marx</a> and <a href="https://github.com/keathley/">Chris Keathley</a> at <a href="https://twitter.com/LonestarElixir">Lonestar Elixir</a>. I really enjoyed the intensive workshop they put together and because I was working in <a href="https://github.com/phoenixframework/phoenix">Phoenix</a> at the time I decided to learn what would be required to test drive a pubsub example with <a href="https://github.com/erlang/otp/blob/master/lib/kernel/src/pg2.erl">pg2</a>. In the weeks that followed I found a handful of gotchas and learned a few pro-tips worth sharing with the wider community.</p>
+
+<p>TL;DR If you prefer to skip the story and see the code you can find everything on <a href="https://github.com/toranb/elixir-budget/commit/78c72dbff81468ffc80b8d29f3e56030cac771bc">github</a></p>
+
+<h3>Disclaimer</h3>
+
+<p>It was important that I present a simple distributed state problem so I could focus my efforts on testing the cluster. As a result, the production code I'm using to put the problem front and center was intended for learning only and should not be used as-is in application code.</p>
+
+<h3>The problem</h3>
+
+<p>When the application boots up we fetch <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/logon.ex#L19">all users</a> from the database and store this locally in <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/ets.erl">ets</a>. Later this cache is used to verify the user's session as part of the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example_web/plugs/authenticate.ex#L13">authentication</a> pipeline.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def authentication(conn, _opts) do</code>
+    <code class="language-elixir">  case get_session(conn, :user_id) do</code>
+    <code class="language-elixir">    nil -></code>
+    <code class="language-elixir">      conn</code>
+    <code class="language-elixir">    id -></code>
+    <code class="language-elixir">      username = Example.Logon.get(:logon, "#{id}")</code>
+    <code class="language-elixir">      assign(conn, :current_user, %{id: id, username: username})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example_web/plugs/authenticate.ex#L19">final plug</a> in our authentication pipeline will redirect the user back to login if the session is without a current user.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def redirect_unauthorized(conn, _opts) do</code>
+    <code class="language-elixir">  current_user = Map.get(conn.assigns, :current_user)</code>
+    <code class="language-elixir">  if current_user != nil and current_user.username != nil do</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  else</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">      |> put_session(:return_to, conn.request_path)</code>
+    <code class="language-elixir">      |> redirect(to: Routes.login_path(conn, :index))</code>
+    <code class="language-elixir">      |> halt()</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In a single node deployment this works because the registration process will insert any new user record into ets after ecto completes the <a href="https://github.com/toranb/elixir-budget/blob/b999faa8090134a4a8ae33cfaa47214cdef98002/app/lib/example/logon.ex#L46">database insert</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def handle_call({:put, username, password}, _timeout, state) do</code>
+    <code class="language-elixir">  changeset = User.changeset(%User{}, %{id: id, username: username})</code>
+    <code class="language-elixir">  case Users.insert(changeset) do</code>
+    <code class="language-elixir">    {:ok, _result} -></code>
+    <code class="language-elixir">      UserCache.insert(id, username, hash)</code>
+    <code class="language-elixir">      {:reply, {:ok, {id, username}}, state}</code>
+    <code class="language-elixir">    {:error, changeset} -></code>
+    <code class="language-elixir">      ...</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The problem arises when we decide to cluster the application because after the user creates a new account, only the node that served our create request will have the proper state to validate subsequent requests. As we progress I will show how we can solve this by distributing state across the cluster with pg2 so hang tight!</p>
+
+<h3>Local Cluster</h3>
+
+<p>The first tool I pulled in for this test case was the Elixir library <a href="https://github.com/whitfin/local-cluster">local cluster</a>. You can use local cluster to spawn nodes for distributed state testing without all the moving parts of a full on deployment (ie: docker or kubernetes).</p>
+
+<p>To start using local cluster you open the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/test/test_helper.exs">test helper</a> and add the line `LocalCluster.start()` before `ExUnit.start()` at the top of this file.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">:ok = LocalCluster.start()</code>
+    <code class="language-elixir">ExUnit.start()</code>
+    <code class="language-elixir">Ecto.Adapters.SQL.Sandbox.mode(Example.Repo, :manual)</code>
+  </pre>
+</div>
+
+<p>It was at this point that I took my first stumble. In both the training at Lonestar and my personal persuit weeks later I found that from a cold boot the command `mix test` would throw an error stating `no distribution` until I would run `iex -S mix phx.server` or something equivalent one time.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">(MatchError) no match of right hand side value: {:error, {{:shutdown, {:failed_to_start_child, :net_kernel, {:EXIT, :nodistribution}}}, {:child, :undefined, :net_sup_dynamic, {:erl_distribution, :start_link, [[:"manager@127.0.0.1"], false]}, :permanent, 1000, :supervisor, [:erl_distribution]}}}</code>
+    <code class="language-elixir">test/test_helper.exs:1: (file)</code>
+    <code class="language-elixir">(elixir) lib/code.ex:767: Code.require_file/2</code>
+    <code class="language-elixir">(elixir) lib/enum.ex:769: Enum."-each/2-lists^foreach/1-0-"/2</code>
+    <code class="language-elixir">(elixir) lib/enum.ex:769: Enum.each/2</code>
+  </pre>
+</div>
+
+<p>I still never found a solution or (more) practical workaround but after I post this I do plan to follow up with the open source maintainer to learn more about why this occurs and how we can fix it to unblock others who might follow.</p>
+
+<h3>Configure ports</h3>
+
+<p>With local cluster functional I started to write the first test case that I hoped would offer fast feedback while I solved the distributed state issue. I borrowed heavily from an <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/test/example_web/authenticator_test.exs">existing</a> controller style test in the Phoenix application so I knew it should work without much hassle.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.ClusterTest do</code>
+    <code class="language-elixir">  use ExampleWeb.ConnCase, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "login will authenticate the user regardless of node", %{conn: conn} do</code>
+    <code class="language-elixir">    name = "toran"</code>
+    <code class="language-elixir">    password = "abcd1234"</code>
+    <code class="language-elixir">    login = %{username: name, password: password}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    LocalCluster.start_nodes("example", 2)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    created = post(request, Routes.registration_path(conn, :create, login))</code>
+    <code class="language-elixir">    assert Map.get(created.assigns, :current_user) == nil</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    denied = get(created, Routes.budget_path(conn, :index))</code>
+    <code class="language-elixir">    assert redirected_to(denied, 302) =~ "/"</code>
+    <code class="language-elixir">    assert Map.get(denied.assigns, :current_user) == nil</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    authenticated = post(denied, Routes.login_path(conn, :create, login))</code>
+    <code class="language-elixir">    assert html_response(authenticated, 302) =~ "redirected"</code>
+    <code class="language-elixir">    assert Map.get(authenticated.assigns, :current_user) == nil</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    authorized = get(authenticated, Routes.budget_path(conn, :index))</code>
+    <code class="language-elixir">    assert String.match?(html_response(authorized, 200), ~r/.*main.js.*/)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>But just as I started writing out this test I realized that the built in ConnCase helpers like `post` and `get` didn't specify a particular host or port. I then looked back at the source code from the training and learned that in those multi node test cases a specific enviornment variable was set for each node local cluster generated. But knowing how to dynamically set the port for a Phoenix application was a mystery I'd need to solve for myself because the example in that workshop wasn't Phoenix based.</p>
+
+<p>So next I opened the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/config/test.exs#L6">config file</a> for test to confirm the port was indeed hard coded to port 4002. Then I did some searching around the internet in hopes that someone had blogged about a similar trial but sadly the result set was limited. I did however find a stackoverflow post that got me looking closer at the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example_web/endpoint.ex">endpoint file</a> and eventually I landed on a clever extension point.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.Endpoint do</code>
+    <code class="language-elixir">  use Phoenix.Endpoint, otp_app: :example</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp port do</code>
+    <code class="language-elixir">    name = Node.self()</code>
+    <code class="language-elixir">    env =</code>
+    <code class="language-elixir">      name</code>
+    <code class="language-elixir">      |> Atom.to_string</code>
+    <code class="language-elixir">      |> String.replace(~r/@.*$/, "")</code>
+    <code class="language-elixir">      |> String.upcase</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    String.to_integer(System.get_env("#{env}_PORT") || "4000")</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def init(_key, config) do</code>
+    <code class="language-elixir">    {:ok, Keyword.put(config, :http, [:inet6, port: port()])}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>This init function allowed me the hook I needed to get the name of the running node and pull from that any enviornment variable set for the port. To verify this manually I was able to spin up Phoenix from the command line with a specific name and port.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">EXAMPLE1_PORT=4001 elixir --sname "example1" -S mix phx.server</code>
+  </pre>
+</div>
+
+<p>I made my way back to the test so I could properly configure the enviornment variable for port and give local cluster a name that would match.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.ClusterTest do</code>
+    <code class="language-elixir">  use ExampleWeb.ConnCase, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @node1 "http://localhost:4001"</code>
+    <code class="language-elixir">  @node2 "http://localhost:4002"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  setup do</code>
+    <code class="language-elixir">    System.put_env("EXAMPLE1_PORT", "4001")</code>
+    <code class="language-elixir">    System.put_env("EXAMPLE2_PORT", "4002")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    {:ok, conn: Phoenix.ConnTest.build_conn()}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "login will authenticate the user regardless of node", %{conn: conn} do</code>
+    <code class="language-elixir">    LocalCluster.start_nodes("example", 2)</code>
+    <code class="language-elixir">    ...</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Phoenix Server</h3>
+
+<p>I now had 2 nodes spun up and ports configured but what about the `post` and `get` helpers? I spent a good deal of time trying to crack open the connection `conn` and alter the host to match as I constructed each request. But as I did this I noticed that my logs printed out :"manager@127.0.0.1" instead of :"example1@127.0.0.1" which told me I wasn't yet emulating the http request as nginx would in my docker enviornment.</p>
+
+<p>It was at this point I decided to make the switch from Phoenix helpers to using <a href="https://github.com/edgurgel/httpoison">HTTPoison</a>. The basic helpers aren't much to write home about but I figured I would show the basics for anyone interested. One tradeoff worth mentioning is that I failed to monkey patch the CSRF token verification inside of Phoenix so I had to extract this from the form html by hand.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def post(response, url, params) do</code>
+    <code class="language-elixir">  %HTTPoison.Response{body: body, headers: headers} = response</code>
+    <code class="language-elixir">  [ csrf_token ] = Floki.find(body, "input[name=_csrf_token]") |> Floki.attribute("value")</code>
+    <code class="language-elixir">  payload = params |> Map.put(:_csrf_token, csrf_token)</code>
+    <code class="language-elixir">  cookie = set_cookie(headers)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  headers = [</code>
+    <code class="language-elixir">    {"Content-Type", "application/x-www-form-urlencoded"}</code>
+    <code class="language-elixir">  ]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  HTTPoison.post!(url, URI.encode_query(payload), headers, hackney: [cookie: [cookie]])</code>
+    <code class="language-elixir">end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">def get(response, url) do</code>
+    <code class="language-elixir">  %HTTPoison.Response{headers: headers} = response</code>
+    <code class="language-elixir">  cookie = set_cookie(headers)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  HTTPoison.get!(url, %{}, hackney: [cookie: [cookie]])</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>After I altered my test case to use the above helpers I got an error running `mix test`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">** (HTTPoison.Error) :econnrefused</code>
+  </pre>
+</div>
+
+<p>I turns out Phoenix doesn't start up a real server when you run `mix test` but after some hunting around for <a href="https://www.dantswain.com/2015/04/19/integration-testing-a-json-api-in-phoenix/">options</a> I discovered you can opt in when you've got a test case that requires it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def launch_server do</code>
+    <code class="language-elixir">  endpoint_config =</code>
+    <code class="language-elixir">    Application.get_env(:example, ExampleWeb.Endpoint)</code>
+    <code class="language-elixir">    |> Keyword.put(:server, true)</code>
+    <code class="language-elixir">  :ok = Application.put_env(:example, ExampleWeb.Endpoint, endpoint_config)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  :ok = Application.stop(:example)</code>
+    <code class="language-elixir">  :ok = Application.start(:example)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Introducing PG2</h3>
+
+<p>With a running server, dynamic port configuration and a few http helper functions we finally had everything required to test drive that distributed state problem.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.ClusterTest do</code>
+    <code class="language-elixir">  use Example.DataCase, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @node1 "http://localhost:4001"</code>
+    <code class="language-elixir">  @node2 "http://localhost:4002"</code>
+    <code class="language-elixir">  @password "abcd1234"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  setup do</code>
+    <code class="language-elixir">    System.put_env("EXAMPLE1_PORT", "4001")</code>
+    <code class="language-elixir">    System.put_env("EXAMPLE2_PORT", "4002")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    launch_server()</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    {:ok, response: %HTTPoison.Response{}, login: %{username: random_string(), password: @password}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "login will authenticate the user regardless of node", %{response: response, login: login} do</code>
+    <code class="language-elixir">    LocalCluster.start_nodes("example", 2)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # create the user on node@1</code>
+    <code class="language-elixir">    response = get(response, "#{@node1}/signup")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir">    response = post(response, "#{@node1}/signup", login)</code>
+    <code class="language-elixir">    assert response.status_code == 302</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # authenticate w/ node@1</code>
+    <code class="language-elixir">    response = get(response, "#{@node1}/")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir">    response = post(response, "#{@node1}/", login)</code>
+    <code class="language-elixir">    assert response.status_code == 302</code>
+    <code class="language-elixir">    response = get(response, "#{@node1}/budget")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # authenticate w/ node@2</code>
+    <code class="language-elixir">    eventually(fn -></code>
+    <code class="language-elixir">      response = get(%HTTPoison.Response{}, "#{@node2}/budget")</code>
+    <code class="language-elixir">      assert response.status_code == 302</code>
+    <code class="language-elixir">      response = get(response, "#{@node2}/")</code>
+    <code class="language-elixir">      assert response.status_code == 200</code>
+    <code class="language-elixir">      response = post(response, "#{@node2}/", login)</code>
+    <code class="language-elixir">      assert response.status_code == 302</code>
+    <code class="language-elixir">      response = get(response, "#{@node2}/budget")</code>
+    <code class="language-elixir">      assert response.status_code == 200</code>
+    <code class="language-elixir">    end)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Before we can connect up the nodes we need to create the process group. I typically do this step in the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/application.ex">application.ex</a> file myself as I only want this to happen once as the software boots up.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Application do</code>
+    <code class="language-elixir">  use Application</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start(_type, _args) do</code>
+    <code class="language-elixir">    children = [</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    :pg2.create(:example)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    opts = [strategy: :one_for_one, name: Example.Supervisor]</code>
+    <code class="language-elixir">    Supervisor.start_link(children, opts)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next we need to join that process group from the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/logon.ex">logon</a> GenServer we use to insert user data.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Logon do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    :pg2.join(:example, self())</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    ... </code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The single change needed to publish a message to other nodes during user creation is a 2 step process. First we pull the insert from the block of code we have today and replace it with a `GenServer.cast` for each member in the process group.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">@impl GenServer</code>
+    <code class="language-elixir">def handle_call({:put, username, password}, _timeout, state) do</code>
+    <code class="language-elixir">  changeset = User.changeset(%User{}, %{id: id, username: username})</code>
+    <code class="language-elixir">  case Users.insert(changeset) do</code>
+    <code class="language-elixir">    {:ok, _result} -></code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      members = :pg2.get_members(:example)</code>
+    <code class="language-elixir">      Enum.map(members, fn (pid) -></code>
+    <code class="language-elixir">        GenServer.cast(pid, {:merge, id, username, hash})</code>
+    <code class="language-elixir">      end)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      {:reply, {:ok, {id, username}}, state}</code>
+    <code class="language-elixir">    {:error, changeset} -></code>
+    <code class="language-elixir">      ...</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next we need to implement the handler for that cast to insert the user into the cache on each node. After this callback is functional the test should pass because each node will eventually be consistent.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">@impl GenServer</code>
+    <code class="language-elixir">def handle_cast({:merge, id, username, hash}, state) do</code>
+    <code class="language-elixir">  UserCache.insert(id, username, hash)</code>
+    <code class="language-elixir">  {:noreply, state}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Netsplits</h3>
+
+<p>What about testing when a node loses connection with other nodes in the cluster? It turns out <a href="https://github.com/keathley/">Chris Keathley</a> wrote a library for exactly this type of distributed failure testing. <a href="https://github.com/keathley/schism/blob/master/lib/schism.ex">Schism</a> allows you to both partition and heal to validate the nodes behave themselves.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ExampleWeb.ClusterTest do</code>
+    <code class="language-elixir">  use Example.DataCase, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @node1 "http://localhost:4001"</code>
+    <code class="language-elixir">  @node2 "http://localhost:4002"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "authenticate works after network partition heals", %{response: response, login: login} do</code>
+    <code class="language-elixir">    [n1, n2] = LocalCluster.start_nodes("example", 2)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    Schism.partition([n1])</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # create the user on node@1</code>
+    <code class="language-elixir">    response = get(response, "#{@node1}/signup")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir">    response = post(response, "#{@node1}/signup", login)</code>
+    <code class="language-elixir">    assert response.status_code == 302</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # authenticate w/ node@1</code>
+    <code class="language-elixir">    response = get(response, "#{@node1}/")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir">    response = post(response, "#{@node1}/", login)</code>
+    <code class="language-elixir">    assert response.status_code == 302</code>
+    <code class="language-elixir">    response = get(response, "#{@node1}/budget")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # node@2 split so authenticate fails</code>
+    <code class="language-elixir">    response = get(%HTTPoison.Response{}, "#{@node2}/budget")</code>
+    <code class="language-elixir">    assert response.status_code == 302</code>
+    <code class="language-elixir">    response = get(response, "#{@node2}/")</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir">    response = post(response, "#{@node2}/", login)</code>
+    <code class="language-elixir">    assert response.status_code == 200</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    Schism.heal([n1, n2])</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    # node@2 heal so authenticate works</code>
+    <code class="language-elixir">    eventually(fn -></code>
+    <code class="language-elixir">      response = get(%HTTPoison.Response{}, "#{@node2}/budget")</code>
+    <code class="language-elixir">      response = get(response, "#{@node2}/")</code>
+    <code class="language-elixir">      response = post(response, "#{@node2}/", login)</code>
+    <code class="language-elixir">      assert response.status_code == 302</code>
+    <code class="language-elixir">      response = get(response, "#{@node2}/budget")</code>
+    <code class="language-elixir">      assert response.status_code == 200</code>
+    <code class="language-elixir">    end)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In this scenario we start with a network partition to test drive the healing required to get each node in sync after connectivity is restored in the cluster. This will be failing after the heal because right now we don't handle the up or down messages sent when a node becomes connected/disconnected.</p>
+
+<p>To solve this we first explicitly monitor the nodes by altering the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/logon.ex">logon</a> GenServer.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Logon do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    :net_kernel.monitor_nodes(true)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    :pg2.join(:example, self())</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    ... </code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now that we are monitoring the logon GenServer will get both `:nodeup` and `:nodedown` messages. For the baseline implementation today we will add `handle_info` and pattern match on the `:nodeup` so we can begin the healing process after we are notified that connectivity was restored. Note: this exact implementation will publish a message for each user and should be considered naive.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">@impl GenServer</code>
+    <code class="language-elixir">def handle_info({:nodeup, node}, state) do</code>
+    <code class="language-elixir">  for {id, {username, hash}} <- UserCache.all() do</code>
+    <code class="language-elixir">    GenServer.cast({__MODULE__, node}, {:merge, id, username, hash})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">  {:noreply, state}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>When the node goes down this GenServer will receive a `:nodedown` message so to avoid crashing we need to implement the `handle_info` with a generic argument. Alternatively you could match on the `:nodedown` and just not do anything at the moment.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def handle_info(_msg, state) do</code>
+    <code class="language-elixir">  {:noreply, state}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Registry Incompatible</h3>
+
+<p>When I first hacked together the `GenServer.cast` above the logon GenServer itself was registered using my local Registry and a via tuple. I did some <a href="https://github.com/elixir-lang/elixir/issues/4251#issuecomment-178018032">searching</a> on github and it seems you cannot send a message to another node like this so I updated my `start_link` to instead use the module name.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Logon do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(_args) do</code>
+    <code class="language-elixir">    GenServer.start_link(__MODULE__, :ok, name: __MODULE__)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Docker</h3>
+
+<p>So after all this hard work we've got 2 passing tests and some pubsub but can we deploy this and have it be fully operational? Unfortunately these tests don't drive out the docker-compose changes necessary but to see this work end to end feels like the goal so let's keep going shall we.</p>
+
+<p>First we need to provide a name to the node like our tests did. In my specific setup I'm using a simple bash script called <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/entrypoint.sh">entrypoint.sh</a>. In this file I'm updating the `phx.server` command to take a random string for a name. Note: This deployment setup isn't (yet) using releases but it does work.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">#!/bin/bash</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">str=`date -Ins | md5sum`</code>
+    <code class="language-elixir">name=${str:0:10}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">mix run transform.exs</code>
+    <code class="language-elixir">mix phx.digest</code>
+    <code class="language-elixir">mix ecto.create</code>
+    <code class="language-elixir">mix ecto.migrate</code>
+    <code class="language-elixir">mix run priv/repo/seeds.exs</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">elixir --sname $name --cookie monster -S mix phx.server</code>
+  </pre>
+</div>
+
+<p>Next we need some code that allows each node to communicate "hello, I'm online! Please connect with me". My first attempt was successful using the host filesystem but the database makes for another fine alternative so I'll show that approach instead.</p>
+
+<p>I created a simple database table called `cluster` that will be used to push data in and query for the node to node chatter. Start by creating the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/cluster.ex">schema</a> file for cluster.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Cluster do</code>
+    <code class="language-elixir">  use Ecto.Schema</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  import Ecto.Changeset</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @primary_key {:id, :string, []}</code>
+    <code class="language-elixir">  schema "clusters" do</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    timestamps()</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def changeset(cluster, attrs) do</code>
+    <code class="language-elixir">    cluster</code>
+    <code class="language-elixir">      |> cast(attrs, [:id])</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next create the database <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/priv/repo/migrations/20190403235815_create_clusters.exs">migration</a> to insert the new table.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Repo.Migrations.CreateClusters do</code>
+    <code class="language-elixir">  use Ecto.Migration</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def change do</code>
+    <code class="language-elixir">    create table(:clusters, primary_key: false) do</code>
+    <code class="language-elixir">      add :id, :string, primary_key: true</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      timestamps()</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>We also need a simple `upsert` function to insert the node name so create the file <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/clusters.ex">clusters.exs</a></p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.Clusters do</code>
+    <code class="language-elixir">  import Ecto.Query, warn: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Example.Repo</code>
+    <code class="language-elixir">  alias Example.Cluster</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def all do</code>
+    <code class="language-elixir">    Repo.all(Cluster)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def upsert_by(attrs) do</code>
+    <code class="language-elixir">    case Repo.get_by(Cluster, attrs) do</code>
+    <code class="language-elixir">      nil -> %Cluster{}</code>
+    <code class="language-elixir">      cluster -> cluster</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">    |> Cluster.changeset(attrs)</code>
+    <code class="language-elixir">    |> Repo.insert_or_update</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>And finally, the <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/lib/example/cluster_sync.ex">cluster sync</a> GenServer that will do the heavy lifting to establish connectivity by way of `Node.ping`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Example.ClusterSync do</code>
+    <code class="language-elixir">  use GenServer</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @one_second :timer.seconds(1)</code>
+    <code class="language-elixir">  @two_seconds :timer.seconds(2)</code>
+    <code class="language-elixir">  @ten_seconds :timer.seconds(10)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Example.Clusters</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def start_link(_args) do</code>
+    <code class="language-elixir">    GenServer.start_link(__MODULE__, :ok, name: via(:sync))</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  defp via(name), do: Example.Registry.via(name)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def init(:ok) do</code>
+    <code class="language-elixir">    Process.send_after(self(), :write, @one_second)</code>
+    <code class="language-elixir">    Process.send_after(self(), :query, @two_seconds)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    id = Atom.to_string(Node.self)</code>
+    <code class="language-elixir">    {:ok, %{id: id}}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_info(:write, state) do</code>
+    <code class="language-elixir">    Clusters.upsert_by(state)</code>
+    <code class="language-elixir">    {:noreply, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl GenServer</code>
+    <code class="language-elixir">  def handle_info(:query, state) do</code>
+    <code class="language-elixir">    %{:id => node} = state</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    Clusters.all()</code>
+    <code class="language-elixir">      |> Enum.map(&Map.from_struct(&1))</code>
+    <code class="language-elixir">      |> Enum.filter(fn (%{:id => id}) -> id != node end)</code>
+    <code class="language-elixir">      |> Enum.map(fn (%{:id => id}) -> String.to_atom(id) end)</code>
+    <code class="language-elixir">      |> Enum.map(&({&1, Node.ping(&1) == :pong}))</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    Process.send_after(self(), :query, @ten_seconds)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    {:noreply, state}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now when you run `docker-compose up --scale app=2` you should see 2 connected nodes that publish messages to each other and keep the cluster eventually consistent. Thanks for joining me on this epic adventure! Huge thanks to Chris Keathley and Ben Marx for the inspiration at Lonestar Elixir earlier this year!</p>
+
+<p>You can find the source code from my adventure on <a href="https://github.com/toranb/elixir-budget/commit/78c72dbff81468ffc80b8d29f3e56030cac771bc">github</a></p>
