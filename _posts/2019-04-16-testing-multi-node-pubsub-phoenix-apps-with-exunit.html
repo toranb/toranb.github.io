@@ -95,6 +95,8 @@ categories: blog archive
 
 <p>I still never found a solution or (more) practical workaround but after I post this I do plan to follow up with the open source maintainer to learn more about why this occurs and how we can fix it to unblock others who might follow.</p>
 
+<p>Update: I got word <a href="https://github.com/whitfin/local-cluster/issues/7#issuecomment-484890269">from Chris</a> shortly after posting this blog that running `epmd -daemon` from a cold boot will unlock distribution without the need for iex as mentioned above.</p>
+
 <h3>Configure ports</h3>
 
 <p>With local cluster functional I started to write the first test case that I hoped would offer fast feedback while I solved the distributed state issue. I borrowed heavily from an <a href="https://github.com/toranb/elixir-budget/blob/78c72dbff81468ffc80b8d29f3e56030cac771bc/app/test/example_web/authenticator_test.exs">existing</a> controller style test in the Phoenix application so I knew it should work without much hassle.</p>
