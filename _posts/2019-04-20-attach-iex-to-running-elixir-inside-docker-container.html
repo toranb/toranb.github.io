@@ -1,0 +1,117 @@
+---
+layout: post
+title: "Attach iex to running elixir inside docker container"
+date:   2019-04-20 18:00:00
+categories: blog archive
+---
+<p>I was troubleshooting an <a href="https://github.com/erlang/otp/blob/master/lib/stdlib/src/ets.erl">ets</a> lookup recently in my staging enviornment and realized I didn't know how to attach to a running Elixir application remotely. In this brief example I'll be using docker-compose to spin up 2 application nodes and attach with iex to inspect each node in realtime.</p>
+
+<h3>Docker</h3>
+
+<p>The <a href="https://github.com/toranb/elixir-budget/blob/pg2/docker-compose.yml">docker-compose</a> file declares a few services but the focus of this post will be the `app` you see at the very top.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">version: '2.2'</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">services:</code>
+    <code class="language-elixir">  app:</code>
+    <code class="language-elixir">    build:</code>
+    <code class="language-elixir">      context:  ./app</code>
+    <code class="language-elixir">      dockerfile: Dockerfile</code>
+    <code class="language-elixir">    depends_on:</code>
+    <code class="language-elixir">      postgres:</code>
+    <code class="language-elixir">        condition: service_healthy</code>
+    <code class="language-elixir">    env_file:</code>
+    <code class="language-elixir">      - .env</code>
+    <code class="language-elixir">    ports:</code>
+    <code class="language-elixir">      - 4000</code>
+    <code class="language-elixir">    entrypoint: ./entrypoint.sh</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  proxy:</code>
+    <code class="language-elixir">    build:</code>
+    <code class="language-elixir">      context:  ./nginx</code>
+    <code class="language-elixir">      dockerfile: Dockerfile</code>
+    <code class="language-elixir">    ports:</code>
+    <code class="language-elixir">      - 80:80</code>
+    <code class="language-elixir">    links:</code>
+    <code class="language-elixir">      - app</code>
+  </pre>
+</div>
+
+<p>The <a href="https://github.com/toranb/elixir-budget/blob/pg2/app/Dockerfile">dockerfile</a> for the application offers some insight into how I fetch and compile dependencies with mix at build time but the <a href="https://github.com/toranb/elixir-budget/blob/pg2/app/entrypoint.sh">entrypoint.sh</a> file you see declared in the docker-compose file shows how the <a href="https://github.com/phoenixframework/phoenix">Phoenix</a> application is started.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">#!/bin/bash</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">str=`date -Ins | md5sum`</code>
+    <code class="language-elixir">name=${str:0:10}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">mix run transform.exs</code>
+    <code class="language-elixir">mix phx.digest</code>
+    <code class="language-elixir">mix ecto.create</code>
+    <code class="language-elixir">mix ecto.migrate</code>
+    <code class="language-elixir">mix run priv/repo/seeds.exs</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">elixir --sname $name --cookie monster -S mix phx.server</code>
+  </pre>
+</div>
+
+<p>The last line in particular shows that we assign a name and cookie. This will be important later as we attempt to connect remotely.</p>
+
+<h3>Build and run docker</h3>
+
+<p>If you are new to <a href="https://docs.docker.com/install/">docker</a> you first need to build the application from the root of the project. Note: this might take a few minutes if you've not run docker before.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">docker-compose build</code>
+  </pre>
+</div>
+
+<p>Next you need to spin up the application nodes, postgres and nginx.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">docker-compose up --scale app=2</code>
+  </pre>
+</div>
+
+<p>After the application is up and running you can view a listing of all containers.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">docker ps</code>
+  </pre>
+</div>
+
+<h3>Connect to the container</h3>
+
+<p>Before we attach to the Elixir application with iex we need to get terminal access for a given node. The `docker ps` command will list out each running container and you should see 2 in particular prefixed with the name `example_app_`. Using the id value to the left of the name run the command below to get a bash prompt on the docker container.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">docker exec -it 3160c6 /bin/bash</code>
+  </pre>
+</div>
+
+<h3>Attach with iex</h3>
+
+<p>Once complete you now have a bash prompt on the docker container running your Elixir application. Next we need to get the `sname` of the running elixir session.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">ps aux | grep elixir</code>
+  </pre>
+</div>
+
+<p>From the output above you should see the random string value for `sname` that was used to launch `mix phx.server`. You will use this string as the first half of the `remsh` argument. The second half is the full id of the container itself and this should be visible on the bash prompt line. If not, open another terminal and run `docker ps` again to get the full id value. Note: cookie is require to match and without it you will see a connection refused message in the docker-compose output.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex --sname console --cookie monster --remsh c3f2473a1e@3160c633294f</code>
+  </pre>
+</div>
+
+<p>You can follow along using the docker-compose for my example on <a href="https://github.com/toranb/elixir-budget/tree/pg2">github</a></p>
