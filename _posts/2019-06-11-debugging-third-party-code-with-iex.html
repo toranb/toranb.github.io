@@ -1,0 +1,21 @@
+---
+layout: post
+title: "Debugging third party code with IEx"
+date:   2019-06-11 18:00:00
+categories: blog archive
+---
+<p>I was trying to inspect something in <a href="https://github.com/elixir-plug/plug/blob/master/lib/plug/conn.ex#L1352">Plug</a> recently and found that my intuition was completely off.</p>
+
+<h3>The problem</h3>
+
+<p>My JavaScript background tricked me into thinking I could simply open the dependency `deps/plug/lib/plug/conn.ex` and then add `IEx.pry` at any line number I wanted to debug. Imagine my surprise when I started up Phoenix with iex and the debugger didn't prompt me with the usual Y/n.</p>
+
+<p>Luckily debugging 3rd party code wasn't difficult to figure out. The radical shift from my JavaScript days is simply that you set breakpoints with IEx programatically instead.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">break! Plug.Conn.put_resp_cookie/4</code>
+  </pre>
+</div>
+
+<p>The example above shows how you would set a breakpoint to pause execution within IEx to debug the `put_resp_cookie` method inside of Plug.</p>
