@@ -1,0 +1,248 @@
+---
+layout: post
+title: "Generate JWT with Elixir for Google Cloud"
+date:   2019-07-04 18:00:00
+categories: blog archive
+---
+<p>If you prefer to skip the story and see the code you can find everything on <a href="https://github.com/toranb/speech-to-text/commit/1646baa60a764e42271c39991e6191258822fcb5">github</a></p>
+
+<h3>Text to Speech</h3>
+
+<p>I was writing my first text to speech implementation with <a href="https://cloud.google.com/text-to-speech/">google cloud</a> recently and found something interesting reading over the <a href="https://cloud.google.com/text-to-speech/docs/quickstart-protocol#synthesize_audio_from_text">curl example</a> in the documentation.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">curl -H "Authorization: Bearer $(gcloud auth application-default print-access-token)"</code>
+  </pre>
+</div>
+
+<blockquote>The command uses the gcloud auth application-default print-access-token command to retrieve an authorization token for the request.</blockquote>
+
+<p>This only works if you've installed the <a href="https://cloud.google.com/sdk/docs/">Google Cloud SDK</a> of course so I went ahead and installed it to see if I could get a simple "hello world" example running. The <a href="https://github.com/toranb/speech-to-text/blob/eadbee0e36aaf39d2a3c61cb42334c067c409ba2/lib/voice_web/controllers/page_controller.ex">first</a> Elixir application I put together used `System.cmd` to get an access token with the sdk and it worked as advertised.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule VoiceWeb.PageController do</code>
+    <code class="language-elixir">  use VoiceWeb, :controller</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def create(conn, _params) do</code>
+    <code class="language-elixir">    url = "https://texttospeech.googleapis.com/v1/text:synthesize"</code>
+    <code class="language-elixir">    token = get_token()</code>
+    <code class="language-elixir">    params = get_params()</code>
+    <code class="language-elixir">    %HTTPoison.Response{body: body} = post(url, token, params)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    %{"audioContent" => audio} =</code>
+    <code class="language-elixir">      body</code>
+    <code class="language-elixir">      |> Poison.decode!</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    json(conn, %{audio: audio})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def post(url, token, body) do</code>
+    <code class="language-elixir">    headers = [</code>
+    <code class="language-elixir">      {"Authorization", "Bearer #{token}"},</code>
+    <code class="language-elixir">      {"Content-Type", "application/json; charset=utf-8"}</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    HTTPoison.post!(url, body, headers)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def get_token() do</code>
+    <code class="language-elixir">    {token, _} = System.cmd("gcloud", ["auth", "application-default", "print-access-token"])</code>
+    <code class="language-elixir">    String.slice(token, 0..-2)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def get_params() do</code>
+    <code class="language-elixir">    body = %{}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    body</code>
+    <code class="language-elixir">    |> Poison.encode!</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Reversing with Charles Proxy</h3>
+
+<p>And while this worked well enough for my proof of concept I started to think more about deployment and knew it wasn't ideal to require this command line sdk in production. From my experience reversing apis for mobile development years ago I remembered that <a href="https://www.charlesproxy.com/">Charles Proxy</a> could provide further insight by showing any outbound network request from my machine.</p>
+
+<img style="width: 100%;" src="/content/images/2019/tokenoverview.png" border="0">
+
+<p>After I configured <a href="https://www.charlesproxy.com/documentation/proxying/ssl-proxying/">SSL Proxying</a> it was easy to see the sdk was making a POST request with 2 parameters and the response contained an access token. The first parameter was a static value for `grant_type` but the other labeled `assertion` was more interesting.</p>
+
+<img style="width: 100%;" src="/content/images/2019/tokencontents.png" border="0">
+
+<h3>Making sense of the JWT</h3>
+
+<p>It turns out this `assertion` parameter was a <a href="https://jwt.io/">JSON Web Token</a> or JWT for short. To properly generate and sign one ourselves we would first need to pull apart the JWT shown in Charles Proxy.</p>
+
+<p>You can use use the JWT <a href="https://jwt.io/">website</a> to decode it but because I wanted to keep the details of this JWT private I decided to use the nodeJS library <a href="https://github.com/auth0/jwt-decode">jwt decode</a>. To get started simply `npm install jwt-decode` and use it like you would any other node dependency. In this instance I've opted to clone it directly and read the <a href="https://github.com/auth0/jwt-decode/blob/master/lib/index.js">source code</a> first to learn about how it extracts the header and body of the JWT.</p>
+
+<p>note: You could also <a href="https://github.com/joken-elixir/joken/blob/c708ed65f85574755f5c55d3e1419cf1dadb0134/lib/joken.ex#L133">decode</a> this token with Elixir using <a href="https://elixirschool.com/blog/jwt-auth-with-joken/">JOSE</a> but I'll leave that as an exercise for the reader.</p>
+
+<p>The JWT header includes 3 different key/value pairs that will be required when we generate a token ourselves in just a few moments. The one dynamic value here worth mentioning is `kid` and you will find this in the JSON file from google under the key `private_key_id`</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">{ alg: 'RS256',</code>
+    <code class="language-elixir">  kid: 'gybvpalazzkk5pudd3yweme8jrh9ai5dnqsvwx',</code>
+    <code class="language-elixir">  typ: 'JWT' }</code>
+  </pre>
+</div>
+
+<p>The JWT body includes 6 different key/value pairs that will be required but luckily only 1 of these is dynamic. The `iss` value can be found in the JSON file from google under the key `client_email`.
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">{ aud: 'https://www.googleapis.com/oauth2/v4/token',</code>
+    <code class="language-elixir">  exp: 1561386062,</code>
+    <code class="language-elixir">  iat: 1561382462,</code>
+    <code class="language-elixir">  iss: 'example@example-123456.iam.gserviceaccount.com',</code>
+    <code class="language-elixir">  jti: 'vwxlt9efnmi2hi2ef38jnkp2e3',</code>
+    <code class="language-elixir">  nbf: 1357323219,</code>
+  </pre>
+</div>
+
+<p>For a detailed explanation of each key/value be sure to read the <a href="https://developers.google.com/identity/protocols/OAuth2ServiceAccount#jwt-auth">JWT auth documentation</a> from google. Also, if you plan to follow this integration yourself you will need to create a <a href="https://cloud.google.com/iam/docs/creating-managing-service-accounts">service account</a> with google to generate the JSON file I reference throughout.</p>
+
+<h3>Joken</h3>
+
+<p>Now that we know the details of this JWT all that remains is the Elixir code to generate and sign it with our private key. To do the heavy lifting I'll be using the Elixir library <a href="https://github.com/joken-elixir/joken">Joken</a>.</p>
+
+<p>We start with `create` from the `Joken.Signer` module and explicitly set the first argument to `RS256` because earlier we saw the header had a key `alg` with the value `RS256`. We also set the `pem` using our `private_key`, found in the JSON file from google, to properly sign the token.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def generate_jwt do</code>
+    <code class="language-elixir">  extra_claims = %{</code>
+    <code class="language-elixir">    "iss" => iss(),</code>
+    <code class="language-elixir">    "scope" => "https://www.googleapis.com/auth/cloud-platform",</code>
+    <code class="language-elixir">    "aud" => "https://www.googleapis.com/oauth2/v4/token"</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir">  signer = Joken.Signer.create("RS256", %{"pem" => pem()}, %{"kid" => kid()})</code>
+    <code class="language-elixir">  VoiceWeb.Auth.Token.generate_and_sign!(extra_claims, signer)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>note: the iss, pem and kid functions above return the environment variable(s) associated. The <a href="https://github.com/toranb/speech-to-text/blob/1646baa60a764e42271c39991e6191258822fcb5/lib/voice_web/auth/google.ex">full source</a> is available on github if you want the details.</p>
+
+<p>Next add a `Token` module and implement the `token_config` function to set the `default_exp` at 1 hour. Without this configuration Joken will <a href="https://github.com/joken-elixir/joken/blob/0a8a28a4cc6508f2023e96c22e10146e2766a1a0/lib/joken/config.ex#L253">default</a> the expiration at 2 hours and any request with an expiration &gt; 1 hour results in an error from google.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule VoiceWeb.Auth.Token do</code>
+    <code class="language-elixir">  use Joken.Config</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @impl true</code>
+    <code class="language-elixir">  def token_config do</code>
+    <code class="language-elixir">    default_claims(default_exp: 3600)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>With a correctly signed JWT we can make a request to google for an access token just like the sdk was previously.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule VoiceWeb.Auth.Google do</code>
+    <code class="language-elixir">  def get_token() do</code>
+    <code class="language-elixir">    jwt = generate_jwt()</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    params = %{</code>
+    <code class="language-elixir">      assertion: jwt,</code>
+    <code class="language-elixir">      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer"</code>
+    <code class="language-elixir">    }</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    url = "https://www.googleapis.com/oauth2/v4/token"</code>
+    <code class="language-elixir">    response = post(url, params)</code>
+    <code class="language-elixir">    parse_access_token(response)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def post(url, params) do</code>
+    <code class="language-elixir">    headers = [</code>
+    <code class="language-elixir">      {"Content-Type", "application/x-www-form-urlencoded"}</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    HTTPoison.post!(url, URI.encode_query(params), headers)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def parse_access_token(%HTTPoison.Response{body: body}) do</code>
+    <code class="language-elixir">    %{"access_token" => token} =</code>
+    <code class="language-elixir">      body</code>
+    <code class="language-elixir">      |> Poison.decode!()</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    token</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def generate_jwt do</code>
+    <code class="language-elixir">    extra_claims = %{</code>
+    <code class="language-elixir">      "iss" => iss(),</code>
+    <code class="language-elixir">      "scope" => "https://www.googleapis.com/auth/cloud-platform",</code>
+    <code class="language-elixir">      "aud" => "https://www.googleapis.com/oauth2/v4/token"</code>
+    <code class="language-elixir">    }</code>
+    <code class="language-elixir">    signer = Joken.Signer.create("RS256", %{"pem" => pem()}, %{"kid" => kid()})</code>
+    <code class="language-elixir">    VoiceWeb.Auth.Token.generate_and_sign!(extra_claims, signer)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def iss do</code>
+    <code class="language-elixir">    System.get_env("GOOGLE_CLIENT_EMAIL")</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def kid do</code>
+    <code class="language-elixir">    System.get_env("GOOGLE_PRIVATE_KEY_ID")</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def pem do</code>
+    <code class="language-elixir">    System.get_env("GOOGLE_PRIVATE_KEY")</code>
+    <code class="language-elixir">    |> String.replace(~r/\\n/, "\n")</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The last step is to remove `System.cmd` from the <a href="https://github.com/toranb/speech-to-text/blob/1646baa60a764e42271c39991e6191258822fcb5/lib/voice_web/controllers/page_controller.ex">controller</a> and use this new module to fetch the access token.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule VoiceWeb.PageController do</code>
+    <code class="language-elixir">  use VoiceWeb, :controller</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias VoiceWeb.Auth.Google</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def create(conn, _params) do</code>
+    <code class="language-elixir">    url = "https://texttospeech.googleapis.com/v1/text:synthesize"</code>
+    <code class="language-elixir">    token = Google.get_token()</code>
+    <code class="language-elixir">    params = get_params()</code>
+    <code class="language-elixir">    %HTTPoison.Response{body: body} = post(url, token, params)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    %{"audioContent" => audio} =</code>
+    <code class="language-elixir">      body</code>
+    <code class="language-elixir">      |> Poison.decode!</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    json(conn, %{audio: audio})</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def post(url, token, body) do</code>
+    <code class="language-elixir">    headers = [</code>
+    <code class="language-elixir">      {"Authorization", "Bearer #{token}"},</code>
+    <code class="language-elixir">      {"Content-Type", "application/json; charset=utf-8"}</code>
+    <code class="language-elixir">    ]</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    HTTPoison.post!(url, body, headers)</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  def get_params() do</code>
+    <code class="language-elixir">    body = %{}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    body</code>
+    <code class="language-elixir">    |> Poison.encode!</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>If you are asking yourself why I hand crafted a solution instead of using a standard client from google ... in my defense the text to speech website didn't list anything for Elixir specifically. Some time later a friend did point me toward an early <a href="https://github.com/googleapis/elixir-google-api/tree/master/clients/text_to_speech">beta client</a> that seems to be in the wild for those interested.</p>
+
+<p>You can find the source code from my adventure on <a href="https://github.com/toranb/speech-to-text/commit/1646baa60a764e42271c39991e6191258822fcb5">github</a>.</p>
