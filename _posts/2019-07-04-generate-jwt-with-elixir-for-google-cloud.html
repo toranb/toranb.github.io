@@ -8,7 +8,7 @@ categories: blog archive
 
 <h3>Text to Speech</h3>
 
-<p>I was writing my first text to speech implementation with <a href="https://cloud.google.com/text-to-speech/">google cloud</a> recently and found something interesting reading over the <a href="https://cloud.google.com/text-to-speech/docs/quickstart-protocol#synthesize_audio_from_text">curl example</a> in the documentation.</p>
+<p>I was writing my first text to speech implementation with <a href="https://cloud.google.com/text-to-speech/">google cloud</a> recently and found something interesting reading through the <a href="https://cloud.google.com/text-to-speech/docs/quickstart-protocol">documentation.</a></p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -18,7 +18,7 @@ categories: blog archive
 
 <blockquote>The command uses the gcloud auth application-default print-access-token command to retrieve an authorization token for the request.</blockquote>
 
-<p>This only works if you've installed the <a href="https://cloud.google.com/sdk/docs/">Google Cloud SDK</a> of course so I went ahead and installed it to see if I could get a simple "hello world" example running. The <a href="https://github.com/toranb/speech-to-text/blob/eadbee0e36aaf39d2a3c61cb42334c067c409ba2/lib/voice_web/controllers/page_controller.ex">first</a> Elixir application I put together used `System.cmd` to get an access token with the sdk and it worked as advertised.</p>
+<p>This only works if you've installed the <a href="https://cloud.google.com/sdk/docs/">Google Cloud SDK</a> of course so I went ahead and installed it to see if I could get a simple "hello world" example put together. The first working <a href="https://github.com/toranb/speech-to-text/blob/eadbee0e36aaf39d2a3c61cb42334c067c409ba2/lib/voice_web/controllers/page_controller.ex">prototype</a> used `System.cmd` to get an access token with the sdk just like the <a href="https://cloud.google.com/text-to-speech/docs/quickstart-protocol#synthesize_audio_from_text">curl example</a> from the documentation.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -64,7 +64,7 @@ categories: blog archive
 
 <h3>Reversing with Charles Proxy</h3>
 
-<p>And while this worked well enough for my proof of concept I started to think more about deployment and knew it wasn't ideal to require this command line sdk in production. From my experience reversing apis for mobile development years ago I remembered that <a href="https://www.charlesproxy.com/">Charles Proxy</a> could provide further insight by showing any outbound network request from my machine.</p>
+<p>While this worked well enough for my proof of concept I started to think more about deployment and knew it wasn't ideal to require the command line sdk in production. From my experience reversing apis for mobile development years ago I remembered that <a href="https://www.charlesproxy.com/">Charles Proxy</a> could provide further insight by showing any outbound network request from my machine.</p>
 
 <img style="width: 100%;" src="/content/images/2019/tokenoverview.png" border="0">
 
@@ -74,13 +74,13 @@ categories: blog archive
 
 <h3>Making sense of the JWT</h3>
 
-<p>It turns out this `assertion` parameter was a <a href="https://jwt.io/">JSON Web Token</a> or JWT for short. To properly generate and sign one ourselves we would first need to pull apart the JWT shown in Charles Proxy.</p>
+<p>It turns out this `assertion` parameter was a <a href="https://jwt.io/introduction/">JSON Web Token</a> or JWT for short. To properly generate and sign one ourselves we first need to pull apart the JWT shown in Charles Proxy.</p>
 
-<p>You can use use the JWT <a href="https://jwt.io/">website</a> to decode it but because I wanted to keep the details of this JWT private I decided to use the nodeJS library <a href="https://github.com/auth0/jwt-decode">jwt decode</a>. To get started simply `npm install jwt-decode` and use it like you would any other node dependency. In this instance I've opted to clone it directly and read the <a href="https://github.com/auth0/jwt-decode/blob/master/lib/index.js">source code</a> first to learn about how it extracts the header and body of the JWT.</p>
+<p>Any number of tools can decode this JWT so choose from the ecosystem you are most comfortable and take my recommendations with a grain of salt. I'll share a few of the options I had success with but at the end of the day deconstructing this JWT is more important than any specific technology used in the process.</p>
 
-<p>note: You could also <a href="https://github.com/joken-elixir/joken/blob/c708ed65f85574755f5c55d3e1419cf1dadb0134/lib/joken.ex#L133">decode</a> this token with Elixir using <a href="https://elixirschool.com/blog/jwt-auth-with-joken/">JOSE</a> but I'll leave that as an exercise for the reader.</p>
+<p>When privacy is less important the JWT <a href="https://jwt.io/">website</a> offers an easy way to decode it. If you prefer not to share the details of this JWT and you are familiar with the nodeJS ecosystem you might give the <a href="https://github.com/auth0/jwt-decode">jwt decode</a> package a try. And finally, if you are an Elixir purist you can <a href="https://github.com/joken-elixir/joken/blob/c708ed65f85574755f5c55d3e1419cf1dadb0134/lib/joken.ex#L133">decode</a> this token with <a href="https://elixirschool.com/blog/jwt-auth-with-joken/">JOSE</a>.</p>
 
-<p>The JWT header includes 3 different key/value pairs that will be required when we generate a token ourselves in just a few moments. The one dynamic value here worth mentioning is `kid` and you will find this in the JSON file from google under the key `private_key_id`</p>
+<p>The JWT header includes 3 different key/value pairs that will be required when we generate a token ourselves in just a few moments. The one dynamic value here worth mentioning is `kid` and you will find this in the JSON file from google under the key `private_key_id` (more details about this JSON file below)</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -125,7 +125,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>note: the iss, pem and kid functions above return the environment variable(s) associated. The <a href="https://github.com/toranb/speech-to-text/blob/1646baa60a764e42271c39991e6191258822fcb5/lib/voice_web/auth/google.ex">full source</a> is available on github if you want the details.</p>
+<p>note: the iss, pem and kid functions above return the environment variable(s) associated. The <a href="https://github.com/toranb/speech-to-text/blob/1646baa60a764e42271c39991e6191258822fcb5/lib/voice_web/auth/google.ex">full source</a> is available on github if you want more detail.</p>
 
 <p>Next add a `Token` module and implement the `token_config` function to set the `default_exp` at 1 hour. Without this configuration Joken will <a href="https://github.com/joken-elixir/joken/blob/0a8a28a4cc6508f2023e96c22e10146e2766a1a0/lib/joken/config.ex#L253">default</a> the expiration at 2 hours and any request with an expiration &gt; 1 hour results in an error from google.</p>
 
@@ -142,7 +142,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>With a correctly signed JWT we can make a request to google for an access token just like the sdk was previously.</p>
+<p>With a correctly signed JWT we can make a request to google for an access token just like the sdk did previously.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
