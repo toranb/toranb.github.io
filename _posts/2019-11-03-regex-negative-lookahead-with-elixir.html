@@ -1,0 +1,219 @@
+---
+layout: post
+title: "Regex negative lookahead with Elixir"
+date:   2019-11-03 18:00:00
+categories: blog archive
+---
+
+<p>Anytime I need to use <a href="https://hexdocs.pm/elixir/master/Regex.html">Regex</a> for something I find myself looking for examples and often the <a href="https://elixir-lang.org/">Elixir</a> specific results are slim to none for intermediate or advanced topics. So when I stumbled into a problem recently that required a <a href="https://www.regular-expressions.info/lookaround.html">negative lookahead</a>, or lookbehind as it's called in some programming communities, I decided it was the perfect opportunity to share a few of the highlights.</p>
+
+<p>If you prefer to skip the story and see the code you can find everything on <a href="https://github.com/toranb/elixir-regex-example/commits/master">github</a></p>
+
+<h3>The problem</h3>
+
+<p>Before we dive into the <a href="https://en.wikipedia.org/wiki/Regular_expression">regular expression</a> code I first wanted to outline the problem I had planned to solve. The <a href="https://github.com/toranb/elixir-regex-example/blob/d8ce4c6fc3510a4d4037ed09e5e2818490c4fa22/test/regexx/username_test.exs">tests</a> below describe a program that looks through a list of usernames and suggests an alternative when the desired username is already in use.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Regexx.UsernameTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Regexx.Username</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @username "foobarbaz"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "returns original username when all usernames is empty list" do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      []</code>
+    <code class="language-elixir">      |> Username.suggest(@username)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert possible_username == @username</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "returns alternative when username found in all usernames list" do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      [@username]</code>
+    <code class="language-elixir">      |> Username.suggest(@username)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert possible_username == "#{@username}-1"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "returns alternative when both first and second options are taken" do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      ["zipzapzoom", @username, "#{@username}-1"]</code>
+    <code class="language-elixir">      |> Username.suggest(@username)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert possible_username == "#{@username}-2"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The <a href="https://github.com/toranb/elixir-regex-example/blob/d8ce4c6fc3510a4d4037ed09e5e2818490c4fa22/lib/regexx/username.ex">solution</a> I put together enumerates the list of all usernames and if the desired username is found I use recursion to suggest another.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Regexx.Username do</code>
+    <code class="language-elixir">  def suggest(all_usernames, username, suffix \\ 0) do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      if suffix > 0 do</code>
+    <code class="language-elixir">        "#{username}-" <> Integer.to_string(suffix)</code>
+    <code class="language-elixir">      else</code>
+    <code class="language-elixir">        username</code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    already_exists =</code>
+    <code class="language-elixir">      all_usernames</code>
+    <code class="language-elixir">      |> Enum.find(fn existing -> existing == possible_username end)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    if already_exists == nil do</code>
+    <code class="language-elixir">      possible_username</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      suggest(all_usernames, username, suffix + 1)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Negative Lookahead</h3>
+
+<p>The first edge case I found with this <a href="https://github.com/toranb/elixir-regex-example/blob/60375a01a3ae1d51c67b39b458839251c3d55a6f/test/regexx/username_test.exs#L40">test</a> exposed that when a username already had a suffix of `-integer` the program would fail to identify it returning an incorrect username.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Regexx.UsernameTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Regexx.Username</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @username "foobarbaz"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "returns alternative username when original ends with numeric suffix" do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      ["zipzapzoom", "#{@username}-998"]</code>
+    <code class="language-elixir">      |> Username.suggest("#{@username}-998")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert possible_username == "#{@username}-999"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The solve this I chose to reach for <a href="https://hexdocs.pm/elixir/1.0.5/Regex.html#named_captures/3">Regex.named_captures</a> because it offered a great way to both conditionally check if username had a suffix and return a match when it did. If the username did have a suffix of some kind it was important to find and replace it properly.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Regexx.Username do</code>
+    <code class="language-elixir">  def suggest(all_usernames, username, suffix \\ 0) do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      if suffix > 0 do</code>
+    <code class="language-elixir">        case Regex.named_captures(~r/.*-(?<suffix>.*[0-9])$/, username) do</code>
+    <code class="language-elixir">          nil -></code>
+    <code class="language-elixir">            "#{username}-" <> Integer.to_string(suffix)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">          %{"suffix" => previous} -></code>
+    <code class="language-elixir">            previous_number = previous |> String.to_integer()</code>
+    <code class="language-elixir">            next_number = previous_number + suffix</code>
+    <code class="language-elixir">            Regex.replace(~r/#{previous}(?!.*#{previous})/, username, "\\1") <> "#{next_number}"</code>
+    <code class="language-elixir">        end</code>
+    <code class="language-elixir">      else</code>
+    <code class="language-elixir">        username</code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    already_exists =</code>
+    <code class="language-elixir">      all_usernames</code>
+    <code class="language-elixir">      |> Enum.find(fn existing -> existing == possible_username end)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    if already_exists == nil do</code>
+    <code class="language-elixir">      possible_username</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      suggest(all_usernames, username, suffix + 1)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The <a href="https://github.com/toranb/elixir-regex-example/blob/58bdbac130da71d3ff208012cd8fed32ba24fe51/lib/regexx/username.ex">solution</a> I landed on with <a href="https://hexdocs.pm/elixir/1.0.5/Regex.html#replace/4">Regex.replace</a> can seem a little obscure if you are regex illiterate like me so here is another way of looking at it.</p>
+
+<blockquote>Regex.replace(~r/998(?!.*998)/, foobarbaz-998, "\\1") <> 999</blockquote>
+
+<p>The regular expression `998(?!.*998)` indicates a negative lookahead for the number `998`. The direction of this lookaround is intentional to ensure the program will match and replace the number `998` found only at the end of username.</p>
+
+<img style="width: 100%;" src="/content/images/2019/regex998.png" border="0">
+
+<h3>String.match</h3>
+
+<p>The next edge case I found with this <a href="https://github.com/toranb/elixir-regex-example/blob/e863495c7584400007f61c29c4b099c2f4d20518/test/regexx/username_test.exs#L64">test</a> exposed that when a username ends with a dash but no integer we fail to properly suggest an alternative.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Regexx.UsernameTest do</code>
+    <code class="language-elixir">  use ExUnit.Case, async: false</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  alias Regexx.Username</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  @username "foobarbaz"</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  test "returns alternative username when original ends with dash but no integer" do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      ["#{@username}-"]</code>
+    <code class="language-elixir">      |> Username.suggest("#{@username}-")</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    assert possible_username == "#{@username}-1"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>I decided to use <a href="https://hexdocs.pm/elixir/String.html#match?/2">String.match</a> for this problem because you can pass the function a pattern and have the regular expression do the heavy lifting.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule Regexx.Username do</code>
+    <code class="language-elixir">  def suggest(all_usernames, username, suffix \\ 0) do</code>
+    <code class="language-elixir">    possible_username =</code>
+    <code class="language-elixir">      if suffix > 0 do</code>
+    <code class="language-elixir">        case Regex.named_captures(~r/.*-(?<suffix>.*[0-9])$/, username) do</code>
+    <code class="language-elixir">          nil -></code>
+    <code class="language-elixir">            case String.match?(username, ~r/.*-$/) do</code>
+    <code class="language-elixir">              false -></code>
+    <code class="language-elixir">                "#{username}-" <> Integer.to_string(suffix)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">              true -></code>
+    <code class="language-elixir">                Regex.replace(~r/-(?!.*-)/, username, "\\1") <> "-#{suffix}"</code>
+    <code class="language-elixir">            end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">          %{"suffix" => previous} -></code>
+    <code class="language-elixir">            previous_number = previous |> String.to_integer()</code>
+    <code class="language-elixir">            next_number = previous_number + suffix</code>
+    <code class="language-elixir">            Regex.replace(~r/#{previous}(?!.*#{previous})/, username, "\\1") <> "#{next_number}"</code>
+    <code class="language-elixir">        end</code>
+    <code class="language-elixir">      else</code>
+    <code class="language-elixir">        username</code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    already_exists =</code>
+    <code class="language-elixir">      all_usernames</code>
+    <code class="language-elixir">      |> Enum.find(fn existing -> existing == possible_username end)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    if already_exists == nil do</code>
+    <code class="language-elixir">      possible_username</code>
+    <code class="language-elixir">    else</code>
+    <code class="language-elixir">      suggest(all_usernames, username, suffix + 1)</code>
+    <code class="language-elixir">    end</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The final <a href="https://github.com/toranb/elixir-regex-example/blob/e863495c7584400007f61c29c4b099c2f4d20518/lib/regexx/username.ex">solution</a> properly handles this odd suffix ending with dash by using another negative lookahead.</p>
+
+<blockquote>Regex.replace(~r/-(?!.*-)/, foobarbaz-, "\\1") <> -1</blockquote>
+
+<p>This time around we search for a dash at the end of username to replace it with `-1` before finally returning the correct alternative `foobarbaz-1`</p>
+
+<img style="width: 100%;" src="/content/images/2019/regexdash.png" border="0">
+
+<p>The images above that show a visual match of each regex are freely available at <a href="https://regex101.com/">Regular Expressions 101</a> so be sure to check that site out if you want to experiment more with your own regular expressions. The source code for my Elixir adventure can be found on <a href="https://github.com/toranb/elixir-regex-example/commits/master">github</a></p>
