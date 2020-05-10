@@ -1,0 +1,32 @@
+---
+layout: post
+title: "Phoenix LiveView Process State"
+date:   2020-05-09 18:00:00
+categories: blog archive
+---
+
+<p>I've been playing around with <a href="https://www.phoenixframework.org/blog/build-a-real-time-twitter-clone-in-15-minutes-with-live-view-and-phoenix-1-5">Phoenix LiveView</a> off and on the last year and recently a good friend of mine started building a production app with it. One of his first questions as a new Elixir developer was simply "how can I view the state of my live view?" so I thought to capture the steps necessary in a quick blog post for anyone who might be asking the very same question.</p>
+
+<p>First you need to get the <a href="https://stackoverflow.com/questions/243363/can-someone-explain-the-structure-of-a-pid-process-identifier-in-erlang">pid</a> of the live view process. I did this from the mount function of my live view as shown below using `IO.inspect`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule TodoWeb.PageLive do</code>
+    <code class="language-elixir">  @impl true</code>
+    <code class="language-elixir">  def mount(_params, _session, socket) do</code>
+    <code class="language-elixir">    if connected?(socket), do: self() |> IO.inspect(label: "pid")</code>
+    <code class="language-elixir">    {:ok, socket}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next, spin up the Phoenix server with iex so we can interact with the <a href="https://elixir-lang.org/getting-started/introduction.html">REPL</a>.</p>
+
+<blockquote>iex -S mix phx.server</blockquote>
+
+<p>Finally, visit the live view route to execute `mount` and get the pid value. We now have everything required to inspect the state of the LiveView process.</p>
+
+<blockquote>:sys.get_state(pid(0,1234,0))</blockquote>
+
+<p>I put together a Todo MVC <a href="https://github.com/toranb/phoenix-live-view-todomvc">example</a> heavily components driven for anyone who might be Elixir and LiveView curious but coming from a React/Vue/Ember/Angular background.</p>
