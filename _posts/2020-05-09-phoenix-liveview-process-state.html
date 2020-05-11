@@ -5,7 +5,7 @@ date:   2020-05-09 18:00:00
 categories: blog archive
 ---
 
-<p>I've been playing around with <a href="https://www.phoenixframework.org/blog/build-a-real-time-twitter-clone-in-15-minutes-with-live-view-and-phoenix-1-5">Phoenix LiveView</a> off and on the last year and recently a good friend of mine started building a production app with it. One of his first questions as a new Elixir developer was simply "how can I view the state of my live view?" so I thought to capture the steps necessary in a quick blog post for anyone who might be asking the very same question.</p>
+<p>I've been playing around with <a href="https://www.phoenixframework.org/blog/build-a-real-time-twitter-clone-in-15-minutes-with-live-view-and-phoenix-1-5">Phoenix LiveView</a> off and on the last year and recently a good friend of mine started building a production app with it. One of his first questions as a new Elixir developer was simply "how can I get the state of my live view?" so I thought to capture the steps in a short blog post for anyone who might be asking the very same question.</p>
 
 <p>First you need to get the <a href="https://stackoverflow.com/questions/243363/can-someone-explain-the-structure-of-a-pid-process-identifier-in-erlang">pid</a> of the live view process. I did this from the mount function of my live view as shown below using `IO.inspect`.</p>
 
