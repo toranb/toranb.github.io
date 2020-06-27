@@ -1,0 +1,337 @@
+---
+layout: post
+title: "Cookie Authentication with Phoenix LiveView"
+date:   2020-06-26 18:00:00
+categories: blog archive
+---
+
+<p>When I started learning <a href="https://elixir-lang.org/">Elixir</a> a few years ago I built a <a href="https://github.com/toranb/elixir-match">multiplayer game</a> for the iPad using <a href="https://www.phoenixframework.org/">Phoenix</a>. The game had a fairly minimal authentication requirement so I looked around at some of the popular open source libraries available but ultimatly I decided to write something myself to get experience with the language and ecosystem.</p>
+
+<p>Earlier this year I started getting more serious about <a href="https://www.phoenixframework.org/blog/build-a-real-time-twitter-clone-in-15-minutes-with-live-view-and-phoenix-1-5">Phoenix LiveView</a> and quickly discovered login forms present a unique challenge because <a href="https://github.com/toranb/elixir-match/blob/3cfe1f75cef401ef5c6b7dd72ebb6e99e90629ea/app/lib/match_web/controllers/session_controller.ex#L29-L31">Plug.Conn.put_session</a> isn't available from any `handle_event` callback. This was an important detail because <a href="https://toranbillups.com/blog/archive/2018/11/18/implementing-basic-authentication/">my first</a> <a href="https://github.com/toranb/elixir-match/blob/3cfe1f75cef401ef5c6b7dd72ebb6e99e90629ea/app/lib/match_web/router.ex#L24">plug pipeline</a> used <a href="https://github.com/toranb/elixir-match/blob/3cfe1f75cef401ef5c6b7dd72ebb6e99e90629ea/app/lib/match_web/controllers/session_controller.ex#L30">Plug.Conn.put_session</a> to signal that the user had been authenticated.</p>
+
+<p>Like any challenging technical problem I decided to get creative and come up with something that would unlock this for my needs and potentially the needs of others who might be searching for answers like I was recently.</p>
+
+<p>TL;DR If you prefer to skip the story all the relevant code is available on <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/commit/863e3c3b7cf4f2a0230c4f036d8a10183adcdc5b">github</a></p>
+
+<h3>Cookies</h3>
+
+<p>Before I begin writing about the LiveView solution I need to share some about how Phoenix identifies the user for a given web request. By default the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/endpoint.ex">Endpoint</a> in your Phoenix application includes <a href="https://hexdocs.pm/plug/Plug.Session.html">Plug.Session</a> configured to use the <a href="https://hexdocs.pm/plug/Plug.Session.COOKIE.html">cookie session store</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">defmodule ShopWeb.Endpoint do</code>
+    <code class="language-elixir">  use Phoenix.Endpoint, otp_app: :shop</code>
+    <code class="language-elixir">  </code>
+    <code class="language-elixir">  # The session will be stored in the cookie and signed,</code>
+    <code class="language-elixir">  # this means its contents can be read but not tampered with.</code>
+    <code class="language-elixir">  # Set :encryption_salt if you would also like to encrypt it.</code>
+    <code class="language-elixir">  @session_options [</code>
+    <code class="language-elixir">    store: :cookie,</code>
+    <code class="language-elixir">    key: "_shop_key",</code>
+    <code class="language-elixir">    signing_salt: "bWk6pxHd"</code>
+    <code class="language-elixir">  ]</code>
+    <code class="language-elixir">  </code>
+    <code class="language-elixir">  plug Plug.Session, @session_options</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>To see this in action spin up the server with iex and make a request to localhost.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">iex -S mix phx.server</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">curl http://localhost:4000 --verbose</code>
+  </pre>
+</div>
+
+<p>Using the `verbose` flag with curl I saw the response from Phoenix includes a <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie">Set-Cookie</a> header.</p>
+
+<blockquote>The Set-Cookie HTTP response header is used to send cookies from the server to the user agent, so the user agent can send them back to the server later. -MDN Web Docs</blockquote>
+
+<p>For <a href="https://baekdal.com/thoughts/the-original-cookie-specification-from-1997-was-gdpr-compliant/">better or worse</a> this cookie is all that's needed to identify the user's session. Now that I understood where this cookie originated from, my attention quickly shifted to decoding the value so I could make sense of it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">set-cookie: _shop_key=SFMyNTY.g3QAAAABbQAAAAtfY3NyZl90b2tlbm0AAAAYZFRuNUtQMkJ5YWtKT1JnWUtCeXhmNmdP.l0T3G-i8I5dMwz7lEZnQAeK_WeqEZTxcDeyNY2poz_M; path=/; HttpOnly </code>
+  </pre>
+</div>
+
+<p>I found a great in depth blog post on <a href="https://bitcrowd.dev/decoding-phoenix-session-cookies">decoding Phoenix session cookies</a> and the TL;DR looks something like this.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">set_cookie = "SFMyNTY.g3QAAAABbQAAAAtfY3NyZl90b2tlbm0AAAAYZFRuNUtQMkJ5YWtKT1JnWUtCeXhmNmdP.l0T3G-i8I5dMwz7lEZnQAeK_WeqEZTxcDeyNY2poz_M"</code>
+    <code class="language-elixir">[_, payload, _] = String.split(set_cookie, ".", parts: 3)</code>
+    <code class="language-elixir">{:ok, encoded_term } = Base.url_decode64(payload, padding: false)</code>
+    <code class="language-elixir">:erlang.binary_to_term(encoded_term)</code>
+  </pre>
+</div>
+
+<p>For the initial request I found the value only contained a <a href="https://developer.mozilla.org/en-US/docs/Glossary/CSRF">CSRF</a> token.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">%{"_csrf_token" => "GadhekDDOc28OZVc3tOfzQ=="}</code>
+  </pre>
+</div>
+
+<p>After I got my head around all the moving parts I quickly started searching for ways to alter this cookie so that I could identify the session for each incoming request.</p>
+
+<h3>Server Rendered Authentication</h3>
+
+<p>Adding data to the cookie is simple with `Plug.Conn.put_session` because the session store is configured for this by default with Phoenix.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">conn |> put_session(:user_id, id)</code>
+  </pre>
+</div>
+
+<p>With a traditional server rendered app I would verify username/password in the POST controller action for <a href="https://github.com/toranb/elixir-match/blob/master/app/lib/match_web/controllers/session_controller.ex#L23-L32">login</a>. When the username/password was correct I'd insert something to identify the user.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">case Login.authenticate_user(username, password) do</code>
+    <code class="language-elixir">  nil -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> put_flash(:error, "incorrect username or password")</code>
+    <code class="language-elixir">    |> render("fail.html")</code>
+    <code class="language-elixir">  id -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> put_session(:user_id, id)</code>
+    <code class="language-elixir">    |> redirect(to: some_path)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<blockquote>Note: relying on the user id like this should be considered nieve and exists solely for the purpose of illustrating the life cycle of the request for authentication at it's most basic level.</blockquote>
+
+<p>With this user id in the cookie I was then able to write a <a href="https://github.com/toranb/elixir-match/blob/master/app/lib/match_web/authenticator.ex">plug</a> that would look to see if any user id was present and if so, I would add it to `conn` for consistent use throughout the request life cycle.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">case get_session(conn, :user_id) do</code>
+    <code class="language-elixir">  nil -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  id -></code>
+    <code class="language-elixir">    assign(conn, :current_user_id, id)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next I constructed a <a href="https://github.com/toranb/elixir-match/blob/master/app/lib/match_web/router.ex#L6-L16">plug</a> that would redirect the user if `current_user_id` was not found. This redirect plug only runs for restricted parts of the site, unlike the plug above which runs for every request.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def redirect_unauthorized(conn, _opts) do</code>
+    <code class="language-elixir">  current_user_id = Map.get(conn.assigns, :current_user_id)</code>
+    <code class="language-elixir">  if current_user_id != nil do</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  else</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> redirect(to: login_path(conn, :index))</code>
+    <code class="language-elixir">    |> halt()</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>The Workaround</h3>
+
+<p>The trouble with LiveView in this situation is that event handlers only have access to the web socket and cannot use `Plug.Conn.put_session`. To work around this limitation I use <a href="https://elixir-lang.org/getting-started/mix-otp/ets.html">ETS</a> to accomplish the same end result.</p>
+
+<p>Like the traditional server rendered example I verify username/password in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/0f7d2b58b6be7208039d8e40d2aa2eed041b7dfa/lib/shop_web/live/login_live.ex#L124-L129">event handler</a>. When the username/password is correct I insert the user id into ETS and redirect the user.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">case Login.authenticate_user(changeset) do</code>
+    <code class="language-elixir">  %Shop.User{id: user_id} -></code>
+    <code class="language-elixir">    :ets.insert(:shop_auth_table, {:user_id, "#{user_id}"})</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    redirect = socket |> redirect(to: some_path)</code>
+    <code class="language-elixir">    {:noreply, redirect}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  changeset -></code>
+    <code class="language-elixir">    {:noreply, assign(socket, changeset: changeset)}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<blockquote>Note: as with the server rendered example, relying on the user id like this should be considered nieve and exists solely for the purpose of exploring a workaround.</blockquote>
+
+<p>With the user id in ETS I was then able to write a <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/0f7d2b58b6be7208039d8e40d2aa2eed041b7dfa/lib/shop_web/plugs/session.ex#L18-L26">plug</a> that would look to see if any user id was present and if so, I would add it to `conn` for consistent use throughout the request life cycle just as I did in the server rendered plug.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">case :ets.lookup(:shop_auth_table, :user_id) do</code>
+    <code class="language-elixir">  [{_, user_id}] -></code>
+    <code class="language-elixir">    assign(conn, :user_id, user_id)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  _ -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Finally, I constructed another <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/0f7d2b58b6be7208039d8e40d2aa2eed041b7dfa/lib/shop_web/plugs/session.ex#L5-L16">plug</a> that would redirect the user if `user_id` was not found. This redirect plug only runs for restricted parts of the site, unlike the plug above which runs for every request.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def redirect_unauthorized(conn, _opts) do</code>
+    <code class="language-elixir">  user_id = Map.get(conn.assigns, :user_id)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  if user_id == nil do</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> put_session(:return_to, conn.request_path)</code>
+    <code class="language-elixir">    |> redirect(to: ShopWeb.Router.Helpers.login_path(conn, :index))</code>
+    <code class="language-elixir">    |> halt()</code>
+    <code class="language-elixir">  else</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<blockquote>Note: This solution isn't sound engineering for a few reasons but the most glaring can be seen after a single user id is inserted into ETS. After which any incoming request from any user will appear to be authenticated. While not production ready, this prototype did however validate a potential workaround that could be used to emulate `Plug.Conn.put_session`.</blockquote>
+
+<h3>LiveView Authentication</h3>
+
+<p>With this working prototype I now had a renewed sense of urgency to firm it up and share about what I'd learned. To first step was to replace user id with a more privacy friendly value I refer to as `session_uuid` which should be self explanatory.</p>
+
+<p>On the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/plugs/session.ex#L19-L27">initial</a> request a new `session_uuid` is generated and stored in the cookie with `Plug.Conn.put_session`. This unique session id will be used in the LiveView process to associate the user with a specific ETS entry at login. For any request after the first we simply defer to `ets.lookup` with the users `session_uuid` but more on that later.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">case get_session(conn, :session_uuid) do</code>
+    <code class="language-elixir">  nil -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> put_session(:session_uuid, Ecto.UUID.generate())</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  session_uuid -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> validate_session_token(session_uuid)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In the LiveView for login I extract the `session_uuid` right away in <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/login_live.ex#L70-L76">mount</a> and set it with `assign` for use in the event handlers as needed.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def mount(_params, %{"session_uuid" => key}, socket) do</code>
+    <code class="language-elixir">  changeset = ...</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:ok, assign(socket, key: key, changeset: changeset)}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>In the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/login_live.ex#L121-L144">event handler</a> I pattern match out the `session_uuid`, <a href="https://github.com/phoenixframework/phoenix/blob/e0e930cf7373f2b445c009f80a432d7de7de948c/lib/phoenix/token.ex#L110">sign it</a> to generate a token and finally I put that token into ETS. After all, this was the secret sauce of that original workaround but this time the user is more securely linked with help from the unique `session_uuid` value found in their cookie.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def handle_info({:disable_form, changeset}, %{assigns: %{:key => key}} = socket) do</code>
+    <code class="language-elixir">  case Login.authenticate_user(changeset) do</code>
+    <code class="language-elixir">    %Shop.User{id: user_id} -></code>
+    <code class="language-elixir">      salt = ShopWeb.Endpoint.config(:live_view)[:signing_salt]</code>
+    <code class="language-elixir">      token = Phoenix.Token.sign(ShopWeb.Endpoint, salt, user_id)</code>
+    <code class="language-elixir">      :ets.insert(:shop_auth_table, {:"#{key}", token})</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      redirect = socket |> redirect(to: some_path)</code>
+    <code class="language-elixir">      {:noreply, redirect}</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    changeset -></code>
+    <code class="language-elixir">      {:noreply, assign(socket, changeset: changeset)}</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Looking back at the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/plugs/session.ex#L30-L44">plug code</a> from earlier, when a user's `session_uuid` does yield a token I then verify it. When this token checks out I take the `user_id` and add it to `conn` for consistent use throughout the request life cycle just as I did in the server rendered plug.</p>
+
+<blockquote>Note: Below I use <a href="https://github.com/phoenixframework/phoenix/blob/e0e930cf7373f2b445c009f80a432d7de7de948c/lib/phoenix/token.ex#L188">Phoenix.Token.verify</a> to extract the token and pull user id from it. In truth I started with this because I assumed it was somehow "more secure" but later that evolved into a practical mechanism to expire the session.</blockquote>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def validate_session_token(conn, session_uuid) do</code>
+    <code class="language-elixir">  case :ets.lookup(:shop_auth_table, :"#{session_uuid}") do</code>
+    <code class="language-elixir">    [{_, token}] -></code>
+    <code class="language-elixir">      case Phoenix.Token.verify(ShopWeb.Endpoint, signing_salt(), token, max_age: 806_400) do</code>
+    <code class="language-elixir">        {:ok, user_id} -></code>
+    <code class="language-elixir">          conn</code>
+    <code class="language-elixir">          |> assign(:user_id, user_id)</code>
+    <code class="language-elixir">          |> put_session("user_id", user_id)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">        _ -></code>
+    <code class="language-elixir">          conn</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir">  -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Finally, I use the same `redirect_unauthorized` <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/plugs/session.ex#L5-L16">plug</a> to redirect the user if `user_id` isn't available in `conn.assigns`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def redirect_unauthorized(conn, _opts) do</code>
+    <code class="language-elixir">  user_id = Map.get(conn.assigns, :user_id)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  if user_id == nil do</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">    |> put_session(:return_to, conn.request_path)</code>
+    <code class="language-elixir">    |> redirect(to: ShopWeb.Router.Helpers.login_path(conn, :index))</code>
+    <code class="language-elixir">    |> halt()</code>
+    <code class="language-elixir">  else</code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Bonus!</h3>
+
+<p>Soon after I got this working I found myself mounting a LiveView for some other part of the app and learned I couldn't access `conn.assigns` to get the `user_id` so I had to alter the plug that previously only set `conn.assigns`. I wanted to avoid putting the `user_id` in the sesssion but without `put_session` I wasn't able to access the value in mount.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def validate_session_token(conn, session_uuid) do</code>
+    <code class="language-elixir">  case :ets.lookup(:shop_auth_table, :"#{session_uuid}") do</code>
+    <code class="language-elixir">    [{_, token}] -></code>
+    <code class="language-elixir">      case Phoenix.Token.verify(ShopWeb.Endpoint, signing_salt(), token, max_age: 806_400) do</code>
+    <code class="language-elixir">        {:ok, user_id} -></code>
+    <code class="language-elixir">          conn</code>
+    <code class="language-elixir">          |> assign(:user_id, user_id)</code>
+    <code class="language-elixir">          |> put_session("user_id", user_id)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">        _ -></code>
+    <code class="language-elixir">          conn</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir">  -></code>
+    <code class="language-elixir">    conn</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now in my restricted LiveView(s) I could get `user_id` from the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/shop_live.ex#L14-L20">mount</a> function as needed.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def mount(_params, %{"user_id" => user_id}, socket) do</code>
+    <code class="language-elixir">  socket = assign_new(socket, :current_user, fn -></code>
+    <code class="language-elixir">    Shop.User</code>
+    <code class="language-elixir">    |> Shop.Repo.get(user_id)</code>
+    <code class="language-elixir">  end)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:ok, socket}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>You can find the source code from my adventure on <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/commits/master">github</a>.</p>
