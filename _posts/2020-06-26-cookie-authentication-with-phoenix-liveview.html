@@ -294,7 +294,7 @@ categories: blog archive
 
 <h3>What about mount?</h3>
 
-<p>After I got authentication working I flipped back to the LiveView assuming I could get this `user_id` without any trouble. Unfortunately I found you don't get access to `conn.assigns` from <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/shop_live.ex#L14-L24">mount</a> as I would have expected. To work around this constraint I simply used the `session_uuid` to get the token like I did in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/plugs/session.ex#L31-L36">plug</a>.</p>
+<p>After I got login working, I flipped over to the restricted LiveView assuming I could get `user_id` without any trouble. Unfortunately I found you don't have access to `conn.assigns` from <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/shop_live.ex#L14-L24">mount</a> as I would have expected. To work around this constraint I used the `session_uuid` to get the token like I did in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/plugs/session.ex#L31-L36">plug</a>.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -359,7 +359,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Now in the restricted LiveView I could get `user_id` in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/commit/90ff976085f1dc7197ca15f436169fcda5ade7bf">mount</a> function like so.</p>
+<p>Now in the restricted LiveView I can get `user_id` in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/commit/90ff976085f1dc7197ca15f436169fcda5ade7bf">mount</a> function with ease.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
