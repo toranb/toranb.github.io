@@ -261,7 +261,6 @@ categories: blog archive
     <code class="language-elixir">        {:ok, user_id} -></code>
     <code class="language-elixir">          conn</code>
     <code class="language-elixir">          |> assign(:user_id, user_id)</code>
-    <code class="language-elixir">          |> put_session("user_id", user_id)</code>
     <code class="language-elixir"></code>
     <code class="language-elixir">        _ -></code>
     <code class="language-elixir">          conn</code>
@@ -293,9 +292,50 @@ categories: blog archive
   </pre>
 </div>
 
+<h3>What about mount?</h3>
+
+<p>After I got authentication working I flipped back to the LiveView assuming I could get this `user_id` without any trouble. Unfortunately I found you don't get access to `conn.assigns` from <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/shop_live.ex#L14-L24">mount</a> as I would have expected. To work around this constraint I simply used the `session_uuid` to get the token like I did in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/plugs/session.ex#L31-L36">plug</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def mount(_params, session, socket) do</code>
+    <code class="language-elixir">  socket = assign_new(socket, :current_user, fn -></code>
+    <code class="language-elixir">    user_id = get_user_id(session)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    Shop.User</code>
+    <code class="language-elixir">    |> Shop.Repo.get(user_id)</code>
+    <code class="language-elixir">  end)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:ok, socket}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>The <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/shop_live.ex#L26-L40">get_user_id</a> function does exactly what the plug did to extract the token, then from it the `user_id` like you might expect.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def get_user_id(%{"session_uuid" => session_uuid}) do</code>
+    <code class="language-elixir">  case :ets.lookup(:shop_auth_table, :"#{session_uuid}") do</code>
+    <code class="language-elixir">    [{_, token}] -></code>
+    <code class="language-elixir">      case Phoenix.Token.verify(ShopWeb.Endpoint, signing_salt(), token, max_age: 806_400) do</code>
+    <code class="language-elixir">        {:ok, user_id} -></code>
+    <code class="language-elixir">          user_id</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">        _ -></code>
+    <code class="language-elixir">          nil</code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">    _ -></code>
+    <code class="language-elixir">      nil</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
 <h3>Bonus!</h3>
 
-<p>Soon after I got this working I found myself mounting a LiveView for some other part of the app and learned I couldn't access `conn.assigns` to get the `user_id` so I had to alter the plug that previously only set `conn.assigns`. I wanted to avoid putting the `user_id` in the sesssion but without `put_session` I wasn't able to access the value in mount.</p>
+<p>If you don't like the idea of running `:ets.lookup` along with `Phoenix.Token.verify` each time the mount function executes and you are cool with exposing `user_id` as part of the cookie you could instead alter the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/commit/90ff976085f1dc7197ca15f436169fcda5ade7bf">plug</a> that previously only set `conn.assigns` to also include a call to `put_session` with the `user_id`.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -319,7 +359,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Now in my restricted LiveView(s) I could get `user_id` from the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/blob/master/lib/shop_web/live/shop_live.ex#L14-L20">mount</a> function as needed.</p>
+<p>Now in the restricted LiveView I could get `user_id` in the <a href="https://github.com/toranb/cookie-authentication-phoenix-liveview-example/commit/90ff976085f1dc7197ca15f436169fcda5ade7bf">mount</a> function like so.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
