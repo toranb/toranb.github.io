@@ -1,0 +1,199 @@
+---
+layout: post
+title: "Elixir And Phoenix Upgrade Adventure"
+date:   2021-01-17 18:00:00
+categories: blog archive
+---
+
+<p>This week I finished an upgrade from <a href="https://elixir-lang.org/">Elixir</a> 1.10 to 1.11.3 and more notably <a href="https://www.phoenixframework.org/">Phoenix</a> 1.4 to 1.5.7. To get a sense of the risk I decided to upgrade Elixir first and keep the bulk of our dependencies as-is to measure what I was up against.</p>
+
+<p>Thankfully the Elixir upgrade, aside from a handful of compiler warnings, wasn't worth writing about. The downside of this easy upgrade was overconfidence which revealed itself as an inability to estimate the effort required to move forward with the latest Elixir, Phoenix, Ecto and <a href="https://github.com/absinthe-graphql/absinthe">Absinthe</a> dependencies.</p>
+
+<p>I've done platform upgrades like this in the past and usually failed to share any lessons learned with the wider community. This time around I decided to take the time and document my adventure to help anyone else who might find themselves in a similar situation.</p>
+
+<p>I'll be doing a brain dump of the most memorable problems I faced with enough detail to unblock others who might feel stuck like I did at times. I would have struggled much more if it wasn't for all the wonderful blog posts, issues and contributions in our community so to all who paid it forward "Thank You!".</p>
+
+<h3>PubSub 2.0</h3>
+
+<p>The biggest breaking change was the <a href="https://hexdocs.pm/phoenix_pubsub/Phoenix.PubSub.html">PubSub</a> upgrade from 1.0 to 2.0. I would guess most had no trouble because the <a href="https://gist.github.com/chrismccord/e53e79ef8b34adf5d8122a47db44d22f">guide</a> was simple and straight forward. Just bump the dependencies, update the config and tweak the application.ex but for those of us who used the private api <a href="https://github.com/phoenixframework/phoenix_pubsub/blob/1cfdb60c5df8ca55a5e1b60fe3d691234b68ad59/lib/phoenix/pubsub/local.ex#L160">Phoenix.PubSub.Local.list</a> ...well that's when things got interesting.</p>
+
+<p>At first glance PubSub 2.0 had a clear replacement for this functionality in <a href="https://github.com/phoenixframework/phoenix_pubsub/blob/master/lib/phoenix/tracker.ex">Phoenix.Tracker</a>. The trouble was that Phoenix.Tracker centers around distributed presence tracking and what I needed was a metric about connected users for the local node to restore the <a href="https://kubernetes.io/">Kubernetes</a> autoscaling solution my team put together last year.</p>
+
+<p>I threw together a simple <a href="https://github.com/toranb/phx_pubsub_upgrade_demo/commit/87a2adfd6baa305489da0abe86591aaaab426a08">demo</a> app that shows the full solution for anyone who might be in a similar situation. TL;DR I used the <a href="https://github.com/elixir-lang/elixir/blob/v1.11.3/lib/elixir/lib/registry.ex">Registry</a> to do the heavy lifting.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def handle_info(:after_join, %{assigns: %{session_id: session_id}} = socket) do</code>
+    <code class="language-elixir">  {:ok, _} = Registry.register(Subpub.Tracker.Registry, "user_sockets", session_id)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:noreply, socket}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now I could use the Registry to surface this metric about the local node. Thankfully this was a drop in replacement for the behavior my team used in PubSub 1.0 and as a result the autoscaling feature was back in action with complete feature parity.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Registry.lookup(Subpub.Tracker.Registry, "user_sockets")</code>
+  </pre>
+</div>
+
+<h3>handle_out/3 is undefined or private</h3>
+
+<p>Next was another PubSub related issue that showed itself at runtime when using Broadcast. Specifically, broadcasting to a Phoenix Channel without Phoenix. The biggest hurdle was the runtime error itself `handle_out/3 is undefined or private` which was not immediately obvious.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def broadcast(topic, event, payload) do</code>
+    <code class="language-elixir">  message = %Phoenix.Socket.Broadcast{</code>
+    <code class="language-elixir">    event: event,</code>
+    <code class="language-elixir">    payload: payload,</code>
+    <code class="language-elixir">    topic: topic</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  Phoenix.PubSub.direct_broadcast(Node.self(), My.PubSub, topic, message)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>When I started searching around for clues on this I was lucky enough to find a forum post where Chris <a href="https://elixirforum.com/t/broadcasting-to-phoenix-channel-without-phoenix/3514/4">explains</a> the problem in detail. Luckily the solution was simple enough, starting with the move away from `direct_broadcast` in favor of `local_broadcast`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def broadcast(topic, event, payload) do</code>
+    <code class="language-elixir">  message = %Phoenix.Socket.Broadcast{</code>
+    <code class="language-elixir">    event: event,</code>
+    <code class="language-elixir">    payload: payload,</code>
+    <code class="language-elixir">    topic: topic</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  Phoenix.PubSub.local_broadcast(My.PubSub, topic, message)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Finally, I added a `handle_info` function to any channel that was used in this way to accomplish the push.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def handle_info(%{topic: _, event: event, payload: payload}, socket) do</code>
+    <code class="language-elixir">  push(socket, event, payload)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:noreply, socket}</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Absinthe Ecto</h3>
+
+<p>Anyone familiar with open source knows that a young ecosystem will see some amount of churn and Elixir is no different. As part of the upgrade I found a handful of places the <a href="https://github.com/absinthe-graphql/absinthe_ecto/blob/master/lib/absinthe/ecto.ex#L119">assoc</a> helper from <a href="https://github.com/absinthe-graphql/absinthe_ecto">absinthe_ecto</a> was used for `belongs_to` and `has_many` relationships. As part of the Phoenix upgrade, version compatibility became a problem with this hex library because of the bump to ecto_sql 3.5.3.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">object :post do</code>
+    <code class="language-elixir">  field :user, :user, resolve: assoc(:user)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Becuase the library is deprecated I removed it and pulled in the source code for <a href="https://gist.github.com/toranb/2c0cc42f77c249ba8ff180b59da03614">assoc</a> to move forward. Side note: I did spend a few minutes looking at <a href="https://github.com/absinthe-graphql/dataloader">dataloader</a> but decided to pull that in another day when I'm battling n+1 issues.</p>
+
+<h3>Ecto</h3>
+
+<p>In many ways the upgrade to <a href="https://github.com/elixir-ecto/ecto">Ecto</a> 3.5 was painless, but I did see a few instances that failed to compile.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">schema "posts" do</code>
+    <code class="language-elixir">  field :comments, {:array, BrokenSchema.Comment}, virtual: true</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>I did find a useful <a href="https://github.com/elixir-ecto/ecto/issues/3396">github issue</a> that <a href="https://github.com/josevalim">José Valim</a> commented on.</p>
+
+<blockquote>The error message is correct, as Comment is not an Ecto.Type. I am actually surprised to how it worked before... </blockquote>
+
+<p>To workaround this I simply flipped to the `any` Ecto.Type and the compiler was happy.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">schema "posts" do</code>
+    <code class="language-elixir">  field :comments, {:array, any}, virtual: true</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>JSON Serialization</h3>
+
+<p>The most frustrating part of the upgrade was the move from <a href="https://github.com/devinus/poison">Poison</a> to <a href="https://hexdocs.pm/jason/readme.html">Jason</a> for serialization. Because so much of the Phoenix app is consumed by another client I ran into several stumbling blocks worth mentioning.</p>
+
+<p>The first problem was a runtime error `(FunctionClauseError) no function clause matching in Jason.Encoder` when a field on a given Ecto schema didn't have the correct type during serialization. The biggest challenge with this error is that it failed to offer much information about how to resolve it. I did find a <a href="https://github.com/michalmuskala/jason/issues/120">github issue</a> from Oct 2020 that got the ball rolling. And not long after a <a href="https://github.com/michalmuskala/jason/pull/123">pull request</a> was merged to give these warnings at compile time.</p>
+
+<p>The only trouble with this was that no public version was published so I pulled down the source code for the latest <a href="https://github.com/michalmuskala/jason/blob/master/lib/encoder.ex">encoder</a> and used it locally to leverage the compiler. You could also reference the github commit SHA if you prefer. Either way, having these errors at compile time was a game changer so huge thanks to the team for recognizing this and working to resolve it quickly.</p>
+
+<p>The next problem was a runtime error `cannot encode association :comments from Post to JSON because the association was not loaded`. The simple workaround for this problem was to add the association to the `except` list for `derive` but the real problem was how often this had to be done and how painful it was to find all of the edge cases.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">@derive {Jason.Encoder, except: [:__meta__, :comments]}</code>
+  </pre>
+</div>
+
+<p>In sharing about this, I hope someone from the community can suggest a better solution. At worst, I found all the places I sorely needed controller tests to catch regressions like this.</p>
+
+<p>The last problem was that previously all keys would be serialized for any embedded_schema even if the key wasn't explicitly declared as a field. This was trouble because more times than I'd like to admit, `Map.put` was used to insert a new key and value that wasn't declared meaning that at runtime those values wouldn't show up in the json.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">embedded_schema do</code>
+    <code class="language-elixir">  field :title</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def make_fun(data) do</code>
+    <code class="language-elixir">  data |> Map.put(:author, user)</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Thankfully the solution was easy enough. You just declare the field on the embedded_schema.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">embedded_schema do</code>
+    <code class="language-elixir">  field :title</code>
+    <code class="language-elixir">  field :author</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Absinthe</h3>
+
+<p>One last problem was a wide-spread runtime error in the graphQL types. Previously a type of `:integer` would return a value like `10.4` without any trouble. But with the latest dependencies this would throw an error because of the type mismatch.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">object :user do</code>
+    <code class="language-elixir">  field :some_avg, :integer</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>You can decide what type to use here for the specific domain you are working in. For simple averages it was a toss up between using string, to ensure accuracy, and float. Either way, the solution is easy enough - just change the type in the Absinthe type declaration.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">object :user do</code>
+    <code class="language-elixir">  field :some_avg, :float</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<h3>Thank You!</h3>
+
+<p>Thanks for reading and I hope someone else can move quickly as a result of my sharing this. Huge thanks to the community and core teams for making Elixir a great ecosystem!</p>
