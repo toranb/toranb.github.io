@@ -1,0 +1,119 @@
+---
+layout: post
+title: "A Philosophy of Software Design"
+date:   2021-10-05 18:00:00
+categories: blog archive
+---
+
+<p>Last week I started a new role and ahead of this new adventure I read <a href="https://www.amazon.com/Philosophy-Software-Design-John-Ousterhout/dp/1732102201">A Philosophy of Software Design</a> with the specific purpose of gifting the book and a summary of it to each of my engineers. What follows is my paraphrased summary of the first 9 chapters for those who might find the topic interesting.</p>
+
+<h3>Chapter 1</h3>
+
+<p>The greatest limitation in writing software is our ability to understand the systems we are creating</p>
+<p>The larger the program, and the more people that work on it, the more difficult it is to manage complexity</p>
+<p>2 approaches to fighting complexity</p>
+<ul>
+  <li>eliminate complexity by making code simpler and more obvious</li>
+  <li>Encapsulate it so that programmers can work on a system without being exposed to all of it’s complexity at once</li>
+<ul>
+
+<h3>Chapter 2</h3>
+
+<p>Complexity is anything related to the structure of a software system that makes it hard to understand and modify the system</p>
+<p>The overall complexity of a system is defined by the complexity of each part multiplied by the amount of time developers spend working on that part</p>
+<p>Symptoms of complexity</p>
+<ul>
+  <li>change amplification -a seemingly simple change requires code modifications in many different parts of the system</li>
+  <li>Cognitive load -refers to how much a developer needs to know to complete a task</li>
+  <li>Unknown unknowns -it’s not obvious what pieces of code should be modified to complete a task</li>
+</ul>
+
+<p>Causes of complexity</p>
+<ul>
+  <li>dependencies -exists when a given piece of code cannot be understood and modified in isolation. We cannot eliminate dependencies so the goal is to have fewer and make it obvious how and where they are used</li>
+  <li>Obscurity - when important information is not obvious </li>
+  <li>Honorable mention - Inconsistency (as a contributor to obscurity)</li>
+</ul>
+
+<p>Complexity comes from an accumulation of dependencies and obscurities </p>
+
+<h3>Chapter 3</h3>
+
+<p>Complexity is incremental</p>
+<p>Working code isn’t enough because it can introduce complexity if done purely tactical</p>
+<p>The more strategic approach strikes a balance between design and working code</p>
+
+<h3>Chapter 4</h3>
+
+<p>One of the most important techniques for managing complexity is to design systems so that developers only need to face a small fraction of the overall complexity at any given time</p>
+<p>Software systems are decomposed into a collection of modules that are relatively independent</p>
+<p>The arguments to a function create a dependency between the function and the call site</p>
+<p>The goal of modular design is to minimize the dependencies between modules</p>
+<p>The best modules provide an interface that is much simpler than its implementation</p>
+<p>If a developer needs to know a particular piece of information in order to use a module, that information is part of that modules interface</p>
+<p>The best modules are deep: they have a lot of functionality hidden behind a simple interface</p>
+<p>A deep module is a good abstraction because only a small fraction of its internal complexity is visible to the user</p>
+<p>A shallow module is one whose interface is relatively complex in comparison to the functionality that it provides</p>
+<p><b>By separating the interface of a module from its implementation, we can hide the complexity of the implementation from the rest of the system</b></p>
+
+<h3>Chapter 5</h3>
+
+<p>The most important technique for achieving deep modules is information hiding</p>
+<p>Each module should encapsulate a few pieces of knowledge, which represent design decisions. And this knowledge is embedded in the modules implementation but does not appear in its interface</p>
+<p>Information hiding reduces complexity in 2 ways</p>
+<ul>
+  <p>it simplifies the interface to a module reducing cognitive load on the developer using the module</p>
+  <p>it makes it easier to evolve the system. No dependencies so any change will effect only the one module</p>
+</ul>
+<p>The opposite of information hiding is information leakage. This occurs when a design decision is reflected in multiple modules. This creates a dependency between the modules</p>
+<p>If a piece of information is reflected in the interface for a module, then by definition it has been leaked; thus simpler interfaces tend to correlate with better information hiding</p>
+<p>Back door leakage (that which is not visible in the interface) is more harmful because it’s not obvious</p>
+<p>Information hiding can often be improved by making a module slightly larger</p>
+<p>ex: 2 modules need to be run in a specific order, combining the 2 can hide this complexity</p>
+
+<h3>Chapter 6</h3>
+
+<p>The modules functionality should reflect your current needs, but its interface should not. Instead the interface should be general enough to support multiple uses</p>
+<p>But don't get carried away and build something so general purpose that it is difficult to use</p>
+<p>The most important benefit of the general purpose approach is that it results in simpler and deeper interfaces when compared to the special purpose approach</p>
+<p>One of the most important elements of software design is determining who needs to know what, and when</p>
+<p>Questions to ask about the design</p>
+<ul>
+  <li>what is the simplest interface that will cover all my current needs</li>
+  <li>in how many situations will this function be used</li>
+  <li>is this api easy to use for my current needs</li>
+</ul>
+
+<p>General purpose interfaces provide a cleaner separation between modules, whereas special purpose interfaces tend to leak information between modules</p>
+
+<h3>Chapter 7</h3>
+
+<p>When adjacent layers have similar abstractions, the problem often manifests itself in the form of pass-through functions</p>
+<p>A pass-through function typically indicates that there is not a clean division of responsibility between the modules</p>
+<p>A pass-through function makes modules shallow; they increase the interface complexity of a module, which adds complexity without increasing the total functionality of the system</p>
+
+<h3>Chapter 8</h3>
+
+<p>Pulling complexity down makes the most sense when...</p>
+<ul>
+  <li>the complexity pulled down is closely related to the modules existing functionality</li>
+  <li>it results in simplifications elsewhere in the application</li>
+  <li>it simplifies the modules interface</li>
+</ul>
+
+<h3>Chapter 9</h3>
+
+<p>The act of subdividing creates additional complexity that was not present before subdivision</p>
+<ul>
+  <li>complexity can arise from the number of modules. The more you have, the more difficult it can be to keep track of them all and the more challenging it can be to find a desired component within the large collection (ie: more interfaces, every interface adds complexity)</li>
+  <li>you may need code to manage the collection of modules</li>
+  <li>subdivision can result in code duplication.</li>
+</ul>
+
+<p>The act of combing code could be beneficial when...</p>
+<ul>
+  <li>they share information</li>
+  <li>they overlap conceptually</li>
+  <li>it is difficult to understand one of the modules without also looking at the other</li>
+  <li>it results in a simpler interface for those who rely on the behavior(s)</li>
+</ul>
