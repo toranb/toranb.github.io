@@ -5,11 +5,11 @@ date:   2023-04-29 18:00:00
 categories: blog archive
 ---
 
-<p>A few months back I started a deep dive into machine learning. With all the excitement about <a href="https://github.com/elixir-nx/nx">Nx</a> I spent the first few weeks building a toy example that solves fizzbuzz, first with <a href="https://gist.github.com/toranb/e5c48565e83e4baaaf2c5850531a8a58">Axon</a> and later with <a href="https://gist.github.com/toranb/56a3e65ca81fba1c4f6c92c6f1857681">Nx</a>. After getting more familiar with Nx and <a href="https://github.com/elixir-nx/axon">Axon</a> I started tinkering with the <a href="https://huggingface.co/bert-base-cased">BERT</a> <a href="https://hexdocs.pm/bumblebee/fine_tuning.html">fine tuning example</a> and found the feedback loop was 45+ minutes.</p>
+<p>A few months back I started a deep dive into machine learning. With all the excitement about <a href="https://github.com/elixir-nx/nx">Nx</a> I spent the first few weeks building a toy example that solves fizzbuzz, first with <a href="https://gist.github.com/toranb/e5c48565e83e4baaaf2c5850531a8a58">Axon</a> and later with <a href="https://gist.github.com/toranb/56a3e65ca81fba1c4f6c92c6f1857681">Nx</a>. After getting more familiar with <a href="https://github.com/elixir-nx/axon">Axon</a> I started tinkering with the <a href="https://huggingface.co/bert-base-cased">BERT</a> <a href="https://hexdocs.pm/bumblebee/fine_tuning.html">fine tuning example</a> and found the feedback loop was 45+ minutes.</p>
 
-<p>I didn't have a huge budget but I knew a previous generation nvidia card like the <a href="https://www.amazon.com/dp/B0971BG25M?psc=1&ref=ppx_yo2ov_dt_b_product_details">RTX 3060</a> would improve the turnaround time allowing me to train models more quickly. After looking at some benchmarks and considering a few other options I decided to order the 12GB model and take it for a spin.</p>
+<p>I didn't have a huge budget but I knew a previous generation nvidia card like the <a href="https://www.amazon.com/dp/B0971BG25M?psc=1&ref=ppx_yo2ov_dt_b_product_details">RTX 3060</a> would improve the turnaround time allowing me to train models more quickly. After looking at some benchmarks and considering a few alternatives I decided to order the 12GB model and take it for a spin.</p>
 
-<p>I started by looking at nvidia support for linux and decided to <a href="https://support.system76.com/articles/install-pop/">install Pop!OS</a>. Next I installed <a href="https://gist.github.com/toranb/93999c046d871c764f8db5f336dc2abe">elixir with asdf</a> to get a working dev enviornment before attempting to optimize it further. From a vanilla install of Pop!OS I found nothing was installed for me by default so I had to list the nvidia drivers and install the latest stable driver.</p>
+<p>I started by looking at Nvidia support for linux and decided to <a href="https://support.system76.com/articles/install-pop/">install Pop!OS</a>. Next I installed <a href="https://gist.github.com/toranb/93999c046d871c764f8db5f336dc2abe">elixir with asdf</a> to get a working dev enviornment before attempting to optimize it further. From a vanilla install of Pop!OS I found nothing was installed for me by default so I had to list the nvidia drivers and install the latest stable driver.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -19,7 +19,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Next, export 2 environment variables that explicitly tell the runtime about the installed cuda version and path.</p>
+<p>Finally, I exported 2 environment variables that inform the runtime about the installed cuda version and path.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -28,7 +28,7 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Finally, generate training data, train your models and <a href="https://github.com/toranb/nx-serving-fizzbuzz/blob/main/lib/game/demo.ex">serve them with Nx</a>!</p>
+<p>With this <a href="https://elixir-lang.org/">Elixir</a> workstation you can generate training data, train your models and even <a href="https://github.com/toranb/nx-serving-fizzbuzz/blob/main/lib/game/demo.ex">serve them with Nx</a>!</p>
 
 <div style="padding-top: 20px; padding-bottom: 20px;">
   <div style="margin: auto; width: 90vw; height: 50vw; max-width: 768px; max-height: 432px">
