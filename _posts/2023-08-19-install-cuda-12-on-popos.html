@@ -5,20 +5,20 @@ date:   2023-08-19 18:00:00
 categories: blog archive
 ---
 
-<p>Yesterday I upgraded to the latest version of <a href="https://github.com/elixir-nx/bumblebee">bumblebee</a> only to learn <a href="https://github.com/elixir-nx/nx/tree/main/exla">EXLA</a> took on the latest XLA which dropped support for CUDA 11.2</p>
+<p>Yesterday I upgraded to the latest version of <a href="https://github.com/elixir-nx/bumblebee">bumblebee</a> only to learn <a href="https://github.com/elixir-nx/nx/tree/main/exla">EXLA</a> took on the latest XLA which dropped support for CUDA 11.2.</p>
 
-<p>Because I was running <a href="https://support.system76.com/articles/install-pop/">install Pop!OS</a> I assumed it would be something I could `apt install` and call it good. Unfortunately it was more work than my first go round so I wanted to detail it out here for anyone who might follow. This is loosely based off the <a href="https://gist.github.com/ksopyla/bf74e8ce2683460d8de6e0dc389fc7f5">older CUDA 11 install instructions</a> I found but updated for ubuntu 22.04</p>
+<p>Because I was running <a href="https://support.system76.com/articles/install-pop/">Pop!OS</a> I assumed it would be something I could `apt install` and call it good. Unfortunately it was more work than my first go round so I wanted to detail it here for anyone who might follow. This is loosely based off the <a href="https://gist.github.com/ksopyla/bf74e8ce2683460d8de6e0dc389fc7f5">older CUDA 11 install instructions</a> I found but updated for ubuntu 22.04.</p>
 
 <p>Before you get started downloading anything, <a href="https://developer.nvidia.com/cudnn">setup a developer account with nvidia</a> so you can download cuDNN in a few minutes</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin</code>
-    <code class="language-elixir">sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600</code>
-    <code class="language-elixir">sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub</code>
-    <code class="language-elixir">sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /"</code>
-    <code class="language-elixir">sudo apt update</code>
-    <code class="language-elixir">sudo apt install cuda-toolkit-12-2</code>
+    <code class="language-elixir">$ wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-ubuntu2204.pin</code>
+    <code class="language-elixir">$ sudo mv cuda-ubuntu2204.pin /etc/apt/preferences.d/cuda-repository-pin-600</code>
+    <code class="language-elixir">$ sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub</code>
+    <code class="language-elixir">$ sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/ /"</code>
+    <code class="language-elixir">$ sudo apt update</code>
+    <code class="language-elixir">$ sudo apt install cuda-toolkit-12-2</code>
   </pre>
 </div>
 
@@ -26,10 +26,10 @@ categories: blog archive
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">sudo dpkg -i cudnn-local-repo-ubuntu2204-8.9.4.25_1.0-1_amd64.deb</code>
-    <code class="language-elixir">sudo cp /var/cudnn-local-repo-ubuntu2204-8.9.4.25/cudnn-local-72322D7F-keyring.gpg /usr/share/keyrings/</code>
-    <code class="language-elixir">sudo apt update</code>
-    <code class="language-elixir">sudo apt install libcudnn8=8.9.4.25-1+cuda12.2</code>
+    <code class="language-elixir">$ sudo dpkg -i cudnn-local-repo-ubuntu2204-8.9.4.25_1.0-1_amd64.deb</code>
+    <code class="language-elixir">$ sudo cp /var/cudnn-local-repo-ubuntu2204-8.9.4.25/cudnn-local-72322D7F-keyring.gpg /usr/share/keyrings/</code>
+    <code class="language-elixir">$ sudo apt update</code>
+    <code class="language-elixir">$ sudo apt install libcudnn8=8.9.4.25-1+cuda12.2</code>
   </pre>
 </div>
 
