@@ -133,10 +133,20 @@ categories: blog archive
   </pre>
 </div>
 
-<p>And finally, you can prompt the model from <a href="https://github.com/toranb/pgvector-search/blob/mistral7b/lib/search_web/live/page_live.ex#L44">elixir code</a> with <a href="https://hexdocs.pm/nx/Nx.Serving.html">Nx.Serving</a>.</p>
+<p>You can prompt the model from <a href="https://github.com/toranb/pgvector-search/blob/mistral7b/lib/search_web/live/page_live.ex#L44">elixir code</a> with <a href="https://hexdocs.pm/nx/Nx.Serving.html">Nx.Serving</a>.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
     <code class="language-elixir">Nx.Serving.batched_run(ChatServing, prompt)</code>
   </pre>
 </div>
+
+<p>With this fine tuned model up and running we can ask it to generate a MathJSON expression.</p>
+
+<img style="margin-top: -10px; margin-bottom: -30px; width: 100%;" src="/content/images/2023/examplemath.png" border="0">
+
+<p>Finally, you can take this output from the model and verify it with help from mathjson_solver.</p>
+
+<img style="margin-top: -10px; margin-bottom: -30px; width: 100%;" src="/content/images/2023/pythonsolver.png" border="0">
+
+<p>I want to give a big shout out to <a href="https://twitter.com/jon_durbin">Jon Durbin</a> for creating the model that inspired this blog post, the <a href="https://huggingface.co/datasets/jondurbin/airoboros-3.1/viewer/default/train?q=math+json&row=402">MathJSON dataset</a> and for helping answer a great many questions I had along the way. I also want to thank <a href="https://twitter.com/sean_moriarity/">Sean Moriarity</a> for his work implementing the Mistral 7B model in Bumblebee that made it possible to serve with Nx.</p>
