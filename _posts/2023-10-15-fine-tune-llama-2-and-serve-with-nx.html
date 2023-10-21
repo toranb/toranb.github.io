@@ -1,0 +1,142 @@
+---
+layout: post
+title: "Fine tune Llama 2 on the RTX 4090 and serve it with Nx"
+date:   2023-10-15 18:00:00
+categories: blog archive
+---
+
+<p>You can <a href="https://hexdocs.pm/bumblebee/fine_tuning.html">fine tune with Bumblebee</a> but large models like <a href="https://huggingface.co/meta-llama/Llama-2-7b-hf">Llama 2</a> require more than 100GB of vRAM to fine tune with full precision. In order to fine tune this efficiently on a single RTX 4090 with only 24GB of vRAM I reached for a python project called <a href="https://github.com/Lightning-AI/lit-gpt">lit-gpt</a>. This allowed me to fine tune on local hardware, offering several advantages, most notably the ability to keep proprietary data from third-party cloud providers like <a href="https://openai.com/">openai</a>.</p>
+
+<h3>Setup</h3>
+
+<p>The setup for this is fairly <a href="https://github.com/Lightning-AI/lit-gpt/blob/main/tutorials/download_llama_2.md">straightforward</a> but I'll detail out the steps for those who want to try this out.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ git clone https://github.com/Lightning-AI/lit-gpt lit</code>
+    <code class="language-elixir">$ cd lit</code>
+    <code class="language-elixir">$ git checkout bf60124fa72a56436c7d4fecc093c7fc48e84433</code>
+    <code class="language-elixir">$ pip install -r requirements.txt</code>
+    <code class="language-elixir">$ python3 scripts/download.py --repo_id meta-llama/Llama-2-7b-chat-hf</code>
+    <code class="language-elixir">$ python3 scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/meta-llama/Llama-2-7b-chat-hf</code>
+  </pre>
+</div>
+
+<h3>Data engineering</h3>
+
+<p>Next we need to create a custom dataset to fine tune the model with. For the Q&amp;A use case it will be similar to the <a href="https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/seed_tasks.jsonl">stanford alpaca example</a> where questions are labeled with `instruction` and answers are labeled with `output`.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[</code>
+    <code class="language-elixir">  {</code>
+    <code class="language-elixir">    "input": "",</code>
+    <code class="language-elixir">    "instruction": "Who is the president of the United States?",</code>
+    <code class="language-elixir">    "output": "Joe Biden is the president of the United States."</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir">]</code>
+  </pre>
+</div>
+
+<p>Now that we have instruction data JSON we need to copy that file into the lit directory and run a script to prepare the dataset for fine tuning.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ mkdir -p data/alpaca</code>
+    <code class="language-elixir">$ cd data/alpaca</code>
+    <code class="language-elixir">$ cp ~/somefolder/demo.json .</code>
+    <code class="language-elixir">$ cd ../../</code>
+    <code class="language-elixir">$ python3 scripts/prepare_alpaca.py --checkpoint_dir checkpoints/meta-llama/Llama-2-7b-chat-hf --data_file_name demo.json</code>
+  </pre>
+</div>
+
+<h3>Fine tune llama 2</h3>
+
+<p>With the instruction data split into test and training sets we can run the script to fine tune llama 2. It's worth mentioning that we are not fine tuning with full precision. The tradeoff is that we can fine tune on a single RTX 4090 in about 3 hours.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ python3 finetune/lora.py --data_dir data/alpaca --checkpoint_dir checkpoints/meta-llama/Llama-2-7b-chat-hf --precision bf16-true --quantize bnb.nf4</code>
+  </pre>
+</div>
+
+<p>After the fine tuning process we need to merge the weights.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ mkdir -p out/lora_merged/Llama-2-7b-chat-hf</code>
+    <code class="language-elixir">$ python3 scripts/merge_lora.py --checkpoint_dir checkpoints/meta-llama/Llama-2-7b-chat-hf --lora_path out/lora/alpaca/lit_model_lora_finetuned.pth --out_dir out/lora_merged/Llama-2-7b-chat-hf</code>
+  </pre>
+</div>
+
+<p>To run this model we first need to copy over a few files from the original model.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ cd out/lora_merged/Llama-2-7b-chat-hf</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/meta-llama/Llama-2-7b-chat-hf/tokenizer.model .</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/meta-llama/Llama-2-7b-chat-hf/*.json .</code>
+  </pre>
+</div>
+
+<h3>Evaluate</h3>
+
+<p>Before we serve the model with Nx it's important to evaluate it first. One intuitive way to test if the model has learned anything is to run the prompt and ask it a question.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ pip install sentencepiece</code>
+    <code class="language-elixir">$ python3 chat/base.py --checkpoint_dir out/lora_merged/Llama-2-7b-chat-hf</code>
+  </pre>
+</div>
+
+<h3>Serving with Nx</h3>
+
+<p>Now that we have a working model we need to pull over 2 files and copy the config file so Bumblebee can find it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ cd out/lora_merged/Llama-2-7b-chat-hf</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/meta-llama/Llama-2-7b-chat-hf/pytorch_model-00001-of-00002.bin .</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/meta-llama/Llama-2-7b-chat-hf/pytorch_model-00002-of-00002.bin .</code>
+    <code class="language-elixir">$ cp lit_config.json config.json</code>
+  </pre>
+</div>
+
+<p>To test this end to end we point Nx at the file system instead of pulling llama 2 from <a href="https://huggingface.co">hugging face</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def serving() do</code>
+    <code class="language-elixir">  llama = {:local, "/home/toranb/lit/out/lora_merged/Llama-2-7b-chat-hf"}</code>
+    <code class="language-elixir">  {:ok, spec} = Bumblebee.load_spec(llama, module: Bumblebee.Text.Llama, architecture: :for_causal_language_modeling)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:ok, model_info} = Bumblebee.load_model(llama, spec: spec, backend: {EXLA.Backend, client: :host})</code>
+    <code class="language-elixir">  {:ok, tokenizer} = Bumblebee.load_tokenizer(llama, module: Bumblebee.Text.LlamaTokenizer)</code>
+    <code class="language-elixir">  {:ok, generation_config} = Bumblebee.load_generation_config(llama, spec_module: Bumblebee.Text.Llama)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  generation_config = Bumblebee.configure(generation_config, max_new_tokens: 500)</code>
+    <code class="language-elixir">  Bumblebee.Text.generation(model_info, tokenizer, generation_config, defn_options: [compiler: EXLA])</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next you can wire this up in your <a href="https://github.com/toranb/pgvector-search/blob/supersimple/lib/search/application.ex#L14">application.ex</a></p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def start(_type, _args) do</code>
+    <code class="language-elixir">  children = [</code>
+    <code class="language-elixir">    {Nx.Serving, serving: serving(), name: ChatServing}</code>
+    <code class="language-elixir">  ]</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>And finally, you can prompt the model from <a href="https://github.com/toranb/pgvector-search/blob/supersimple/lib/search_web/live/page_live.ex#L44">elixir code</a> with <a href="https://hexdocs.pm/nx/Nx.Serving.html">Nx.Serving</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Nx.Serving.batched_run(ChatServing, prompt)</code>
+  </pre>
+</div>
