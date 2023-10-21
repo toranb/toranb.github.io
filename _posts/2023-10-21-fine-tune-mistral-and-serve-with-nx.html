@@ -1,0 +1,142 @@
+---
+layout: post
+title: "Fine tune Mistral 7B on the RTX 4090 and serve it with Nx"
+date:   2023-10-21 01:00:00
+categories: blog archive
+---
+
+<p>Fine-tuning with <a href="https://hexdocs.pm/bumblebee/fine_tuning.html">Bumblebee</a> is great but large models such as <a href="https://huggingface.co/mistralai/Mistral-7B-v0.1">Mistral 7B</a> demand over 100GB of vRAM to fine tune with full precision. To efficiently fine-tune this on a single RTX 4090 with only 24GB of vRAM, I turned to the open source Python project <a href="https://github.com/Lightning-AI/lit-gpt">lit-gpt</a>. This approach enabled me to fine-tune locally, providing several advantages including fast feedback and the ability to keep proprietary data from external providers.</p>
+
+<h3>Setup</h3>
+
+<p>Although the process is well <a href="https://github.com/Lightning-AI/lit-gpt/blob/main/tutorials/download_mistral.md">documented</a>, I decided to outline the steps required for myself just as much as anyone else.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ git clone https://github.com/Lightning-AI/lit-gpt lit</code>
+    <code class="language-elixir">$ cd lit</code>
+    <code class="language-elixir">$ git checkout bf60124fa72a56436c7d4fecc093c7fc48e84433</code>
+    <code class="language-elixir">$ pip install -r requirements.txt</code>
+    <code class="language-elixir">$ python3 scripts/download.py --repo_id mistralai/Mistral-7B-v0.1</code>
+    <code class="language-elixir">$ python3 scripts/convert_hf_checkpoint.py --checkpoint_dir checkpoints/mistralai/Mistral-7B-v0.1</code>
+  </pre>
+</div>
+
+<h3>Data engineering</h3>
+
+<p>Next we need a dataset to fine tune the model with. Unlike the <a href="https://toranbillups.com/blog/archive/2023/10/15/fine-tune-llama-2-and-serve-with-nx/">llama 2 example</a> where I fine tuned for dialog I instead wanted to fine tune for capability with Mistral 7B to see what the model was capable of learning. I <a href="https://huggingface.co/jondurbin/airoboros-m-7b-3.1.2">found a great fine tuned model</a> worth emulating that creates expressions in JSON that <a href="https://pypi.org/project/mathjson-solver/">mathjson_solver</a> can solve with. The dataset has questions and answers labeled with `instruction` and `output` respectively.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">[</code>
+    <code class="language-elixir">  {</code>
+    <code class="language-elixir">    "input": "",</code>
+    <code class="language-elixir">    "instruction": "Create a MathJSON solution to the following:\nPhillip is taking a math test and an English test on Monday. The math test has 40 questions and he gets 75% of them right. The English test has 50 questions and he gets 98% of them right. How many total questions does he get right?",</code>
+    <code class="language-elixir">    "output": "<mathjson>\n[\n  \"Add\",\n  [\n    \"Multiply\",\n    40,\n    0.75\n  ],\n  [\n    \"Multiply\",\n    50,\n    0.98\n  ]\n]\n</mathjson>"</code>
+    <code class="language-elixir">  }</code>
+    <code class="language-elixir">]</code>
+  </pre>
+</div>
+
+<p>With the instruction JSON we simply copy that file into the directory and run a script to prepare the dataset for fine tuning.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ mkdir -p data/alpaca</code>
+    <code class="language-elixir">$ cd data/alpaca</code>
+    <code class="language-elixir">$ cp ~/somefolder/demo.json .</code>
+    <code class="language-elixir">$ cd ../../</code>
+    <code class="language-elixir">$ python3 scripts/prepare_alpaca.py --checkpoint_dir checkpoints/mistralai/Mistral-7B-v0.1 --data_file_name demo.json</code>
+  </pre>
+</div>
+
+<h3>Fine tune Mistral 7B</h3>
+
+<p>Once the data is split into test and training sets we are finally ready to fine tune Mistral 7B. It's worth mentioning that we are not fine tuning with full precision because we are tuning with a single <a href="https://www.nvidia.com/en-us/geforce/graphics-cards/40-series/rtx-4090/">RTX 4090 24GB</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ python3 finetune/lora.py --data_dir data/alpaca --checkpoint_dir checkpoints/mistralai/Mistral-7B-v0.1 --precision bf16-true --quantize bnb.nf4</code>
+  </pre>
+</div>
+
+<p>After the fine tuning process we need to merge the weights.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ mkdir -p out/lora_merged/Mistral-7B-v0.1</code>
+    <code class="language-elixir">$ python3 scripts/merge_lora.py --checkpoint_dir checkpoints/mistralai/Mistral-7B-v0.1 --lora_path out/lora/alpaca/lit_model_lora_finetuned.pth --out_dir out/lora_merged/Mistral-7B-v0.1</code>
+  </pre>
+</div>
+
+<p>To run this model we first need to copy over a few files from the original model.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ cd out/lora_merged/Mistral-7B-v0.1</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/mistralai/Mistral-7B-v0.1/tokenizer.model .</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/mistralai/Mistral-7B-v0.1/*.json .</code>
+  </pre>
+</div>
+
+<h3>Evaluate</h3>
+
+<p>Before we serve the model with Nx it's important to evaluate it first. This is optional but it does offer a simple way to verify the model has learned something.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ pip install sentencepiece</code>
+    <code class="language-elixir">$ python3 chat/base.py --checkpoint_dir out/lora_merged/Mistral-7B-v0.1</code>
+  </pre>
+</div>
+
+<h3>Serving with Nx</h3>
+
+<p>If the model is performing well enough we can pull over the 2 pytorch model bin files and copy the config file so Bumblebee can find it.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ cd out/lora_merged/Mistral-7B-v0.1</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/mistralai/Mistral-7B-v0.1/pytorch_model-00001-of-00002.bin .</code>
+    <code class="language-elixir">$ cp ~/lit/checkpoints/mistralai/Mistral-7B-v0.1/pytorch_model-00002-of-00002.bin .</code>
+    <code class="language-elixir">$ cp lit_config.json config.json</code>
+  </pre>
+</div>
+
+<p>To test this end to end we point Nx at the file system instead of pulling Mistral 7B from <a href="https://huggingface.co">hugging face</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def serving() do</code>
+    <code class="language-elixir">  mistral = {:local, "/home/toranb/lit/out/lora_merged/Mistral-7B-v0.1"}</code>
+    <code class="language-elixir">  {:ok, spec} = Bumblebee.load_spec(mistral, module: Bumblebee.Text.Mistral, architecture: :for_causal_language_modeling)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  {:ok, model_info} = Bumblebee.load_model(mistral, spec: spec, backend: {EXLA.Backend, client: :host})</code>
+    <code class="language-elixir">  {:ok, tokenizer} = Bumblebee.load_tokenizer(mistral, module: Bumblebee.Text.LlamaTokenizer)</code>
+    <code class="language-elixir">  {:ok, generation_config} = Bumblebee.load_generation_config(mistral, spec_module: Bumblebee.Text.Mistral)</code>
+    <code class="language-elixir"></code>
+    <code class="language-elixir">  generation_config = Bumblebee.configure(generation_config, max_new_tokens: 500)</code>
+    <code class="language-elixir">  Bumblebee.Text.generation(model_info, tokenizer, generation_config, defn_options: [compiler: EXLA])</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Next you can wire this up in your <a href="https://github.com/toranb/pgvector-search/blob/mistral7b/lib/search/application.ex#L14">application.ex</a></p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def start(_type, _args) do</code>
+    <code class="language-elixir">  children = [</code>
+    <code class="language-elixir">    {Nx.Serving, serving: serving(), name: ChatServing}</code>
+    <code class="language-elixir">  ]</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>And finally, you can prompt the model from <a href="https://github.com/toranb/pgvector-search/blob/mistral7b/lib/search_web/live/page_live.ex#L44">elixir code</a> with <a href="https://hexdocs.pm/nx/Nx.Serving.html">Nx.Serving</a>.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">Nx.Serving.batched_run(ChatServing, prompt)</code>
+  </pre>
+</div>
