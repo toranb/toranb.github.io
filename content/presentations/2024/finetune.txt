@@ -1,0 +1,215 @@
+(Transcribed by TurboScribe.ai - Go Unlimited to remove this message)
+
+Well, I got to start with the warning. I saw the cool kids do it, and I was like, I don't have a warning, I kind of want one. But it makes sense, right? This is my opinion, and I want someone from the NSA or whatever showing up.
+
+Hopefully that doesn't happen. All right, let's start with something a little more fun. When does something stop being machine learning and become a regression model? I got one laugh.
+
+That's all I needed. Marketing. There we go.
+
+I credit this joke, actually, to Eugene. I won't pronounce his last name here. Okay, I'm Toren Billups, and you're going to talk today about fine-tuning language models with Axon.
+
+When I originally pitched this talk, there was a broad spectrum of what people said, oh, I'm going to learn this from that talk, and I was like, uh-oh. So we're going to start with what this talk is not. So first up, it's not going to be an opinion piece about fine-tuning or prompt engineering.
+
+We're not going to do a tutorial on Lama 2 and fine-tuning that on a single 4090. We're not going to go into the contrast between fine-tuning and retrieval augmented generation. That's a new word for me this week.
+
+Anybody else? Okay, just me. Cool. And then lastly, apparently a lot of people wanted to know how much it was going to cost, and I don't even know if I could do the math on this, let alone come up with the hardware, so leave that one.
+
+So instead, the game plan for today is going to be pretty simple. It's really a beginner's talk. It's about my journey into the fine-tuning process, and of course a little bit about fine-tuning as we get there.
+
+A lot of my journey was just understanding neural networks, deep learning, training. It seemed so magical to me, and I didn't want that. So hopefully by the end, you won't feel that yourself.
+
+The second big stumbling block for me was just transforming and encoding data. As a web developer, I didn't feel like I did that other than over transport. So we'll talk a lot about that today as well.
+
+And finally, we'll do a little fine-tuning and evaluation, and hopefully the most valuable part for you, at least it is when I go to conferences, is just what has this person learned? What are the scars that they've gathered along the way? When's the last time something felt like magic? And don't say Chad GPT, just don't do that. Everybody does that. Before that, you know what I'm saying, in the good old days? If you haven't done anything magical, excluding Chad GPT, maybe it's time to learn something new.
+
+In fact, I wrote this talk because machine learning just felt like magic to me. And at the same time, all the material that I stumbled into felt like it was aimed at statisticians, researchers, not the average web developer like I am. So to get started, we're going to zoom out, and we're going to take a moment to understand deep learning.
+
+I think that will help people in the room that are still connecting the dots, because it's really hard to understand fine-tuning if you've never even looked at training. So we're going to spend a good amount of time on that, actually. And we're going to do that with everyone's favorite interview problem, FizzBuzz.
+
+Turns out it's actually a really great classification problem to play around with. So we're going to get familiar with these concepts. And if you're not familiar, FizzBuzz was actually originally designed, I think, to help students learn division.
+
+And so here, we're going to divide a number by 3. And if it is a clean division, we print Fizz. Cleanly divisible by 5, we print Buzz and both FizzBuzz. I'm sure most of you know this in the room.
+
+But we're not going to build this with conditional statements, right, as we normally would. We're just going to use data. And before we can actually create the network that can solve this, we just have to think about our inputs and our outputs.
+
+So if we're solving FizzBuzz, an input might be the number 3 in this example. And if we were putting in 3, the prediction or the output, we would hope to be Fizz. See, that was the first test.
+
+FizzBuzz. See, nobody, still. Nobody knows it.
+
+I don't know why. Oh, OK. Unfortunately, you can't make a prediction with just the input, right, or at least not a very good prediction.
+
+So we're going to introduce a value. And this number, we're just going to help guide the network to one classification or another. And because of the influence that this number has, it's often referred to as weight.
+
+So what is a neural network? And if you get nothing out of this talk, this is all I hope you get out of it, because this really just turned it on for me. And that is just a multiplication problem. We're multiplying the input times the weight, and we're getting a prediction.
+
+On some level, every neural network is this. Now the inputs, the weights, they become more complex, right? But the premise is still the same. Which is awesome, right? Because I kept hearing, well, you better go back to school, better get a calculus textbook.
+
+Well, the more I got into it, I was like, well, I don't know. Maybe I don't. So hopefully this is an encouragement to you as well.
+
+Now that said, if you're looking at this example kind of faded behind the slide, and you're thinking three times 0.2 is going to give me fizz. I'm not following this. What if you could give the network more information than just the number three? And if you did, would it be able to make a better prediction, a more accurate prediction? So instead of three, which is our current input, what if we turn that into a list of numbers and then encode something more useful for classification? Maybe for example, we divide the input by the number three and put in the remainder and we divide the input by the number five and put in the remainder.
+
+And if we do this, we're going to have an input really with multiple values. So it's a good time to introduce the V word, vector, which is really nothing more for us an elixir. It's just a list of numbers or the simplest way to think about it.
+
+And in this case, we just end up with a vector or a list of zero and three. If we kind of illustrate this a little differently, three is then broken up into these two different nodes, those two values from the vector zero and three. But in addition to there being two vectors now, there's actually also two weights, right? And this changes our simple multiplication just a little bit.
+
+We're just going to do some multiplication of those vectors. And the reason that function is called WSUM is some people call this a weighted sum. Ultimately, we just do some multiplication and we add those together and we come up with this prediction value of 2.1. And if weighted sum isn't ringing a bell and you're in the space, I think other people also call this the dot product.
+
+Now, when the network does a prediction like this for classification, the problem is there's not just one output of fizz, yes or no, right? Each of these actually has, each of these classifications actually has their own set of weights. And each of these would be predicted independent of each other. We're not going to add these together.
+
+So the good news is this math is a lot simpler. It's just multiplying our number by the vector of the weights. And as we run through and crunch these numbers, we get basically a new vector on the way out.
+
+And it's starting to look a little bit more like a legit classification network. Because now we're going to be able to combine multiple inputs and multiple outputs. So as we smash the code together for both of these, we're kind of combining our weighted sum work as well as our vector math.
+
+It's important to note one critical change and that is that the weights themselves are actually a matrix or a list of list here. So I tried to break this out on the slide. But again, we're just doing multiplication.
+
+Now what about the evaluations? We saw some wacky numbers in there. Where do those fit in? So we have numbers like 089, 0.3, and I don't know how I did it, 0.3 again for fizzbuzz that's kind of hidden by this logo here. But in the classification example, these numbers at the end, they really need to be a total of 1, 1.0. And we're not really fitting into that right now.
+
+We just kind of have numbers spilling out. So we're going to do something called softmax. And I think of it as just normalizing the numbers we have by dividing them, each number by the total.
+
+And after we apply softmax, we have a little bit more of a normalized range here. So we have 0.58, 0.20, and then somehow 0.20 again. What this means is the network is 58% confident that the input of 3 is fizz.
+
+But 58% is not 100%. So what do we do now? Well it turns out neural networks are not trying to memorize your data, but instead they're trying to reduce an error function from the prediction. So how do we define error? And we can do that with this cost function here, where we're going to take the output of our network, which is that 0.58, 0.2, and we're just going to subtract those values in a way from the ideal output.
+
+So the top right, this kind of new set of nodes with the 1.0 represents 100%. We 100% want fizz and 0% for the others. And the really simple calculation we're going to do here is we're just going to subtract those and square it so that we don't deal in negative numbers.
+
+Then we're going to take all those numbers and add them up. And we get our error, which is 0.25 in this case. Now remember, we're shooting for an error of, what was it? Zero.
+
+So with this information, the 0.25, we can go back and update the weight matrix and try again. And that reveals what learning is in a neural network. It's a search problem.
+
+We're searching for the best possible configuration of weights, so the network's error falls to zero. Deep learning on lock. Anybody else? Okay.
+
+Still in awe. But wait. The network is not doing so well.
+
+We run this and we see fizz and buzz a little bit, but there's one of our classifications that's not even showing up, and that's our friend fizzbuzz. Not even on the map. Why is this? So if we step back for a second, we know that the network is learning some correlation in the data, so I kind of conjured up this in my head that imagine it's taking some notes about if the number, if the input is divisible by three, if it's divisible by five.
+
+So I've kind of mapped that out in a truth table, if you remember those from way back. And in this case, you can kind of see working left to right. So we use the number one, we just end up with zeros, nothing there.
+
+But three and five, they both are divisible by three or by five, so we get a one. But that very bottom one seems broken. We're divisible by three and we're divisible by five, yet we're not truthy.
+
+So if anybody can remember this operator, the exclusive or, and this is really the problem, right? We should be able to map 15 or, sorry, 15 to fizzbuzz, but we're not able to. And this is actually a problem that I learned about, new to me, and it's because we have a single layer perceptron. So our network's not quite advanced enough, in fact, it's not even really a neural network, it's not doing deep learning because we only have an output layer.
+
+But we're all functional programmers, so we'll just stack one more layer in there. It's just inputs and outputs, all the same stuff. So the multiplication scales up, and the result, fizzbuzz, hopefully it shows up in all the right places.
+
+We're gonna move on so fast you can't figure it out, okay. Now there's tons of room for optimization, exploration, honestly I almost did a whole talk just on this because it was so fun, but I do want to get back to fine tuning eventually, so my hope here is just going through this, if you're new or you just showed up to hear me speak about this, that deep learning looks less magical, more logical. Now we haven't talked about Elixir at all, so let's talk a little bit about Axon.
+
+And Axon's really cool because you can build these neural networks without going fully in the weeds, and I'll show that here in just a minute by doing that same classification model, but much quicker this time because, honestly, Axon just does all the heavy lifting. So here's our model definition as I like to call it, exactly the same as you'd expect from our previous example, we've got two inputs, we've got a kind of hidden layer in the middle of three, and we've got a dense layer on the end, which I've only added one additional node here, which is the not fizzbuzz example, which is called none at the very bottom, but otherwise it's the same network. And one thing I wanted to dive into, I'm not going to do a full source dive into Axon, but just to encourage you to do that as you run into trouble or you get curious, I jumped into that Axon.dense, and I actually found inside the code here they're just doing nx.
+
+Which should be familiar. I mentioned earlier that we're doing a dot product, and so this was kind of cool to see myself just poking around in the code. Now I didn't talk about these activation functions on the end, we did show the softmax activation function earlier, but I skipped over this other one I just talked about called relu, but I don't know why I skipped over it, it's actually simpler than softmax, it's literally just is this value positive? Cool.
+
+If it is not, it is just zero. That's it. And we won't go into specifically why we're using that, but here's how that works.
+
+We just pass in a value of negative one, two, and zero, and out comes only those positive values of course. Now if you're familiar with Elixir, what I think brings this home is just looking at it as a single pipe chain. We have our input, and that's just our vector of two values really.
+
+Then we have our first hidden layer, which is just really our dot product and the relu activation function, followed by our output layer, which is another dot product, and softmax. So let's take a look at some of the Axon code to do this. We kind of spelled out some of this earlier when we went through the fuller fizzbuzz example, but if you're in Axon, you obviously have to declare loss and optimizer.
+
+And I think of the loss function as kind of that process we loosely went through where it's like, okay, how do I define error? How do I calculate this? What do I do with it? And here I just put a really simple example, which is that during training, the weights are adjusted to minimize the error. Now I am going to hand wave past the atom optimizer here. I looked at a paper on that once.
+
+Not ready for that. But I will say that learning rate that's listed here as one of the parameters is just something that you can tune, which tells you how fast or how slow that the network learns. And then finally, I want to cover just the part that was kind of confusing to me way back when I did this with Axon, is that you've got to actually return a stream.
+
+And so this is the stream data. And me just using fizzbuzz to label that data. We haven't talked about it yet, but how else is the machine going to learn if you don't actually provide it good examples? For example, how could it learn fizzbuzz is what it is unless we label it here as remainder 15 equals zero as that top example.
+
+And then finally, we won't go too much into how to use the tuned code or the trained code, but here's a quick look at it in Axon where we basically take those weights and we can call this prediction function. And it spits out fizzbuzz, fizzbuzz, or none of the above here. Now if you want to keep going, that's cool.
+
+But for sake of time, we've got to pull up and get our way still to fine tuning. I did put together a full Axon version of this. And if people are like, well, that's pretty abstract, I want to go a little bit deeper.
+
+There's also an NX version out there as well. All right, so let's get into fine tuning. Now I wanted to condense fine tuning into two steps.
+
+So we're going to take a pre-trained model. That means somebody else has already done the work, paid the bill. And then we're just going to tune that model to perform a new but related task.
+
+And that task for us today in this little demo is going to be text classification. And since we're working with text, we need a model that understands natural language. And then we're going to create a labeled data set that the machine can interpret.
+
+And then finally, we're just going to train the model for classification. Now I chose to work with BERT, mainly because it seems like it's everywhere. And it's basically everybody's hello world for this classification fine tuning example.
+
+What is BERT? Here's kind of the formal definition. But BERT's actually one of the very early language models, I think way back in 2018 sometime. And I just kind of emphasized the part that I cared about here, which is that it's a pre-trained model, but I can use it to fine tune on a specific task, like classification.
+
+It also just so happens to be the exact model used in the fine tuning docs for Bumblebee, which helps a lot. So check this out. They kind of go through a Yelp fine tuning those reviews example, which is kind of cool.
+
+All right, so now that we have our model picked out, let's create a labeled data set. And as much as I get excited about the model and all the other fun stuff that comes with training in Bumblebee, the truth is if you don't have good data or you have somebody else's data, you're probably not going to be able to get very far with something interesting. So I'm going to share a couple examples.
+
+We're not going to get too hung up on the text examples that I'm using. But here's a few of them. So the price was outrageous, way too expensive, I simply can't justify the cost.
+
+These all come from some kind of order cancellation process, right? And what we want to do is we want to take this text and we want to classify it. So we've got a few different labels that we'd expect to output. But the first one and all those you just saw are kind of related to price.
+
+But there's certainly availability and response time and, of course, a handful of others. I've got about eight in total. And the CSV for this is going to look something like this.
+
+So we have our text, like the top line, the price was outrageous. And that number to the left just represents this label, right? Just arbitrary seven, seven means price, that's all it is. But because the language model itself can't parse or understand this text, we've got to do the work to actually transform it.
+
+And in the FizzBuzz case, it seemed like it was a little easier. We just basically took each number and turned that into a vector. And that vector had some feature information that helped us classify the data.
+
+Now if we try to apply that loosely to this example, the price was outrageous, we might think about doing something like this where we have a zero for every word except the one that we care about. That way there's really no overlap and we can distinctly know the is not the word price, for example. Unfortunately, you'd have to have a much bigger vector.
+
+In the case of BERT, there's over 30,000 words. So your vector is over 30,000 zeros, effectively. And this is kind of that first tradeoff of encoding.
+
+It's really easy to understand this as a human being, an analyst, and you're like, oh yeah, I understand where the word came from, everything else is a zero. But there's some big downsides. And the first is that this is just huge.
+
+So this probably wouldn't fly, and I'm using the word inference here. You can think of that as the same thing as prediction. But training and prediction or inference would both be much slower as a result with these huge vectors.
+
+Another downside is what about words that are completely different, but they're spelled exactly the same, right? They're going to fit into the same bucket. The machine's like, I don't know if this is a fish or something else, what's going on? And ultimately, the real problem here is we just can't identify similarity. So I've got two kind of similar words here, laughed and laugh.
+
+But those would be, of course, different words, and the machine would not be able to identify that. And this is a big departure from our experience previously with that fizzbuzz example, because fizz and buzz, well, they don't overlap at all. One's divisible by three, one's divisible by five, and that's it.
+
+But in text, however, we know that words can be similar depending on how they're used. The challenge here is that, again, with this kind of primitive encoding, cat and dog, if you were to kind of say, are these close? You wouldn't know, because cat and car would have the same measure of closeness. So what we actually need here is a data structure that gives us some way to encode semantic relationship between words.
+
+Well, it turns out there is one of those, and that's what word embeddings are actually built for. So let's take a look at a really simple example here. And words that are similar on this plotted line are closer together.
+
+So we got car and carpet kind of pretty far apart, and then carpet really far away from cat and dog, which are actually pretty close. And the cool part is that we can actually use the distance between words to measure that similarity. Unfortunately, one number, as we saw earlier, is not a lot of information to encode much about that word.
+
+So if we instead represent each word as a two-dimensional number in this vector space, now they look like proper vectors with a direction here. So it's important that we retain the ability to measure the distance between these. And thankfully, somebody smarter than me has already done that in the Elixir ecosystem with cosine similarity.
+
+So here's just a way to pull in that library and actually measure the distance between the these two. Now the downside of scaling up the dimensional space is you just can't visualize it in your mind very well. But the software can encode, as you can imagine, a ton of information.
+
+And that information is very useful about the word, its context, and ultimately its meaning. So we have to remember that computers lack the ability to comprehend text. So first we need a data structure that actually the machine can use and interpret.
+
+And then secondly, or more importantly, data structure needs to be able to capture this semantic relationship between words. So with this foundation, how do we do it in Elixir? First we're going to go through a process of tokenization. We're going to take that text and tokenize it, and then we're going to convert each of those into a particular vocabulary ID.
+
+And then we're going to generate word embeddings from these IDs. So here's a kind of screenshot of me using this tokenizer in Elixir. And the function is about halfway down the screen that I'm using to encode this, where I take the tokenizer and I take a sentence like, the price is outrageous, and this spits back an encoding.
+
+The two parts I want to zoom in on, of course, on the very bottom you can see that the actual tokenization includes two special characters we'll talk about later. But generally it just kind of breaks up the sentence. But for right now, what's really important as well is that we have these IDs that are that come out of the encoding.
+
+And one thing I learned that's pretty cool is that these IDs, although they seem kind of random or unknown to me, they're actually in the vocabulary file for this model. So there's a line number here on the left that I'm highlighting in my editor, and this is kind of mapping up to the numbers you see. That last one being outrageous was 25, 506.
+
+This is just kind of a cool way to tie those together. Again, hopefully there's no magic here. We're just using words in a vocabulary.
+
+They come out of this encoding. Now if you want to go a little further, you can see the full-blown embedding, but we're not going to see that. We don't have to write that code, which is great.
+
+But here's the actual embedding, or here's how you get the embedding with Axon just using the base BERT model here, passing in a set of those token IDs, which is just a vector of those numbers we saw earlier. And then what we get out of it, well, it's a whole bunch of those numbers here. But what are we actually looking at? So if I break this down, we've got a tensor that represents our single input sequence with six tokens, and each of those six tokens has 768 numbers.
+
+I know number is the wrong term, but values in there. And this is what it kind of looks like if we orient it a little bit like a table. So you can see there's 768 of these, and each one of those vectors just represents the word above it.
+
+All right, so if we circle back here, this whole tokenization thing, we can see kind of the big picture where we tokenize the input, we get the token IDs. These IDs represent a word in the vocabulary. And then from these vocabulary IDs, we get a contextualized word embedding.
+
+So now what? What are we going to actually do with these embeddings? Well, first, it's useful to understand how BERT was trained, and BERT was actually trained on two different tasks. So the first one is called masked language modeling. I had to practice that in the mirror a lot.
+
+I don't know why. It just trips me up. And this one, I just think more as next word prediction.
+
+So if anybody ever told you, oh, Chad GPT is just predicting the next word. That's kind of how I think of this training. And the one we're going to zoom in on today is actually similar.
+
+It's next sentence prediction. And this involves feeding the model BERT, in this case, two sentences, so sentence A and B. And then we're actually asking it like, hey, predict that these are related, and then predict if sentence B is actually the next sentence. Like it might not be.
+
+And it turns out this is a really great pre-training task to learn and summarize the entire sequence. So remember that special token I hand-weighed over and we said we'd come back to, CLS? Turns out that is this token. That's the summary of the sentence.
+
+So we can throw out or ignore all the rest of these embeddings. And then we can feed that output, or this word embedding you see on the left here, into a single layer with a softmax activation function, and this will actually give us the probabilities of all those labels that we cared about, price, availability, response time, and all the other ones. And then we can use fine-tuning, just like we talked about with Axon earlier in the training process, and use all those same tools to do the training and get this probability.
+
+So are we finally going to get to fine-tuning? Okay. Before we get there, one plug quick to Hugging Face. If you're new, you're just checking this out.
+
+Hugging Face, this is my warped view, but I just see it as kind of the GitHub for machine learning. This allows you to pull down models, tokenizers, config. Now everything you're going to see, and most of the stuff you have seen actually, is just up on GitHub.
+
+I just have this little public repo called ElixirConf2023. There'll be a QR code when those slides are coming up. If you just want to pull that down, that's fine.
+
+It kind of goes through a really basic example. So let's jump in here. Now first we're going to actually just pull this BERT-based model from Hugging Face, which is why I kind of threw a link to the site.
+
+If you didn't know, that's what's happening behind the scenes. We're actually going out and pulling that down. And we're using a particular architecture here.
+
+That's why this is highlighted in yellow, because we're doing classification. And finally, we pull down the model and the tokenizer itself. And I wanted to jump in real quick and just kind of inspect the Bumblebee code, because I don't know the code base that well.
+
+But here you can see we're kind of pattern matching this model function based on whatever architecture you used. And remember earlier where I said, oh, we're just going to take that word embedding, and then we're going to tack on one more layer? That's exactly what's happening here. So we add one more dense layer, and it has the number of labels, which we passed into that spec earlier, which happens to be eight.
+
+Very cool. All right, next we need to actually extract the logits from this model info using axon.nx. And if you're scratching your head, you're like, wait, what's happening? I'm just going to zoom in one more time on the source code for Bumblebee. We actually return not just model, but kind of like these three different things in the map.
+
+So we have logits, which I think of as kind of the model definition or the layer definition and structure. And that's actually what we care about. All right, so next we're going to declare, just like we did in the fizzbuzz example, loss and optimizer.
+
+And again, this is all in an effort to minimize the error, because for classification we obviously want error to be zero. And next we're going to prepare some training data. And this is kind of that get data process where I basically have a CSV, and I'll show that again if you didn't remember, but it's just basically a number and some string.
+
+And this function just streams over the CSV and kind of chunks it. And then as we roll through those, we're just going to use the tokenizer, similar to how I showed earlier. And this is that CSV, if you're still scratching your head.
+
+(This file is longer than 30 minutes. Go Unlimited at TurboScribe.ai to transcribe files up to 10 hours long.)
