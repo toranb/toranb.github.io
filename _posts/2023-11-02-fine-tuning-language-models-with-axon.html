@@ -1,0 +1,28 @@
+---
+layout: post
+title: "Fine tuning language models with Axon"
+date:   2023-11-02 01:00:00
+categories: blog archive
+---
+
+<p>I had the opportunity to speak at <a href="https://2023.elixirconf.com/">ElixirConf US</a> in Orlando and couldn't be happier with the outcome. My talk, initially designed as a high-level overview of <a href="https://hexdocs.pm/bumblebee/fine_tuning.html">fine-tuning with Axon</a>, quickly evolved into an introduction to machine learning tailored for software engineers. Below is a brief summary of the talk for those who are interested.
+
+<h2>Summary</h2>
+
+<p>The talk by Toran Billups is about his journey into understanding and implementing fine-tuning of language models, specifically using Axon for Elixir developers. The talk aims to demystify the concepts of neural networks, deep learning, and the fine-tuning process for those who might find these topics intimidating or overly technical.</p>
+
+<p>He begins by humorously addressing common misconceptions and clarifies what the talk will and won't cover, stating it's not about the costs, contrasts between fine-tuning and retrieval augmented generation, or a tutorial on specific models like Lama 2. Instead, he focuses on the basics of neural networks, using the FizzBuzz problem as a teaching tool to explain concepts like vector inputs, weight matrices, activation functions, and error calculation. He emphasizes that at its core, a neural network is a series of multiplication and addition operations aimed at reducing prediction error.</p>
+
+<p>Transitioning into Axon, an Elixir library, Billups demonstrates how it simplifies building neural networks by abstracting much of the complexity involved in the process. He briefly covers topics like activation functions (ReLU and softmax), loss functions, and optimizers without diving too deeply into the mathematics, making the content accessible to beginners.</p>
+
+<p>The latter part of the talk focuses on fine-tuning using BERT for a text classification task. Billups explains the importance of labeled data, tokenization, and the creation of word embeddings. He illustrates how BERT's pre-training tasks (masked language modeling and next sentence prediction) are foundational for understanding how to fine-tune the model for specific tasks. He also introduces Hugging Face as a resource for accessing pre-trained models and tokenizers.</p>
+
+<p>Throughout the talk, Billups encourages exploration and learning by sharing his code and examples on GitHub, emphasizing that the goal is to make deep learning and model fine-tuning more approachable and understandable for Elixir developers and those new to machine learning.</p>
+
+<div style="padding-top: 20px; padding-bottom: 20px;">
+  <div style="margin: auto; width: 90vw; height: 50vw; max-width: 768px; max-height: 432px">
+    <iframe width="100%" height="100%" src="https://www.youtube.com/watch?v=-iZIZHgHa5M" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+  </div>
+</div>
+
+<p>The source code is up on <a href="https://github.com/toranb/elixirconf2023">Github</a> for anyone who wanted to see a few of those examples in more detail.</p>
