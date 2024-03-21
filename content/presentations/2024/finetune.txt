@@ -1,5 +1,3 @@
-(Transcribed by TurboScribe.ai - Go Unlimited to remove this message)
-
 Well, I got to start with the warning. I saw the cool kids do it, and I was like, I don't have a warning, I kind of want one. But it makes sense, right? This is my opinion, and I want someone from the NSA or whatever showing up.
 
 Hopefully that doesn't happen. All right, let's start with something a little more fun. When does something stop being machine learning and become a regression model? I got one laugh.
@@ -212,4 +210,98 @@ And again, this is all in an effort to minimize the error, because for classific
 
 And this function just streams over the CSV and kind of chunks it. And then as we roll through those, we're just going to use the tokenizer, similar to how I showed earlier. And this is that CSV, if you're still scratching your head.
 
-(This file is longer than 30 minutes. Go Unlimited at TurboScribe.ai to transcribe files up to 10 hours long.)
+When we extract the text from that batch and then tokenize it, it kind of looks like this bottom left slide where we basically get those token IDs back, which are the vocabulary IDs, along with a vector of the labels themselves. You can remember 7672, that was like price availability, price and response time.
+
+Yes, there it is. If you see a bunch of zeros down there in the output, that's just because we're actually padding the response, which I didn't go into that detail, but you have a certain length for these as well. And then finally, when we're actually done with this training process, we have something, I just named it updated params, but you actually take the loss optimizer and our model and then just decide to actually do the training with that data that we returned.
+
+Now, I do call this out. If you wanna do anything with that data later, you wanna put it on S3, et cetera, you definitely wanna serialize that out. Simple as this, just write it out to a file.
+
+So how do we do? We've got some fine tuning, we have no idea what we're doing. A quick way to look at this is built into Axon as well. And so we're gonna first read those params.
+
+Let's say you're gonna pull those down or they're on the file system, you deserialize that. You're gonna create a new set of data. Now you can go through the same code we did, but you actually want a different CSV.
+
+In this case, the CSV is meant to be very different data. Because remember, we don't wanna memorize the training set, we wanna generalize. So this is different data.
+
+And then we attach an accuracy metric and then use this function called axon.loop.evaluator. And then we run it. And if we've done everything right, we get something like this actually, which is a pretty good accuracy of 90%. But I remember the first time I saw this, it was not what I expected it would be because I was actually running some training and through all these different training loops, I was like, wait, I saw an accuracy of 98%, but I thought that this said 90%.
+
+Well, it turns out that this is just kind of measured on the loss. So it's good information, but it's not really the ground truth for your data. And what's happening back here when we run the evaluator over your own test data, is we're actually getting a sense of how it does on data it doesn't know about.
+
+So this one is a little more important than this training accuracy. Okay. You made it.
+
+We're gonna jump into some learnings. This is gonna be just a quick kind of punch list of all the things that I learned. And the first was not paying enough attention in college to my statistics instructor, I guess.
+
+I didn't realize I'd be at the edge of what engineering, data or data engineering, statistics, and then your domain expert. So just something to think about. And I just put this quote up here from Eugene, who's apparently my hero.
+
+And he just says, if you wanna be a serious data scientist, learn statistics. Now I'm excited for the future of machine learning Elixir, but I'm painfully aware of how data illiterate I have been most of my career. So I put this little quote together that I hope catches on, but basically you can come for the language models, the hype, the excitement, but stay for the data and specifically the data literacy, which I'm just becoming more aware of myself.
+
+One of the bigger challenges and more time consuming parts of this little project I did was just trying to get good data. And so I just put this up here saying, I think good data is just purely the result of hard work. And I can't make this up.
+
+My Lyft driver who brought me over from the airport is actually a 20 year data science veteran. And I just got to hear him rant for like the 15 minute car ride over here about data is always bad. Don't get into this field.
+
+You don't know what you're doing. I'm learning JavaScript. You should do that.
+
+And I was like, cool, dude. So I just feel like every experience I hear from someone is around the pain of scraping or engineering or getting your data pipeline, whatever this guy does. And it just, I don't know.
+
+It was the highlight of my day for sure. I do want to share one painful mistake that I made here. And that is, of course, anytime you try and cut a corner to take a shortcut, you're going to pay for it somewhere.
+
+And for me, the shortcut was like, man, I don't want to hand label 1000 records. That's just a ton of time. So what if I just do 400 and then I throw that 400 into a certain unnamed model and say, can you rephrase those? That'd be great.
+
+And I'll just combine them and then I'll have 800 and it'll be twice as good. Well, it turns out if you just rephrase them, we're essentially the same data. So that ended up costing me, and a bunch of time later trying to figure out why is this model performance degraded so badly when I doubled the data? And that's because we're again, trying not to memorize, but generalize.
+
+And I think my note here was just keep in mind, like you want a really diverse set of data. You don't want a lot of data that's basically the same thing, like too expensive. That was expensive.
+
+Too T-O expensive. You don't want a bunch of weird permutations like that, which leads me to the other big kind of learning here, which is garbage in, garbage out. You see this in a lot of the newer language models where they're taking a lot more care and time with the data before they go train, because of course, the higher the quality of your data, the better the result.
+
+So spend some time, have a pre-processing step, go through and look for really weird stuff, like even have a human inspect it truly and just be like, does this data even make sense? All right, so let's go through batch size, which was kind of new to me. I didn't really understand it. So this might just be obvious to everybody else, but during each epic or training loop, you're still gonna show the, you're still gonna show the model as that training step, 100% of your data.
+
+You're just not gonna do it all at the same time, if that makes sense. You're gonna chunk it up. And I kind of put this little visual together.
+
+Let's say you have 48 samples. What's gonna happen during one training run here is you're gonna break into groups of 16, and you're gonna show the model, hey, here's 16, how did they do? Then you're gonna move on, hey, here's the next 16. Okay, and here's the last 16.
+
+And then you're gonna do that all over again. So you're gonna do that a total of three times, which I don't know, visually, I just put this together and I was like, yeah, seems obvious. Now I bring that up as well, because batch size is one of those variables that has an impact on performance.
+
+So this comes from Dr. Charles Martin. He says, we discovered that when you decrease the batch size, the generalization error gets smaller. He calls this the generalization gap phenomenon.
+
+He just says, nobody understands it. When you train neural networks with smaller batch sizes, they just generalize better. There was kind of a conventional wisdom in this.
+
+It just says, it gets more intelligent, apparently, about the noise when you have a smaller batch size. And for my case in particular, I started with like a batch size of like 64 using the Bumblebee kind of guide. But I really whittled this down to a batch size of 16, which really helped me generalize a lot better.
+
+Now another thing that should be said is just experiment with different models. You might be surprised at how low work or how low friction it actually is, like literally changing a string from BERT to Roberta as an example. And of course, if you plateau, this might just help you get a little bit more model performance.
+
+For example, I started with BERT. I got about 90% with way too many hours of tuning on this model. And then I tried GPT-2 with literally a single string change and I got 77, not great.
+
+But then I finally flipped over to this model from Facebook called Roberta and I kind of peaked out at my 93%, which is great. Now if you're like, what is Roberta? I guess it's just a better trained BERT, but that might be controversial. So move on.
+
+We have a, I think some of the more fun stuff that came out of this too is just in the software engineering space, I'm a very big advocate of fast feedback. I feel like experimentation and learning is just how you grow, how you get better. And so for me, I really should have bought a GPU much faster or much sooner.
+
+And then secondly, I should have bought a bigger GPU, of course. So I'm just gonna show this really budget card that I got, which I'm still happy. I only spent a couple hundred bucks on this, but it really just kind of helped dip my toe into some of these smaller models and just decide, hey, is this worth it? Is it gonna be valuable? But one quick example, I did a side-by-side of this really kind of basic 3060 against the CPU and it's truly order of magnitude difference.
+
+So I'm talking like 720 seconds versus 75 seconds. So if you're coming from the software background, you're used to like change, run my test, go, yeah, this is gonna be painful for you. So spend some money, get even just a baseline GPU.
+
+Of course, I've got my sights set on the 4090, unless Sean wants to give me his at the end of the talk, but this card is still on my dream list. And if you are adverse to cloud spend like I am, then you can install this with any Ubuntu system. I ended up using System76 Pop!OS, no big deal.
+
+And the last point I really wanna hit on that's related to the learning series that it just felt like the whole time I was doing this, it was just all finger in the air, more art and finesse than engineering. And I think it comes down to two issues really is that something new to me is that networks are either underfitting or overfitting. And if you're new to this, you're like, what are you talking about? Well, in the overfitting example, the first example here, the network is more or less memorized the data or that's how it feels because it's only doing well on the data that you trained it with and it doesn't really know anything about other data.
+
+It's doing very poorly. And then underfitting, that could be a number of things, which is really where I kind of spun my wheels. It's like, do I have enough data? Is the data bad? And I kind of shared that story earlier where I shot myself in the foot and spent a good couple of days just trying to figure out, oh yeah, not diverse data is bad.
+
+So I feel like I really want a tool, I desire a tool that makes it closer to engineering and less than an art. And the only one I've really seen that's open source and not trying to take all my money is this Python tool called Weight Watcher. And Weight Watcher, just a quick explanation, I'm not making money on this or anything, is just that it kind of gives you this quality metric they call alpha, and it doesn't require your test data.
+
+They're not trying to steal your company's data. It just uses the weight matrices that you have. And it plots this.
+
+And what they're trying to do is get you to find somewhere between two and three is their quality metric. And it just allows you to see by comparing your model or comparing these models like Bert and Roberta to see, are they really hovering around two and three? Well, in the case of Bert, it's actually way out, all the way up to 10. So it's not properly trained.
+
+And this is just more information to help you make better decisions. So I hope tools like this become more popular or tools like this become easier to use in Elixir. All right, let's get back to the Elixir hype train.
+
+So the Elixir ML community is small, yes, but I just found tremendous support in the Slack channels, especially for people like me who are new, who are learning, and who are interested. And I think the ML ecosystem in Elixir actually is more plug and play than I realized, which is really the emphasis or the thrust of my talk, which is if you thought this stuff was for researchers and statisticians, so did I. And then finally, as Sean and the team has been doing, I think the ML Ops experience, and he probably talked about it earlier this week, really allows Elixir and your team to punch up, which is awesome. The operational experience is first class.
+
+So I wanna end with just a quick note, and this comes from, again, Dr. Charles Martin. And he was interviewed on a podcast, and he said, it used to be that when clients came to me, they wanted research. Now what people want are off-the-shelf solutions.
+
+In the next five years, they're gonna be off-the-shelf solutions, plug and play, which work in vertical industries with huge returns. And I think that's where we're going. We don't see anything like that yet.
+
+Now he said this back in 2019, and it was on this podcast, if you wanna check it out, called Validate Neural Networks Without Data. Now the pace might be a little amped up from 2019, because of all the hype cycle, but I think his promise has actually come true for the most part. So those who are brave enough to extend full stack, you'll be empowered in the Elixir ecosystem.
+
+So build something, fine-tune something, learn something. And I didn't write this book. I don't make any money on this book.
+
+This book was probably an inspiration for me. I would highly recommend this book for anyone who feels like a lot of these topics, deep learning, are really interesting, but they've not yet had a good resource. I just swear by this book.
+
+I think it's absolutely amazing.
