@@ -5,21 +5,17 @@ date:   2023-11-02 01:00:00
 categories: blog archive
 ---
 
-<p>I had the opportunity to speak at <a href="https://2023.elixirconf.com/">ElixirConf US</a> in Orlando and couldn't be happier with the outcome. My talk, initially designed as a high-level overview of <a href="https://hexdocs.pm/bumblebee/fine_tuning.html">fine-tuning with Axon</a>, quickly evolved into an introduction to machine learning tailored for software engineers. Below is a brief summary of the talk for those who are interested.
+<p>I spent the last year at the intersection of software engineering and machine learning, uncovering the next great opportunity for automation. My talk at <a href="https://2023.elixirconf.com/">ElixirConf US</a> in Orlando documented my attempt at simplifying the complex concepts in neural networks and deep learning for those who feel overwhelmed by the technical aspects.</p>
 
-<h2>Summary</h2>
+<p>I started with <a href="https://blog.codinghorror.com/fizzbuzz-the-programmers-stairway-to-heaven/">FizzBuzz</a> because it was a problem most software engineeers had some familiarity with while subtly bridging the gap to more complex concepts. In my experience this widely known interview question was the perfect primer on the subject because underneath the diverse solutions was a well-understood classification problem that provided the optimal foundation for machine learning.</p>
 
-<p>The talk by Toran Billups is about his unique journey into understanding and implementing fine-tuning of language models like BERT. The talk aims to demystify the concepts of neural networks, deep learning, and the fine-tuning process for those who might find these topics intimidating or overly technical.</p>
+<p>After the more introductory concepts I discussed fine-tuning pre-trained models, like <a href="https://arxiv.org/abs/1810.04805">BERT</a>, for the specific task of text classification. I talk about creating a labeled dataset, transforming text into a form these models understand through tokenization and embedding, and finally, training the model. In this part of the talk I emphasize the critical role of quality data, the challenges that come with preparing or cleaning it, and the nuances of encoding text for machine learning models.</p>
 
-<p>He uses the FizzBuzz problem as an introductory example to explain basic concepts in machine learning and neural networks. This leads to discussions on input and output data, weights, neural network fundamentals, and vector mathematics. He emphasizes the simplicity at the heart of neural networks—multiplication of inputs by weights to make predictions—and introduces concepts like weighted sum (dot product) and the softmax function for normalizing output probabilities.</p>
+<p>My goal was to make deep learning and model fine-tuning more approachable, especially for those in the Elixir community and more generally those new to machine learning. While this talk was presented at ElixirConf I actually think it's applicable to a much wider audience and hope others find it helpful.</p>
 
-<p>He demonstrates how Axon simplifies building neural networks by abstracting much of the complexity involved in the process. He briefly covers topics like activation functions (ReLU and softmax), loss functions, and optimizers without diving too deeply into the mathematics, making the content accessible to beginners.</p>
+<p>Toward the end of the talk I spoke about the trend towards off-the-shelf, open source models, and the opportunities for developers to upskill. For those eager to delve deeper, I recommend <a href="https://www.manning.com/books/grokking-deep-learning">Grokking Deep Learning</a> as an invaluable resource.</p>
 
-<p>Toran then introduces the concept of fine-tuning with a focus on text classification, using a pre-trained model (BERT) as a starting point. He explains the process of creating a labeled dataset, transforming text into a form that the model can understand (tokenization and embedding), and training the model for a specific task. The talk provides insights into the importance of quality data, the challenges of data preparation, and the nuances of encoding text for machine learning models.</p>
-
-<p>Throughout the talk, Toran encourages exploration and learning by sharing his code and examples on GitHub, emphasizing that the goal is to make deep learning and model fine-tuning more approachable and understandable for Elixir developers and those new to machine learning.</p>
-
-<p>Toran concludes with reflections on the future of machine learning solutions, the shift towards off-the-shelf, industry-specific models, and the opportunities for developers to extend their skills into machine learning with Elixir. He recommends <a href="https://www.manning.com/books/grokking-deep-learning">Grokking Deep Learning</a> as an excellent resource for those interested in further exploring the topic.</p>
+<p>Looking back, this journey has been about more than just acquiring knowledge; it's about sharing it, making the path less intimidating, and most importantly, showing how software engineering and machine learning collide to make way for innovative in business.</p>
 
 <div style="padding-top: 20px; padding-bottom: 20px;">
   <div style="margin: auto; width: 90vw; height: 50vw; max-width: 768px; max-height: 432px">
