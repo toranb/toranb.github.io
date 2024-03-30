@@ -1,0 +1,102 @@
+---
+layout: post
+title: "llama.cpp and Elixir"
+date:   2024-02-15 01:00:00
+categories: blog archive
+---
+
+<p>For the longest time I put programming language dogma head of technical pragmatism but recently the need for synthetic data generation helped steer me towards <a href="https://github.com/ggerganov/llama.cpp">llama.cpp</a>. I assumed the minimal operational complexity I enjoy with Elixir was somehow at odds with llama.cpp but together they provided enough harmony to help me level up.</p>
+
+<p>My end goal here was to unlock access to bigger models like <a href="https://huggingface.co/mistralai/Mixtral-8x7B-Instruct-v0.1">Mixtral-8x7B</a> within Elixir so I could do data engineering with 24GB or less of vRAM. To my surprise the happy path was simple, straightforward and supports Mistral, Mixtral, Gemma and just about any flavor of Llama 2.</p>
+
+<p>The clone and make process is simple enough</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">git clone --depth=1 https://github.com/ggerganov/llama.cpp.git cpp</code>
+    <code class="language-elixir">cd cpp</code>
+    <code class="language-elixir">make clean && LLAMA_CUBLAS=1 make -j</code>
+  </pre>
+</div>
+
+<p>Next, download a <a href="https://huggingface.co/docs/transformers/main_classes/quantization">quantized</a> <a href="https://huggingface.co/docs/hub/en/gguf">gguf</a> of Mixtral8x7b that works with llama.cpp.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def download do</code>
+    <code class="language-elixir">  url = "https://huggingface.co/TheBloke/Mixtral-8x7B-Instruct-v0.1-GGUF/resolve/main/mixtral-8x7b-instruct-v0.1.Q5_K_M.gguf?download=true"</code>
+    <code class="language-elixir">  dir = "/home/hello/cpp/models"</code>
+    <code class="language-elixir">  path = "mistrial-instruct.gguf"</code>
+    <code class="language-elixir">  full_path = Path.join([dir, path])</code>
+    <code class="language-elixir">  File.mkdir_p!(dir)</code>
+    <code class="language-elixir">  Req.get!(url, into: File.stream!(full_path))</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>Now, using System.cmd shell out to llama.cpp from Elixir.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def prompt(text) do</code>
+    <code class="language-elixir">  ggml_exec = "/home/hello/cpp/main"</code>
+    <code class="language-elixir">  </code>
+    <code class="language-elixir">  System.cmd(ggml_exec, [</code>
+    <code class="language-elixir">    "-ngl",</code>
+    <code class="language-elixir">    "20",</code>
+    <code class="language-elixir">    "-m",</code>
+    <code class="language-elixir">    "/home/hello/cpp/models/mistrial-instruct.gguf",</code>
+    <code class="language-elixir">    "-c",</code>
+    <code class="language-elixir">    "2048",</code>
+    <code class="language-elixir">    "--temp",</code>
+    <code class="language-elixir">    "1.0",</code>
+    <code class="language-elixir">    "--repeat_penalty",</code>
+    <code class="language-elixir">    "1.1",</code>
+    <code class="language-elixir">    "-n",</code>
+    <code class="language-elixir">    "-1",</code>
+    <code class="language-elixir">    "-p",</code>
+    <code class="language-elixir">    "&#60;s&#62;[INST]#{text} [/INST]"</code>
+    <code class="language-elixir">  ])</code>
+    <code class="language-elixir">  |> case do</code>
+    <code class="language-elixir">    {cpp, 0} -></code>
+    <code class="language-elixir">      [_, result] = String.split(cpp, "[/INST]")</code>
+    <code class="language-elixir">      result</code>
+    <code class="language-elixir">    _other -></code>
+    <code class="language-elixir">      raise "BOOM"</code>
+    <code class="language-elixir">  end</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>With this function you can prompt Mixtral8x7b and generate synthetic data with ease!</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">def generate do</code>
+    <code class="language-elixir">  "data.json"</code>
+    <code class="language-elixir">  |&#62; get_json()</code>
+    <code class="language-elixir">  |&#62; Enum.map(fn data -&#62;</code>
+    <code class="language-elixir">    topic = data["topic"]</code>
+    <code class="language-elixir">    friend = data["friend"]</code>
+    <code class="language-elixir">    </code>
+    <code class="language-elixir">    prompt = """</code>
+    <code class="language-elixir">    Imagine you are Toran, write a text message from Toran to #{friend} about #{topic}.</code>
+    <code class="language-elixir">    """</code>
+    <code class="language-elixir">    </code>
+    <code class="language-elixir">    results = prompt(prompt)</code>
+    <code class="language-elixir">    result =</code>
+    <code class="language-elixir">      if String.valid?(results) do</code>
+    <code class="language-elixir">        results</code>
+    <code class="language-elixir">      else</code>
+    <code class="language-elixir">        nil</code>
+    <code class="language-elixir">      end</code>
+    <code class="language-elixir">      </code>
+    <code class="language-elixir">    %{instruction: prompt, output: result}</code>
+    <code class="language-elixir">  end)</code>
+    <code class="language-elixir">  |&#62; Enum.reject(&#38;is_nil(&#38;1.output))</code>
+    <code class="language-elixir">  |&#62; writejson("result.json")</code>
+    <code class="language-elixir">end</code>
+  </pre>
+</div>
+
+<p>I've had great success with this simplistic approach because data engineering is a blend of extraction, cleaning and now prompting + function calling to other llms!</p>
