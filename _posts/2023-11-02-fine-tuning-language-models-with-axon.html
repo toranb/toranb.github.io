@@ -5,15 +5,15 @@ date:   2023-11-02 01:00:00
 categories: blog archive
 ---
 
-<p>In 2023 I spent a lot of time at the intersection of software engineering and machine learning hoping to uncover the next great opportunity for automation. <a href="https://www.youtube.com/watch?v=-iZIZHgHa5M">My talk</a> at <a href="https://2023.elixirconf.com/">ElixirConf US</a> documented my attempt at simplifying the complex concepts in deep learning for those who feel overwhelmed by the technical aspects.</p>
+<p>In 2023 I spent a lot of time at the intersection of software engineering and machine learning hoping to uncover the next great opportunity for automation. <a href="https://www.youtube.com/watch?v=-iZIZHgHa5M">My talk</a> at <a href="https://2023.elixirconf.com/">ElixirConf US</a> documents my nearly year-long effort to deconstruct deep learning for those who feel overwhelmed by the technical aspects.</p>
 
 <p>I started with <a href="https://blog.codinghorror.com/fizzbuzz-the-programmers-stairway-to-heaven/">FizzBuzz</a> because it was a problem most software engineers had some familiarity with which allowed me to subtly bridge the gap to more complex concepts. This widely known interview question was the perfect primer on the subject because underneath the diverse solutions was a well-understood classification problem that provided the optimal foundation for machine learning.</p>
 
-<p>After the more introductory concepts I discussed fine-tuning pre-trained models for the specific task of text classification. I went into detail about my process including: creating a labeled dataset, transforming text into a form these models understand through tokenization and finally, fine tuning the model. I emphasized the critical role of data quality, the challenges that come with preparing or cleaning it, and the nuances of encoding text for machine learning models.</p>
+<p>After the more introductory concepts I discussed fine-tuning pre-trained models for text classification. I went into detail about creating a labeled dataset, tokenization, transforming text into embeddings and finally, fine tuning the model with Axon. I emphasized the critical role of data quality, the challenges that come with preparing or cleaning data, and the nuances of encoding text for machine learning models.</p>
 
-<p>Toward the end of the talk I spoke about the trend towards off-the-shelf, open source models, and the opportunities for developers to upskill. For those eager to delve deeper, I recommend <a href="https://www.manning.com/books/grokking-deep-learning">Grokking Deep Learning</a> as an invaluable resource. In complete transparency this book inspired me to learn about neural networks and share it with others.</p>
+<p>Toward the end of the talk I spoke about the trend towards off-the-shelf, open source models, and the opportunities for developers to upskill. For those eager to delve deeper, I recommend <a href="https://www.manning.com/books/grokking-deep-learning">Grokking Deep Learning</a> as an invaluable resource. This book greatly simplified the topic and inspired me to learn about neural networks and share with others.</p>
 
-<p>My goal was to make deep learning and model fine-tuning more approachable, especially for those in the Elixir community and more generally those new to machine learning. While this talk was presented at ElixirConf I actually think it's applicable to a much wider audience and hope others find it helpful.</p>
+<p>My goal was to make deep learning and model fine-tuning more approachable, especially for those in the Elixir community. While this talk was presented at ElixirConf I actually think it's applicable to all who consider themselves unfamiliar with the basics of machine learning.</p>
 
 <p>Looking back, this journey has been about more than just acquiring knowledge; it's about sharing it, making the path less intimidating, and most importantly, showing how software engineering and machine learning collide to make way for innovation.</p>
 
@@ -24,3 +24,5 @@ categories: blog archive
 </div>
 
 <p>The source code is up on <a href="https://github.com/toranb/elixirconf2023">Github</a> for anyone who wanted to see a few of those examples in more detail. The full transcript for the talk can be downloaded <a href="/content/presentations/2024/finetune.txt">here</a>.</p>
+
+<p>I did share a complete FizzBuzz implementation I put together with <a href="https://gist.github.com/toranb/56a3e65ca81fba1c4f6c92c6f1857681">Nx</a> for those who want to see the most basic numerical computing solution in Elixir. The <a href="https://gist.github.com/toranb/e5c48565e83e4baaaf2c5850531a8a58">Axon</a> example shows a more declarative approach that ultimately solves the same problem.</p>
