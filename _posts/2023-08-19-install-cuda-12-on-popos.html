@@ -52,3 +52,36 @@ categories: blog archive
     <code class="language-elixir">nvcc -V</code>
   </pre>
 </div>
+
+<p>To upgrade from 8.9 download <a href="https://developer.nvidia.com/rdp/cudnn-download">cuDNN</a> from nvidia. Before you install it remove libcudnn8 as shown below.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ sudo apt remove libcudnn8</code>
+    <code class="language-elixir">$ sudo cp /var/cudnn-local-repo-ubuntu2204-9.1.1/cudnn-local-AD7F4AC5-keyring.gpg /usr/share/keyrings/</code>
+    <code class="language-elixir">$ sudo apt update</code>
+    <code class="language-elixir">$ sudo apt install libcudnn9-cuda-12=9.1.1.17-1</code>
+    <code class="language-elixir">$ sudo apt install cuda-toolkit-12-6</code>
+    <code class="language-elixir">$ sudo apt update</code>
+  </pre>
+</div>
+
+<p>After you upgrade to 9.1.1 if you ever want to downgrade to 8.9 follow these instructions.</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">$ sudo apt remove libcudnn9-cuda-12</code>
+    <code class="language-elixir">$ sudo dpkg -i cudnn-local-repo-ubuntu2204-8.9.7.29_1.0-1_amd64.deb
+    <code class="language-elixir">$ sudo cp /var/cudnn-local-repo-ubuntu2204-8.9.7.29/cudnn-local-08A7D361-keyring.gpg /usr/share/keyrings/</code>
+    <code class="language-elixir">$ sudo apt update</code>
+    <code class="language-elixir">$ sudo apt install libcudnn8=8.9.7.29-1+cuda12.2</code>
+  </pre>
+</div>
+
+<p>The only difference between 8.9 and 9.1 is a small tweak to the XLA_TARGET in your zshrc. For Nx 7 you would normally use cuda120 but after upgrading to Nx 9 and CUDNN 9.1.1 you need 12 instead</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir">
+    <code class="language-elixir">XLA_TARGET=cuda12</code>
+  </pre>
+</div>
