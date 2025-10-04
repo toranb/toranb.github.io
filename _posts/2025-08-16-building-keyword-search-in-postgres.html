@@ -1,0 +1,89 @@
+---
+layout: post
+title: "Building BM25 Keyword Search In Postgres"
+date:   2025-08-16 01:00:00
+categories: blog archive
+---
+<p>I recently surfaced after a lengthy exploration <a href="https://github.com/toranb/encoder-search/blob/main/priv/repo/migrations/20250718010521_add_bm25_stats.exs">centered on keyword search in Postgres</a>. Like any technical deep dive, it started with a simple but common problem: searching for something in my app would return zero results if the user had even the smallest typo. And while this felt like a solved problem, the rabbit hole went much deeper than I could have ever imagined. My goal was to start from first principles and see what was possible with just a vanilla <a href="https://www.postgresql.org/">PostgreSQL</a> installation.</p>
+
+<p>It turns out, you can build a surprisingly powerful keyword search, known as BM25, with just a handful of PSQL functions. What follows is my journey including what I've learned, how this search algorithm works in simple terms, and how I implemented it from scratch.</p>
+
+<h3>The Foundation: From TF-IDF to BM25</h3>
+
+<p>Before diving into BM25, it's helpful to understand its predecessor, TF-IDF (Term Frequency-Inverse Document Frequency). It's a simple but powerful idea that helps determine a word's importance to a document within a collection of documents.</p>
+
+<ul>
+  <li><strong>Term Frequency (TF):</strong> This is just what it sounds like. How often does a term appear in a single document? The intuition is that if the word "data" appears 5 times in a 100-word article, it's probably more relevant to that article than a word that appears only once.</li>
+  <li><strong>Inverse Document Frequency (IDF):</strong> This measures how common or rare a word is across *all* documents. Common words like "the" or "a" will appear everywhere and have a low IDF score, effectively penalizing them. Rare words, like "subscription" in our case, will appear in fewer documents and thus have a higher IDF score, signaling that they are more significant.</li>
+</ul>
+
+<p>By multiplying these two scores, you get the TF-IDF score, which gives you a weighted value for how important a word is to a specific document. This was the starting point for my exploration.</p>
+
+<p>BM25 is essentially a more refined version of this. It builds on the core concepts of TF-IDF but adds a couple of clever improvements:</p>
+
+<ul>
+  <li><strong>Term Frequency Saturation:</strong> BM25 recognizes that a word's relevance doesn't increase linearly. The difference between a word appearing zero times and one time is huge. The difference between it appearing 20 times and 21 times is negligible. It uses a parameter (<code>k1</code>) to control how quickly the term frequency score "saturates."</li>
+  <li><strong>Document Length Normalization:</strong> Longer documents naturally have an advantage because they have more opportunities for a search term to appear. BM25 penalizes longer documents to level the playing field, ensuring that relevance isn't just a side effect of verbosity.</li>
+</ul>
+
+<h3>The Implementation: A PostgreSQL Deep Dive</h3>
+
+<p>With the concepts understood, I set out to implement this directly in the database using an Ecto migration. The beauty of this approach is that the entire search logic lives within PostgreSQL and can be called from any application.</p>
+
+<p>Here's a breakdown of the core components:</p>
+
+<h4>1. Text Processing and Tokenization</h4>
+
+<p>The first step in any search system is to break down raw text into meaningful terms, or tokens. I created a <code>tokenize_and_count</code> function to handle this. It takes a block of text and converts it to lowercase, removes common stop words using PostgreSQL's built-in English stop words list (like 'a', 'the', 'is'), uses stemming to reduce words to their root form (e.g., "canceling" and "canceled" both become "cancel"), filters out blank tokens, and finally returns a table of unique terms and their frequencies in the text.</p>
+
+<div class="highlight" data-language="sql">
+  <pre class="language-sql"><code class="language-sql">CREATE OR REPLACE FUNCTION tokenize_and_count(input_text TEXT)
+RETURNS TABLE (term TEXT, count INTEGER) AS $$
+...
+BEGIN
+  -- Get stemmed tokens with stop words removed
+  RETURN QUERY
+  -- ... implementation details ...
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+</div>
+
+<h4>2. Storing Statistics for Performance</h4>
+
+<p>Calculating these scores on the fly for every document during every search would be incredibly slow. To optimize this, I created two key tables:</p>
+
+<ul>
+  <li><code>verse_stats</code>: This table stores the pre-calculated term frequencies for each document. It holds the document's ID, its total length, and a JSONB object mapping each term to its count.</li>
+  <li><code>term_stats</code>: This table stores global statistics about each term, such as how many documents it appears in (<code>doc_count</code>). This is crucial for calculating the IDF score efficiently.</li>
+</ul>
+
+<p>I also created a materialized view, <code>global_stats</code>, to keep track of the total number of documents and the average document length across the entire corpus, which is needed for the BM25 calculation. It's important to note that this materialized view needs to be refreshed whenever documents are added or updated to ensure accurate statistics. The migration includes helper functions like <code>index_all_verses()</code> and <code>update_modified_verses()</code> that handle this refresh automatically.</p>
+
+<h4>3. The BM25 Scoring Functions</h4>
+
+<p>With the data structures in place, I implemented the core BM25 logic. The <code>calculate_idf</code> function uses the BM25 formula to determine a term's weight. It's slightly more complex than the standard TF-IDF version but ensures scores are non-negative.</p>
+
+<div class="highlight" data-language="sql">
+  <pre class="language-sql"><code class="language-sql">CREATE OR REPLACE FUNCTION calculate_idf(term_doc_count INTEGER, total_docs INTEGER)
+RETURNS FLOAT AS $$
+BEGIN
+  -- Modified BM25 IDF formula to ensure non-negative scores
+  RETURN ln(1 + (total_docs - term_doc_count + 0.5) /
+                (term_doc_count + 0.5));
+END;
+$$ LANGUAGE plpgsql;</code></pre>
+</div>
+
+<p>The <code>bm25_term_score</code> function brings it all together, combining the term frequency, document length, and IDF score to produce the final score for a single term in a single document.</p>
+
+<h4>4. Putting it all Together: The Search Function</h4>
+
+<p>The final piece is the <code>search_verses</code> function. This function orchestrates the entire process: it takes a user's query text, tokenizes it, and to handle typos, it uses the <code>pg_trgm</code> extension to find terms in <code>term_stats</code> that are similar to the (potentially misspelled) query terms. The <code>similarity_threshold</code> parameter (default 0.3) controls how similar a misspelled term needs to be to match a known term—lower values are more permissive but may produce false matches. It then joins the query terms against the <code>verse_stats</code> and <code>term_stats</code> tables, calculates the <code>bm25_term_score</code> for each matching term in each document, sums them up to get a final relevance score, and returns the top results.</p>
+
+<p>One important setup detail: the migration needs to enable the <code>pg_trgm</code> extension for the typo tolerance to work. This should be added at the beginning of your migration:</p>
+
+<div class="highlight" data-language="elixir">
+  <pre class="language-elixir"><code class="language-elixir">execute "CREATE EXTENSION IF NOT EXISTS pg_trgm;"</code></pre>
+</div>
+
+<p>The result is a fast, efficient, and typo-tolerant search engine built without any external dependencies. It was a fascinating journey into the mechanics of search, and it's incredibly satisfying to see it working with just a bit of clever SQL. Hopefully, this sheds some light on how modern keyword search works and inspires you to see what you can build with the tools you already have.</p>
