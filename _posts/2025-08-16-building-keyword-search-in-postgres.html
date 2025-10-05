@@ -108,7 +108,9 @@ categories: blog archive
 <p>One important setup detail: the migration needs to enable the pg_trgm extension for the typo tolerance to work. This should be added at the beginning of your migration:</p>
 
 <div class="highlight" data-language="elixir">
-  <pre class="language-elixir"><code class="language-elixir">CREATE EXTENSION IF NOT EXISTS pg_trgm</code></pre>
+  <pre class="language-elixir">
+    <code class="language-elixir">CREATE EXTENSION IF NOT EXISTS pg_trgm</code>
+  </pre>
 </div>
 
 <p>The result is a fast, efficient, and typo-tolerant search engine built without any external dependencies. It was a fascinating journey into the mechanics of search, and it's incredibly satisfying to see it working with just a bit of clever SQL. Hopefully, this sheds some light on how modern keyword search works and inspires you to see what you can build with the tools you already have.</p>
