@@ -4,8 +4,6 @@ title: "Building BM25 Keyword Search In Postgres"
 date:   2025-08-16 01:00:00
 categories: blog archive
 ---
-<p>I recently surfaced after a lengthy exploration <a href="https://github.com/toranb/encoder-search/blob/main/priv/repo/migrations/20250718010521_add_bm25_stats.exs">centered on search in Postgres</a>. Like any technical deep dive, it started with a simple but common problem: searching for something in my app would return zero results if I had even the smallest typo. And while this felt like a solved problem, the rabbit hole went much deeper than I could have ever imagined. My goal was to start from first principles and see what was possible with just a vanilla <a href="https://www.postgresql.org/">PostgreSQL</a> installation.</p>
-
 <p>It turns out, you can build a surprisingly powerful keyword search, known as BM25, with just a handful of PSQL functions. What follows is my journey including what I've learned, how this search algorithm works in simple terms, and how I implemented it from scratch.</p>
 
 <h3>The Foundation: From TF-IDF to BM25</h3>
