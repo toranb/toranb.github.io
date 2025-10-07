@@ -101,7 +101,7 @@ categories: blog archive
 
 <h4>4. Putting it all Together: The Search Function</h4>
 
-<p>The final piece is the search_verses function. This function orchestrates the entire process: it takes a user's query text, tokenizes it, and to handle typos, it uses the pg_trgm extension to find terms in term_stats that are similar to the (potentially misspelled) query terms. The similarity_threshold parameter (default 0.3) controls how similar a misspelled term needs to be to match a known term—lower values are more permissive but may produce false matches. It then joins the query terms against the verse_stats and term_stats tables, calculates the bm25_term_score for each matching term in each document, sums them up to get a final relevance score, and returns the top results.</p>
+<p>The final piece is the search_verses function. This function orchestrates the entire process: it takes a user's query text, tokenizes it, and to handle typos, it uses the pg_trgm extension to find terms in term_stats that are similar to the (potentially misspelled) query terms. It then joins the query terms against the verse_stats and term_stats tables, calculates the bm25_term_score for each matching term in each document, sums them up to get a final relevance score, and returns the top results.</p>
 
 <p>One important setup detail: the migration needs to enable the pg_trgm extension for the typo tolerance to work. This should be added at the beginning of your migration:</p>
 
