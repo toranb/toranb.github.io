@@ -12,17 +12,17 @@ categories: blog archive
 
 <p>I typically flip between the <a href="https://www.youversion.com/">YouVersion</a> bible app and <a href="https://dwellapp.io/">Dwell</a> because each has its strengths and weaknesses. I was shocked to learn that the Dwell app in particular failed spectacularly at search, returning zero results in the vast majority of my experience. At this point I realized that the gap between what I was searching for and what the software could find represented a fascinating technical problem: how do you build search that understands both keywords and the meaning?</p>
 
-<p>What started as a search problem quickly turned into the most technically challenge adventure of my software career. I didn't know it then but in retrospect, I built <a href="https://github.com/toranb/encoder-search">a BERT-like encoder</a> from scratch —not just to solve my immediate need, but to truly learn how embeddings work at a more fundamental level. While the end result was facinating, getting there was a masterclass in making every possible mistake.</p>
+<p>What started as a search problem quickly turned into the most technically challenging adventure of my software career. I didn't know it then but I would go on to build <a href="https://github.com/toranb/encoder-search">a BERT-like encoder</a> from scratch —not just to solve my immediate need, but to learn how embeddings work at a more fundamental level. While the end result was facinating, getting there was a masterclass in making every possible mistake.</p>
 
 <h2>The Vision</h2>
 
-<p>My goal was straightforward: build a vector search from a home grown encoder. I wanted to understand embeddings from the ground up and build a truly useful search experience for combing through the New Testament.</p>
+<p>My goal was straightforward: build a vector search with my home grown encoder. I wanted to understand embeddings from the ground up and build a truly useful search experience for combing through the New Testament.</p>
 
 <p>The constraint that made this interesting was my decision to use only two dependencies: <a href="https://github.com/elixir-nx/polaris">Polaris</a> and <a href="https://github.com/elixir-nx/tokenizers">Tokenizers</a>. Everything else would be vanilla implementations, forcing me to understand each component intimately.</p>
 
 <p>I started by creating a dataset from a few different translations of the bible chunked into 100 token examples. I used the pre-training task, Masked Language Modeling, to train embeddings from my biblical text corpus. This training process revolves around having the model guess masked tokens in a sequence and updating the weights after calculating cross-entropy loss.</p>
 
-<p>With the <a href="https://arxiv.org/abs/1810.04805">original BERT paper</a> in view I was equally inspired and determined to reproduce their success on a narrow and much smaller text corpus. I used the BERT tokenizer with a hidden dimension of 3072 and 768 for the output vectors. The final training sequence length was 104 tokens because the longest New Testament verse is roughly between 100-110 tokens, though the average is much lower.</p>
+<p>With the <a href="https://arxiv.org/abs/1810.04805">original BERT paper</a> in view I was equally inspired and determined to reproduce their success on a narrow and much smaller text corpus. I used the BERT tokenizer and much of that breakthrough research including 768 dimensions for the output vectors. One notable difference was my training sequence with a length of 104 tokens (think context length). This worked well for my search use case because the longest New Testament verse is roughly between 100-110 tokens, and the average is much lower.</p>
 
 <h2>Fail Fast</h2>
 
