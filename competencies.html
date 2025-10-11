@@ -1,0 +1,1470 @@
+---
+layout: no-footer
+title: Competencies - ParadigmShift
+---
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .tagline {
+            color: #7f8c8d;
+            font-style: italic;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .employee-info {
+            background: #ecf0f1;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+
+        .employee-info input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .employee-info label {
+            display: block;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            background: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .bonus-section .section-title {
+            background: #9b59b6;
+        }
+
+        .competency {
+            background: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #3498db;
+        }
+
+        .bonus-section .competency {
+            border-left-color: #9b59b6;
+        }
+
+        .competency-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+
+        .question {
+            margin-bottom: 15px;
+        }
+
+        .question-text {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+        }
+
+        .rating-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .rating-option {
+            flex: 1;
+            min-width: 80px;
+        }
+
+        .rating-option input[type="radio"] {
+            display: none;
+        }
+
+        .rating-option label {
+            display: block;
+            padding: 10px;
+            text-align: center;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 13px;
+        }
+
+        .rating-option input[type="radio"]:checked + label {
+            background: #3498db;
+            color: white;
+            border-color: #3498db;
+            font-weight: 600;
+        }
+
+        .rating-option:hover label {
+            border-color: #3498db;
+        }
+
+        .submit-btn {
+            background: #27ae60;
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .submit-btn:hover {
+            background: #229954;
+        }
+
+        .results {
+            display: none;
+            margin-top: 40px;
+            padding-top: 40px;
+            border-top: 2px solid #ecf0f1;
+        }
+
+        .results.show {
+            display: block;
+        }
+
+        .nine-box {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            background: #333;
+            margin: 30px 0;
+            border: 2px solid #333;
+        }
+
+        .box {
+            background: white;
+            padding: 20px;
+            min-height: 120px;
+            position: relative;
+        }
+
+        .box-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .box-subtitle {
+            font-size: 11px;
+            color: #95a5a6;
+        }
+
+        .box.highlighted {
+            background: #fff3cd;
+            border: 3px solid #ffc107;
+        }
+
+        .box.highlighted::after {
+            content: "●";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: #ffc107;
+        }
+
+        .axis-label {
+            text-align: center;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 15px 0;
+        }
+
+        .y-axis-label {
+            writing-mode: vertical-rl;
+            transform: rotate(180deg);
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%) rotate(180deg);
+        }
+
+        .scores-detail {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+
+        .score-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .score-row:last-child {
+            border-bottom: none;
+        }
+
+        .score-label {
+            font-weight: 500;
+        }
+
+        .score-value {
+            font-weight: 600;
+            color: #3498db;
+        }
+
+        .insights {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 6px;
+            border-left: 4px solid #27ae60;
+            margin: 20px 0;
+        }
+
+        .insights h3 {
+            color: #27ae60;
+            margin-bottom: 10px;
+        }
+
+        .insights ul {
+            margin-left: 20px;
+        }
+
+        .insights li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .print-btn {
+            background: #95a5a6;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .print-btn:hover {
+            background: #7f8c8d;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+                transform: scale(0.75);
+                transform-origin: top left;
+            }
+            .container {
+                box-shadow: none;
+                padding: 20px;
+                width: 133%;
+            }
+            .submit-btn, .print-btn {
+                display: none;
+            }
+            .section:not(.results) {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            .rating-group {
+                flex-direction: column;
+            }
+
+            .rating-option {
+                min-width: 100%;
+            }
+
+            .nine-box {
+                font-size: 12px;
+            }
+
+            .box {
+                padding: 10px;
+                min-height: 100px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Engineering Evaluation Framework</h1>
+        <p class="tagline">Emphasizes adaptability, pragmatism, and impact over pure technical depth</p>
+
+        <form id="evaluationForm">
+            <div class="employee-info">
+                <label>
+                    Employee Name:
+                    <input type="text" id="employeeName" required>
+                </label>
+                <label>
+                    Evaluator Name:
+                    <input type="text" id="evaluatorName" required>
+                </label>
+                <label>
+                    Date:
+                    <input type="date" id="evaluationDate" required>
+                </label>
+            </div>
+
+            <!-- Core Competencies -->
+            <div class="section">
+                <div class="section-title">Core Competencies (11)</div>
+
+                <div class="competency">
+                    <div class="competency-title">1. You can ideate & problem solve with others</div>
+                    <div class="question">
+                        <span class="question-text">Actively participates in cross-functional discussions and contributes valuable ideas that move problems forward</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c1q1-5" name="c1q1" value="5" required>
+                                <label for="c1q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q1-4" name="c1q1" value="4">
+                                <label for="c1q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q1-3" name="c1q1" value="3">
+                                <label for="c1q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q1-2" name="c1q1" value="2">
+                                <label for="c1q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q1-1" name="c1q1" value="1">
+                                <label for="c1q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Facilitates collaborative problem-solving sessions that lead to better outcomes than individual work</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c1q2-5" name="c1q2" value="5" required>
+                                <label for="c1q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q2-4" name="c1q2" value="4">
+                                <label for="c1q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q2-3" name="c1q2" value="3">
+                                <label for="c1q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q2-2" name="c1q2" value="2">
+                                <label for="c1q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c1q2-1" name="c1q2" value="1">
+                                <label for="c1q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">2. You can estimate the impact of work</div>
+                    <div class="question">
+                        <span class="question-text">Asks insightful questions to understand the business value and opportunity cost before committing to work</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c2q1-5" name="c2q1" value="5" required>
+                                <label for="c2q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q1-4" name="c2q1" value="4">
+                                <label for="c2q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q1-3" name="c2q1" value="3">
+                                <label for="c2q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q1-2" name="c2q1" value="2">
+                                <label for="c2q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q1-1" name="c2q1" value="1">
+                                <label for="c2q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Accurately identifies high-impact work that contributes to healthy margins and business outcomes</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c2q2-5" name="c2q2" value="5" required>
+                                <label for="c2q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q2-4" name="c2q2" value="4">
+                                <label for="c2q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q2-3" name="c2q2" value="3">
+                                <label for="c2q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q2-2" name="c2q2" value="2">
+                                <label for="c2q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c2q2-1" name="c2q2" value="1">
+                                <label for="c2q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">3. You can decompose problems</div>
+                    <div class="question">
+                        <span class="question-text">Breaks down complex problems into clear, manageable pieces that the team can execute on</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c3q1-5" name="c3q1" value="5" required>
+                                <label for="c3q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q1-4" name="c3q1" value="4">
+                                <label for="c3q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q1-3" name="c3q1" value="3">
+                                <label for="c3q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q1-2" name="c3q1" value="2">
+                                <label for="c3q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q1-1" name="c3q1" value="1">
+                                <label for="c3q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Identifies dependencies and sequences work effectively to maintain momentum</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c3q2-5" name="c3q2" value="5" required>
+                                <label for="c3q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q2-4" name="c3q2" value="4">
+                                <label for="c3q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q2-3" name="c3q2" value="3">
+                                <label for="c3q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q2-2" name="c3q2" value="2">
+                                <label for="c3q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c3q2-1" name="c3q2" value="1">
+                                <label for="c3q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">4. You hammer and negotiate scope down</div>
+                    <div class="question">
+                        <span class="question-text">Challenges requirements to find the smallest valuable increment that serves customers</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c4q1-5" name="c4q1" value="5" required>
+                                <label for="c4q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q1-4" name="c4q1" value="4">
+                                <label for="c4q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q1-3" name="c4q1" value="3">
+                                <label for="c4q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q1-2" name="c4q1" value="2">
+                                <label for="c4q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q1-1" name="c4q1" value="1">
+                                <label for="c4q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Protects the team from overcommitment by negotiating scope to focus on what matters most</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c4q2-5" name="c4q2" value="5" required>
+                                <label for="c4q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q2-4" name="c4q2" value="4">
+                                <label for="c4q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q2-3" name="c4q2" value="3">
+                                <label for="c4q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q2-2" name="c4q2" value="2">
+                                <label for="c4q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c4q2-1" name="c4q2" value="1">
+                                <label for="c4q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">5. You can deliver imperfect code</div>
+                    <div class="question">
+                        <span class="question-text">Ships "good enough" solutions quickly when speed-to-market matters more than perfection</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c5q1-5" name="c5q1" value="5" required>
+                                <label for="c5q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q1-4" name="c5q1" value="4">
+                                <label for="c5q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q1-3" name="c5q1" value="3">
+                                <label for="c5q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q1-2" name="c5q1" value="2">
+                                <label for="c5q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q1-1" name="c5q1" value="1">
+                                <label for="c5q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Makes conscious tradeoffs between code quality and learning velocity, especially pre-product-market fit</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c5q2-5" name="c5q2" value="5" required>
+                                <label for="c5q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q2-4" name="c5q2" value="4">
+                                <label for="c5q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q2-3" name="c5q2" value="3">
+                                <label for="c5q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q2-2" name="c5q2" value="2">
+                                <label for="c5q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c5q2-1" name="c5q2" value="1">
+                                <label for="c5q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">6. You deliver consistently</div>
+                    <div class="question">
+                        <span class="question-text">Maintains predictable velocity and reliably follows through on commitments</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c6q1-5" name="c6q1" value="5" required>
+                                <label for="c6q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q1-4" name="c6q1" value="4">
+                                <label for="c6q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q1-3" name="c6q1" value="3">
+                                <label for="c6q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q1-2" name="c6q1" value="2">
+                                <label for="c6q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q1-1" name="c6q1" value="1">
+                                <label for="c6q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Ships work frequently in a steady cadence that builds trust with stakeholders</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c6q2-5" name="c6q2" value="5" required>
+                                <label for="c6q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q2-4" name="c6q2" value="4">
+                                <label for="c6q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q2-3" name="c6q2" value="3">
+                                <label for="c6q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q2-2" name="c6q2" value="2">
+                                <label for="c6q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c6q2-1" name="c6q2" value="1">
+                                <label for="c6q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">7. You value fast feedback</div>
+                    <div class="question">
+                        <span class="question-text">Proactively seeks feedback from users, peers, and stakeholders throughout the development process</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c7q1-5" name="c7q1" value="5" required>
+                                <label for="c7q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q1-4" name="c7q1" value="4">
+                                <label for="c7q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q1-3" name="c7q1" value="3">
+                                <label for="c7q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q1-2" name="c7q1" value="2">
+                                <label for="c7q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q1-1" name="c7q1" value="1">
+                                <label for="c7q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Builds feedback loops into their work (testing, monitoring, user research) to validate assumptions quickly</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c7q2-5" name="c7q2" value="5" required>
+                                <label for="c7q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q2-4" name="c7q2" value="4">
+                                <label for="c7q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q2-3" name="c7q2" value="3">
+                                <label for="c7q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q2-2" name="c7q2" value="2">
+                                <label for="c7q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c7q2-1" name="c7q2" value="1">
+                                <label for="c7q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">8. You learn from mistakes, yours and others</div>
+                    <div class="question">
+                        <span class="question-text">Openly shares their own mistakes and learnings with the team to prevent repeated errors</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c8q1-5" name="c8q1" value="5" required>
+                                <label for="c8q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q1-4" name="c8q1" value="4">
+                                <label for="c8q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q1-3" name="c8q1" value="3">
+                                <label for="c8q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q1-2" name="c8q1" value="2">
+                                <label for="c8q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q1-1" name="c8q1" value="1">
+                                <label for="c8q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Actively learns from others' experiences and applies those lessons to their work</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c8q2-5" name="c8q2" value="5" required>
+                                <label for="c8q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q2-4" name="c8q2" value="4">
+                                <label for="c8q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q2-3" name="c8q2" value="3">
+                                <label for="c8q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q2-2" name="c8q2" value="2">
+                                <label for="c8q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c8q2-1" name="c8q2" value="1">
+                                <label for="c8q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">9. You can take feedback from end users and surface, prioritize, build and deliver iteratively</div>
+                    <div class="question">
+                        <span class="question-text">Engages directly with end users to understand their needs and translates feedback into actionable work</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c9q1-5" name="c9q1" value="5" required>
+                                <label for="c9q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q1-4" name="c9q1" value="4">
+                                <label for="c9q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q1-3" name="c9q1" value="3">
+                                <label for="c9q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q1-2" name="c9q1" value="2">
+                                <label for="c9q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q1-1" name="c9q1" value="1">
+                                <label for="c9q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Delivers iteratively, incorporating user feedback into each cycle to improve outcomes</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c9q2-5" name="c9q2" value="5" required>
+                                <label for="c9q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q2-4" name="c9q2" value="4">
+                                <label for="c9q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q2-3" name="c9q2" value="3">
+                                <label for="c9q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q2-2" name="c9q2" value="2">
+                                <label for="c9q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c9q2-1" name="c9q2" value="1">
+                                <label for="c9q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">10. You know the benefits and the tradeoffs</div>
+                    <div class="question">
+                        <span class="question-text">Articulates the pros and cons of technical decisions clearly to help the team make informed choices</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c10q1-5" name="c10q1" value="5" required>
+                                <label for="c10q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q1-4" name="c10q1" value="4">
+                                <label for="c10q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q1-3" name="c10q1" value="3">
+                                <label for="c10q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q1-2" name="c10q1" value="2">
+                                <label for="c10q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q1-1" name="c10q1" value="1">
+                                <label for="c10q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Balances going deeper technically vs. moving lean to learn, choosing appropriately for the context</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c10q2-5" name="c10q2" value="5" required>
+                                <label for="c10q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q2-4" name="c10q2" value="4">
+                                <label for="c10q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q2-3" name="c10q2" value="3">
+                                <label for="c10q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q2-2" name="c10q2" value="2">
+                                <label for="c10q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c10q2-1" name="c10q2" value="1">
+                                <label for="c10q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">11. You build throw away tools/scripts that accelerate you when it makes sense</div>
+                    <div class="question">
+                        <span class="question-text">Creates pragmatic automation and tooling when the time investment clearly pays off</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c11q1-5" name="c11q1" value="5" required>
+                                <label for="c11q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q1-4" name="c11q1" value="4">
+                                <label for="c11q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q1-3" name="c11q1" value="3">
+                                <label for="c11q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q1-2" name="c11q1" value="2">
+                                <label for="c11q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q1-1" name="c11q1" value="1">
+                                <label for="c11q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Shows good judgment about when to build tools vs. doing things manually</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="c11q2-5" name="c11q2" value="5" required>
+                                <label for="c11q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q2-4" name="c11q2" value="4">
+                                <label for="c11q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q2-3" name="c11q2" value="3">
+                                <label for="c11q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q2-2" name="c11q2" value="2">
+                                <label for="c11q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="c11q2-1" name="c11q2" value="1">
+                                <label for="c11q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bonus Competencies -->
+            <div class="section bonus-section">
+                <div class="section-title">Bonus Competencies (4)</div>
+
+                <div class="competency">
+                    <div class="competency-title">Bonus: Inspires people</div>
+                    <div class="question">
+                        <span class="question-text">Brings enthusiasm and optimism that motivates others to stretch and take ownership</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b1q1-5" name="b1q1" value="5" required>
+                                <label for="b1q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q1-4" name="b1q1" value="4">
+                                <label for="b1q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q1-3" name="b1q1" value="3">
+                                <label for="b1q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q1-2" name="b1q1" value="2">
+                                <label for="b1q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q1-1" name="b1q1" value="1">
+                                <label for="b1q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Demonstrates excellence that others want to emulate and learn from</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b1q2-5" name="b1q2" value="5" required>
+                                <label for="b1q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q2-4" name="b1q2" value="4">
+                                <label for="b1q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q2-3" name="b1q2" value="3">
+                                <label for="b1q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q2-2" name="b1q2" value="2">
+                                <label for="b1q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b1q2-1" name="b1q2" value="1">
+                                <label for="b1q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">Bonus: Helps the team deliver</div>
+                    <div class="question">
+                        <span class="question-text">Actively unblocks teammates and shares knowledge to accelerate team velocity</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b2q1-5" name="b2q1" value="5" required>
+                                <label for="b2q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q1-4" name="b2q1" value="4">
+                                <label for="b2q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q1-3" name="b2q1" value="3">
+                                <label for="b2q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q1-2" name="b2q1" value="2">
+                                <label for="b2q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q1-1" name="b2q1" value="1">
+                                <label for="b2q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Improves team processes and practices that benefit everyone</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b2q2-5" name="b2q2" value="5" required>
+                                <label for="b2q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q2-4" name="b2q2" value="4">
+                                <label for="b2q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q2-3" name="b2q2" value="3">
+                                <label for="b2q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q2-2" name="b2q2" value="2">
+                                <label for="b2q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b2q2-1" name="b2q2" value="1">
+                                <label for="b2q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">Bonus: Casts vision to help people see more and before</div>
+                    <div class="question">
+                        <span class="question-text">Anticipates future challenges and opportunities, helping the team prepare proactively</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b3q1-5" name="b3q1" value="5" required>
+                                <label for="b3q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q1-4" name="b3q1" value="4">
+                                <label for="b3q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q1-3" name="b3q1" value="3">
+                                <label for="b3q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q1-2" name="b3q1" value="2">
+                                <label for="b3q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q1-1" name="b3q1" value="1">
+                                <label for="b3q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Communicates a compelling vision of the future that aligns and energizes the team</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b3q2-5" name="b3q2" value="5" required>
+                                <label for="b3q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q2-4" name="b3q2" value="4">
+                                <label for="b3q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q2-3" name="b3q2" value="3">
+                                <label for="b3q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q2-2" name="b3q2" value="2">
+                                <label for="b3q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b3q2-1" name="b3q2" value="1">
+                                <label for="b3q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="competency">
+                    <div class="competency-title">Bonus: Seeks to stretch both technically and relationally</div>
+                    <div class="question">
+                        <span class="question-text">Actively develops both technical skills and interpersonal/leadership capabilities</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b4q1-5" name="b4q1" value="5" required>
+                                <label for="b4q1-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q1-4" name="b4q1" value="4">
+                                <label for="b4q1-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q1-3" name="b4q1" value="3">
+                                <label for="b4q1-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q1-2" name="b4q1" value="2">
+                                <label for="b4q1-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q1-1" name="b4q1" value="1">
+                                <label for="b4q1-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="question">
+                        <span class="question-text">Seeks growth opportunities outside their comfort zone in multiple dimensions</span>
+                        <div class="rating-group">
+                            <div class="rating-option">
+                                <input type="radio" id="b4q2-5" name="b4q2" value="5" required>
+                                <label for="b4q2-5">Always</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q2-4" name="b4q2" value="4">
+                                <label for="b4q2-4">Often</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q2-3" name="b4q2" value="3">
+                                <label for="b4q2-3">Sometimes</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q2-2" name="b4q2" value="2">
+                                <label for="b4q2-2">Rarely</label>
+                            </div>
+                            <div class="rating-option">
+                                <input type="radio" id="b4q2-1" name="b4q2" value="1">
+                                <label for="b4q2-1">Never</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Generate Evaluation</button>
+        </form>
+
+        <div class="results" id="results">
+            <h2>Evaluation Results</h2>
+            <div id="employeeDetails"></div>
+
+            <h3 style="margin-top: 30px; margin-bottom: 15px; color: #2c3e50;">9-Box Grid Placement</h3>
+            <div class="nine-box" id="nineBox"></div>
+            <div class="axis-label">← Lower Performance | Higher Performance →</div>
+
+            <div class="scores-detail" id="scoresDetail"></div>
+
+            <div class="insights" id="insights"></div>
+
+            <button class="print-btn" onclick="window.print()">Print Evaluation</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('evaluationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get employee info
+            const employeeName = document.getElementById('employeeName').value;
+            const evaluatorName = document.getElementById('evaluatorName').value;
+            const evaluationDate = document.getElementById('evaluationDate').value;
+
+            // Calculate scores
+            const coreScores = [];
+            for (let i = 1; i <= 11; i++) {
+                const q1 = parseInt(document.querySelector(`input[name="c${i}q1"]:checked`).value);
+                const q2 = parseInt(document.querySelector(`input[name="c${i}q2"]:checked`).value);
+                coreScores.push((q1 + q2) / 2);
+            }
+
+            const bonusScores = [];
+            for (let i = 1; i <= 4; i++) {
+                const q1 = parseInt(document.querySelector(`input[name="b${i}q1"]:checked`).value);
+                const q2 = parseInt(document.querySelector(`input[name="b${i}q2"]:checked`).value);
+                bonusScores.push((q1 + q2) / 2);
+            }
+
+            // Calculate performance score (average of all core competencies)
+            const performanceScore = coreScores.reduce((a, b) => a + b, 0) / coreScores.length;
+
+            // Calculate potential score (learning velocity, adaptability, vision, growth mindset)
+            const potentialIndicators = [
+                coreScores[7],  // Learning from mistakes (index 7 = competency 8)
+                coreScores[4],  // Deliver imperfect code (index 4 = competency 5)
+                coreScores[6],  // Value fast feedback (index 6 = competency 7)
+                bonusScores[2], // Casts vision (bonus 3)
+                bonusScores[3]  // Seeks to stretch (bonus 4)
+            ];
+            const potentialScore = potentialIndicators.reduce((a, b) => a + b, 0) / potentialIndicators.length;
+
+            // Determine grid position
+            let perfLevel, potLevel;
+
+            if (performanceScore >= 3.75) perfLevel = 'high';
+            else if (performanceScore >= 2.5) perfLevel = 'medium';
+            else perfLevel = 'low';
+
+            if (potentialScore >= 3.75) potLevel = 'high';
+            else if (potentialScore >= 2.5) potLevel = 'medium';
+            else potLevel = 'low';
+
+            // Map to 9-box position (1-9)
+            const boxMapping = {
+                'low-low': 1,
+                'low-medium': 2,
+                'low-high': 3,
+                'medium-low': 4,
+                'medium-medium': 5,
+                'medium-high': 6,
+                'high-low': 7,
+                'high-medium': 8,
+                'high-high': 9
+            };
+
+            const boxPosition = boxMapping[`${perfLevel}-${potLevel}`];
+
+            // Display employee details
+            document.getElementById('employeeDetails').innerHTML = `
+                <div class="score-row">
+                    <span class="score-label">Employee:</span>
+                    <span>${employeeName}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Evaluator:</span>
+                    <span>${evaluatorName}</span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label">Date:</span>
+                    <span>${evaluationDate}</span>
+                </div>
+            `;
+
+            // Generate 9-box grid
+            const boxTitles = [
+                { title: 'Underperformer', subtitle: 'Low Potential' },
+                { title: 'Inconsistent', subtitle: 'Low Potential' },
+                { title: 'Strong Performer', subtitle: 'Low Potential' },
+                { title: 'Solid Performer', subtitle: 'Medium Potential' },
+                { title: 'Core Player', subtitle: 'Medium Potential' },
+                { title: 'High Performer', subtitle: 'Medium Potential' },
+                { title: 'High Performer', subtitle: 'High Potential' },
+                { title: 'Future Star', subtitle: 'High Potential' },
+                { title: 'Top Talent', subtitle: 'High Potential' }
+            ];
+
+            let gridHTML = '';
+            // Grid is organized bottom-to-top, left-to-right (like a normal graph)
+            // Rows: 3 = high potential, 2 = medium, 1 = low
+            // Cols: 1 = low perf, 2 = medium, 3 = high
+            for (let row = 3; row >= 1; row--) {
+                for (let col = 1; col <= 3; col++) {
+                    const boxNum = (row - 1) * 3 + col;
+                    const highlighted = boxNum === boxPosition ? 'highlighted' : '';
+                    gridHTML += `
+                        <div class="box ${highlighted}">
+                            <div class="box-title">${boxTitles[boxNum - 1].title}</div>
+                            <div class="box-subtitle">${boxTitles[boxNum - 1].subtitle}</div>
+                        </div>
+                    `;
+                }
+            }
+            document.getElementById('nineBox').innerHTML = gridHTML;
+
+            // Display detailed scores
+            const competencyNames = [
+                'Ideate & problem solve with others',
+                'Estimate the impact of work',
+                'Decompose problems',
+                'Hammer and negotiate scope down',
+                'Deliver imperfect code',
+                'Deliver consistently',
+                'Value fast feedback',
+                'Learn from mistakes',
+                'Take feedback from users iteratively',
+                'Know benefits and tradeoffs',
+                'Build throw away tools/scripts'
+            ];
+
+            const bonusNames = [
+                'Inspires people',
+                'Helps the team deliver',
+                'Casts vision',
+                'Seeks to stretch'
+            ];
+
+            let scoresHTML = '<h3 style="margin-bottom: 15px; color: #2c3e50;">Competency Scores</h3>';
+            coreScores.forEach((score, i) => {
+                scoresHTML += `
+                    <div class="score-row">
+                        <span class="score-label">${i + 1}. ${competencyNames[i]}</span>
+                        <span class="score-value">${score.toFixed(1)}/5.0</span>
+                    </div>
+                `;
+            });
+
+            scoresHTML += '<h3 style="margin-top: 20px; margin-bottom: 15px; color: #9b59b6;">Bonus Competencies</h3>';
+            bonusScores.forEach((score, i) => {
+                scoresHTML += `
+                    <div class="score-row">
+                        <span class="score-label">Bonus: ${bonusNames[i]}</span>
+                        <span class="score-value">${score.toFixed(1)}/5.0</span>
+                    </div>
+                `;
+            });
+
+            scoresHTML += `
+                <h3 style="margin-top: 20px; margin-bottom: 15px; color: #2c3e50;">Overall Scores</h3>
+                <div class="score-row">
+                    <span class="score-label"><strong>Performance Score</strong></span>
+                    <span class="score-value"><strong>${performanceScore.toFixed(2)}/5.0</strong></span>
+                </div>
+                <div class="score-row">
+                    <span class="score-label"><strong>Potential Score</strong></span>
+                    <span class="score-value"><strong>${potentialScore.toFixed(2)}/5.0</strong></span>
+                </div>
+            `;
+
+            document.getElementById('scoresDetail').innerHTML = scoresHTML;
+
+            // Generate insights
+            const insights = generateInsights(boxPosition, performanceScore, potentialScore, coreScores, bonusScores);
+            document.getElementById('insights').innerHTML = `
+                <h3>Actionable Insights & Development Recommendations</h3>
+                <p><strong>${insights.category}</strong></p>
+                <ul>
+                    ${insights.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                </ul>
+            `;
+
+            // Show results
+            document.getElementById('results').classList.add('show');
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        });
+
+        function generateInsights(boxPosition, perfScore, potScore, coreScores, bonusScores) {
+            const insights = {
+                1: {
+                    category: 'Focus Area: Performance Improvement Required',
+                    recommendations: [
+                        'Establish clear, achievable short-term goals with frequent check-ins',
+                        'Pair with a mentor for daily guidance on core competencies',
+                        'Focus on fundamentals: consistent delivery and scope management',
+                        'Consider whether role alignment is an issue - may need different position'
+                    ]
+                },
+                2: {
+                    category: 'Focus Area: Build Consistency',
+                    recommendations: [
+                        'Work on delivering more consistently to build trust with stakeholders',
+                        'Develop better estimation skills and scope negotiation abilities',
+                        'Create structured feedback loops to improve learning velocity',
+                        'Focus on one competency improvement at a time for sustainable growth'
+                    ]
+                },
+                3: {
+                    category: 'Focus Area: Expand Impact Beyond Individual Contribution',
+                    recommendations: [
+                        'Strong technical execution but limited growth trajectory in current role',
+                        'Encourage collaboration and problem-solving with others',
+                        'Develop business impact estimation and product-thinking skills',
+                        'Consider whether aspirations align with potential - may be content as individual contributor'
+                    ]
+                },
+                4: {
+                    category: 'Focus Area: Strengthen Core Performance',
+                    recommendations: [
+                        'Build more consistent delivery cadence and predictable velocity',
+                        'Improve impact estimation and business outcome focus',
+                        'Develop stronger feedback-seeking behaviors',
+                        'Has potential but needs to demonstrate more reliable execution first'
+                    ]
+                },
+                5: {
+                    category: 'Solid Contributor: Backbone of the Team',
+                    recommendations: [
+                        'Reliable core player - recognize and retain this valuable team member',
+                        'Provide opportunities to deepen expertise in areas of interest',
+                        'Consider lateral moves to broaden experience and maintain engagement',
+                        'May not aspire to leadership - ensure they feel valued in IC role'
+                    ]
+                },
+                6: {
+                    category: 'Development Track: Preparing for Next Level',
+                    recommendations: [
+                        'Strong performer with clear upward trajectory - invest in development',
+                        'Provide stretch assignments that develop vision-casting and inspiration skills',
+                        'Create opportunities to help others deliver and improve team processes',
+                        'Consider for technical leadership or principal engineer track'
+                    ]
+                },
+                7: {
+                    category: 'Focus Area: Develop Potential Through Exposure',
+                    recommendations: [
+                        'Excellent execution but needs growth mindset development',
+                        'Expose to diverse problems and encourage learning from mistakes',
+                        'Develop comfort with ambiguity and imperfect solutions',
+                        'May be overspecialized - broaden scope to unlock potential'
+                    ]
+                },
+                8: {
+                    category: 'High Potential: Accelerate Development',
+                    recommendations: [
+                        'Rising star - provide challenging opportunities and visibility',
+                        'Fast-track for senior technical or leadership roles',
+                        'Ensure they\'re exposed to strategic thinking and business context',
+                        'Pair with executive mentor to accelerate growth'
+                    ]
+                },
+                9: {
+                    category: 'Top Talent: Maximize Impact & Retain',
+                    recommendations: [
+                        'Critical talent - ensure they feel challenged and valued',
+                        'Leverage as force multiplier: mentoring, vision-setting, unblocking',
+                        'Provide autonomy and high-impact projects aligned with business goals',
+                        'Clear path to principal engineer, architect, or engineering leadership',
+                        'Monitor for external opportunities - proactive retention strategy essential'
+                    ]
+                }
+            };
+
+            return insights[boxPosition];
+        }
+
+        // Set today's date as default
+        document.getElementById('evaluationDate').valueAsDate = new Date();
+    </script>
