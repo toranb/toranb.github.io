@@ -4,13 +4,11 @@ title: "Writing the BERT Encoder with Nx"
 date:   2025-06-22 01:00:00
 categories: blog archive
 ---
-<p>The more time I spend <a href="https://www.youtube.com/watch?v=-iZIZHgHa5M">in machine learning</a>, the more my curiosity grows. That curiosity turned into action last fall when a practical hobby project collided with my insatiable desire to learn.</p>
+<p>I typically flip between the <a href="https://www.youversion.com/">YouVersion</a> and <a href="https://dwellapp.io/">Dwell</a> Bible apps, each with its own strengths. Dwell’s audio experience is beautiful and immersive—well worth the price—but its search feature leaves me stranded whenever I can’t remember the exact wording of a verse. YouVersion, on the other hand, nails it almost every time, even though it’s free.</p>
 
-<p>I typically flip between the <a href="https://www.youversion.com/">YouVersion</a> and <a href="https://dwellapp.io/">Dwell</a> apps because each has strengths and weaknesses. I was shocked to learn that the Dwell app in particular failed spectacularly at search, returning zero results in the majority of my experience. This was a real frustration because I typically search for half-remembered phrases without knowing the exact words.</p>
+<p>I assumed improving Dwell’s search would be a quick fix. It wasn’t. What started as a simple search tweak turned into the most technically demanding project of my career—one that eventually led me to build a <a href="https://github.com/toranb/encoder-search">BERT encoder</a> from scratch just to understand why true semantic search is so difficult.</p>
 
 <img src='/content/images/2025/search_failure.png' alt='the search problem'/>
-
-<p>What started as a search problem quickly turned into the most technically challenging adventure of my career. I didn't know it then but I would go on to build a <a href="https://github.com/toranb/encoder-search">BERT encoder</a> from scratch with Nx —not just to solve my immediate need, but to learn how embeddings work at a more fundamental level. While the end result was facinating, getting there was a masterclass in making every possible mistake.</p>
 
 <h2>The Vision</h2>
 
