@@ -4,15 +4,83 @@ title: "Building BM25 Keyword Search In Postgres"
 date:   2025-08-16 01:00:00
 categories: blog archive
 ---
-<p>It turns out, you can build a surprisingly powerful keyword search, known as BM25, with just a handful of PSQL functions. What follows is my journey including what I've learned, how this search algorithm works in simple terms, and how I implemented it from scratch.</p>
+<style>
+    .benchmarks {
+        background: white;
+        padding: 30px;
+        padding-bottom: 5px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .metric-group {
+        margin-bottom: 35px;
+    }
+    .metric-label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+        font-size: 14px;
+    }
+    .bars {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 5px;
+    }
+    .bar {
+        height: 30px;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        color: white;
+        font-weight: 600;
+        font-size: 13px;
+        border-radius: 4px;
+        transition: transform 0.2s;
+    }
+    .bar:hover {
+        transform: translateX(2px);
+    }
+    .bm25 {
+        background: #3b82f6;
+    }
+    .ilike {
+        background: #10b981;
+    }
+    .legend {
+        display: flex;
+        gap: 20px;
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #e5e5e5;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+    }
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+    }
+    .improvement {
+        color: #059669;
+        font-size: 13px;
+        font-weight: 600;
+        margin-top: 3px;
+    }
+</style>
+
+<p>It turns out, you can build a surprisingly powerful keyword search, known as BM25, with just a handful of SQL functions. What follows is my journey including what I've learned, how this algorithm works in simple terms, and how I implemented it without any external dependencies.</p>
 
 <h3>The Foundation: From TF-IDF to BM25</h3>
 
-<p>Before diving into BM25, it's helpful to understand its predecessor, TF-IDF (Term Frequency-Inverse Document Frequency). It's a simple but powerful idea that helps determine a word's importance to a document within a collection of documents.</p>
+<p>Before diving into BM25, it's helpful to understand TF-IDF (Term Frequency-Inverse Document Frequency). It's a simple but powerful idea that helps determine the importance of a word per document within a wider collection of documents.</p>
 
 <ul>
-  <li><strong>Term Frequency (TF):</strong> This is just what it sounds like. How often does a term appear in a single document? The intuition is that if the word "data" appears 5 times in a 100-word article, it's probably more relevant to that article than a word that appears only once.</li>
-  <li><strong>Inverse Document Frequency (IDF):</strong> This measures how common or rare a word is across *all* documents. Common words like "the" or "a" will appear everywhere and have a low IDF score, effectively penalizing them. Rare words will appear in fewer documents and thus have a higher IDF score, signaling that they are more significant.</li>
+  <li><strong>Term Frequency (TF):</strong> This is just what it sounds like. How often does a term appear in a single document? The intuition is that if the word "data" appears 5 times in a 100-word article, it's probably more relevant to that article than a word that appears only once in that same document.</li>
+  <li><strong>Inverse Document Frequency (IDF):</strong> This measures how rare a word is across *all* documents. Common words like "the" or "a" will appear everywhere and have a low IDF score, effectively penalizing them. Rare words will appear in fewer documents and should have a higher IDF score, signaling that they are more significant.</li>
 </ul>
 
 <p>By multiplying these two scores, you get the TF-IDF score, which gives you a weighted value for how important a word is to a specific document. This was the starting point for my exploration.</p>
@@ -20,19 +88,19 @@ categories: blog archive
 <p>BM25 is essentially a more refined version of this. It builds on the core concepts of TF-IDF but adds a couple of clever improvements:</p>
 
 <ul>
-  <li><strong>Term Frequency Saturation:</strong> BM25 recognizes that a word's relevance doesn't increase linearly. The difference between a word appearing zero times and one time is huge. The difference between it appearing 20 times and 21 times is negligible. It uses a parameter k1 to control how quickly the term frequency score "saturates."</li>
-  <li><strong>Document Length Normalization:</strong> Longer documents naturally have an advantage because they have more opportunities for a search term to appear. BM25 penalizes longer documents to level the playing field, ensuring that relevance isn't just a side effect of verbosity.</li>
+  <li><strong>Term Frequency Saturation:</strong> BM25 recognizes that a word's relevance doesn't increase linearly. The difference between a word appearing zero times and one time is huge. The difference between it appearing 20 times and 21 times is negligible. BM25 provides a simple configuration so you can control how quickly the term frequency score "saturates."</li>
+  <li><strong>Document Length Normalization:</strong> Longer documents naturally have an advantage because they have more opportunities for a search term to appear. BM25 provides a simple configuration so you can penalize longer documents to level the playing field, ensuring that relevance isn't just a side effect of verbosity.</li>
 </ul>
 
-<h3>The Implementation: A PostgreSQL Deep Dive</h3>
+<h3>The Implementation</h3>
 
-<p>The beauty of this approach is that the entire search algorithm lives within PostgreSQL and can be called from any application.</p>
+<p>The beauty of this approach is that the entire search algorithm lives within Postgres and can be called from any tech stack.</p>
 
 <p>Here's a breakdown of the core components:</p>
 
-<h4>1. Text Processing and Tokenization</h4>
+<h4>Text Processing and Tokenization</h4>
 
-<p>The first step in any search system is to break down raw text into meaningful terms, or tokens. I created a tokenize_and_count function to handle this. It takes a block of text and converts it to lowercase, removes common stop words using PostgreSQL's built-in English stop words list (like 'a', 'the', 'is'), uses stemming to reduce words to their root form (e.g., "canceling" and "canceled" both become "cancel"), filters out blank tokens, and finally returns a table of unique terms and their frequencies in the text.</p>
+<p>The first step in any search system is to break down raw text into meaningful terms, or tokens. I created a tokenize_and_count function to handle this. It takes a block of text and converts it to lowercase, removes common stop words using the built-in English stop words list (like 'a', 'the', 'is'), uses stemming to reduce words to their root form (e.g., "canceling" and "canceled" both become "cancel"), filters out blank tokens, and finally returns a table of unique terms and their frequencies in the text.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -69,20 +137,20 @@ categories: blog archive
   </pre>
 </div>
 
-<h4>2. Storing Statistics for Performance</h4>
+<h4>Storing Statistics for Performance</h4>
 
 <p>Calculating these scores on the fly for every document during every search would be incredibly slow. To optimize this, I created two key tables:</p>
 
 <ul>
   <li><code>verse_stats</code>: This table stores the pre-calculated term frequencies for each document. It holds the document's ID, its total length, and a JSONB object mapping each term to its count.</li>
-  <li><code>term_stats</code>: This table stores global statistics about each term, such as how many documents it appears in doc_count. This is crucial for calculating the IDF score efficiently.</li>
+  <li><code>term_stats</code>: This table stores global statistics about each term, such as how many documents it appears in. This is crucial for calculating the IDF score efficiently.</li>
 </ul>
 
-<p>I also created a materialized view, global_stats, to keep track of the total number of documents and the average document length across the entire corpus, which is needed for the BM25 calculation. It's important to note that this materialized view needs to be refreshed whenever documents are added or updated to ensure accurate statistics. The migration includes the helper function update_modified_verses that handle this refresh automatically.</p>
+<p>I also created a materialized view, global_stats, to keep track of the total number of documents and the average document length across the entire corpus, which is needed for the BM25 calculation.</p>
 
-<h4>3. The BM25 Scoring Functions</h4>
+<h4>The BM25 Scoring Function</h4>
 
-<p>With the data structures in place, I implemented the core BM25 logic. The <code>calculate_idf</code> function uses the BM25 formula to determine a term's weight. It's slightly more complex than the standard TF-IDF version but ensures scores are non-negative.</p>
+<p>With the data structures in place, I implemented the core BM25 logic. The calculate_idf function uses the BM25 formula to determine a term's weight. It's slightly more robust than the standard TF-IDF version to ensure scores are non-negative.</p>
 
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
@@ -99,16 +167,134 @@ categories: blog archive
 
 <p>The bm25_term_score function brings it all together, combining the term frequency, document length, and IDF score to produce the final score for a single term in a single document.</p>
 
-<h4>4. Putting it all Together: The Search Function</h4>
+<h4>Putting it all Together</h4>
 
 <p>The final piece is the search_verses function. This function orchestrates the entire process: it takes a user's query text, tokenizes it, and to handle typos, it uses the pg_trgm extension to find terms in term_stats that are similar to the (potentially misspelled) query terms. It then joins the query terms against the verse_stats and term_stats tables, calculates the bm25_term_score for each matching term in each document, sums them up to get a final relevance score, and returns the top results.</p>
 
-<p>One important setup detail: the migration needs to enable the pg_trgm extension for the typo tolerance to work. This should be added at the beginning of your migration:</p>
-
 <div class="highlight" data-language="elixir">
   <pre class="language-elixir">
-    <code class="language-elixir">CREATE EXTENSION IF NOT EXISTS pg_trgm</code>
+    <code class="language-elixir">CREATE OR REPLACE FUNCTION search_verses(</code>
+    <code class="language-elixir">    query_text TEXT,</code>
+    <code class="language-elixir">    k1 FLOAT DEFAULT 1.2,</code>
+    <code class="language-elixir">    b FLOAT DEFAULT 0.75,</code>
+    <code class="language-elixir">    limit_val INTEGER DEFAULT 10,</code>
+    <code class="language-elixir">    similarity_threshold FLOAT DEFAULT 0.3</code>
+    <code class="language-elixir">) RETURNS TABLE (</code>
+    <code class="language-elixir">    verse_id BIGINT,</code>
+    <code class="language-elixir">    score FLOAT,</code>
+    <code class="language-elixir">    content TEXT</code>
+    <code class="language-elixir">) AS $$</code>
+    <code class="language-elixir">DECLARE</code>
+    <code class="language-elixir">    v_total_docs INTEGER;</code>
+    <code class="language-elixir">    v_avg_length FLOAT;</code>
+    <code class="language-elixir">BEGIN</code>
+    <code class="language-elixir">    SELECT gs.total_docs, gs.avg_length</code>
+    <code class="language-elixir">    INTO v_total_docs, v_avg_length</code>
+    <code class="language-elixir">    FROM global_stats gs;</code>
+    <code class="language-elixir">    </code>
+    <code class="language-elixir">    RETURN QUERY</code>
+    <code class="language-elixir">    WITH raw_query_terms AS (</code>
+    <code class="language-elixir">        SELECT term</code>
+    <code class="language-elixir">        FROM tokenize_and_count(query_text)</code>
+    <code class="language-elixir">    ),</code>
+    <code class="language-elixir">    query_terms AS (</code>
+    <code class="language-elixir">        SELECT DISTINCT corrected_term AS term</code>
+    <code class="language-elixir">        FROM raw_query_terms rqt</code>
+    <code class="language-elixir">        CROSS JOIN LATERAL (</code>
+    <code class="language-elixir">            SELECT ts.term AS corrected_term</code>
+    <code class="language-elixir">            FROM term_stats ts</code>
+    <code class="language-elixir">            WHERE similarity(rqt.term, ts.term) >= similarity_threshold</code>
+    <code class="language-elixir">            ORDER BY similarity(rqt.term, ts.term) DESC</code>
+    <code class="language-elixir">            LIMIT 1</code>
+    <code class="language-elixir">        ) AS best_match</code>
+    <code class="language-elixir">    ),</code>
+    <code class="language-elixir">    term_scores AS (</code>
+    <code class="language-elixir">        SELECT</code>
+    <code class="language-elixir">            d.verse_id,</code>
+    <code class="language-elixir">            bm25_term_score(</code>
+    <code class="language-elixir">                (d.terms->>t.term)::INTEGER,</code>
+    <code class="language-elixir">                d.length,</code>
+    <code class="language-elixir">                calculate_idf(ts.doc_count, v_total_docs),</code>
+    <code class="language-elixir">                v_avg_length,</code>
+    <code class="language-elixir">                k1,</code>
+    <code class="language-elixir">                b</code>
+    <code class="language-elixir">            ) AS term_score,</code>
+    <code class="language-elixir">            v.text AS doc_text</code>
+    <code class="language-elixir">        FROM</code>
+    <code class="language-elixir">            verse_stats d</code>
+    <code class="language-elixir">        JOIN</code>
+    <code class="language-elixir">            verses v ON v.id = d.verse_id</code>
+    <code class="language-elixir">        JOIN</code>
+    <code class="language-elixir">            query_terms t ON d.terms ? t.term</code>
+    <code class="language-elixir">        JOIN</code>
+    <code class="language-elixir">            term_stats ts ON ts.term = t.term</code>
+    <code class="language-elixir">    )</code>
+    <code class="language-elixir">    SELECT</code>
+    <code class="language-elixir">        ts.verse_id,</code>
+    <code class="language-elixir">        SUM(ts.term_score) AS score,</code>
+    <code class="language-elixir">        ts.doc_text AS content</code>
+    <code class="language-elixir">    FROM</code>
+    <code class="language-elixir">        term_scores ts</code>
+    <code class="language-elixir">    GROUP BY</code>
+    <code class="language-elixir">        ts.verse_id,</code>
+    <code class="language-elixir">        ts.doc_text</code>
+    <code class="language-elixir">    ORDER BY</code>
+    <code class="language-elixir">        score DESC</code>
+    <code class="language-elixir">    LIMIT limit_val;</code>
+    <code class="language-elixir">END;</code>
+    <code class="language-elixir">$$ LANGUAGE plpgsql;</code>
   </pre>
 </div>
 
-<p>The result is a fast, efficient, and typo-tolerant search engine built without any external dependencies. It was a fascinating journey into the mechanics of search, and it's incredibly satisfying to see it working with just a bit of clever SQL. Hopefully, this sheds some light on how modern keyword search works and inspires you to see what you can build with the tools you already have.</p>
+<h4>Highlights</h4>
+
+<p>With everything fully operational I decided to summarize what I've done and benchmark this against something much simpler to get a feel for how this relevance scoring worked in practice.</p>
+
+<ul>
+  <li><strong>BM25 Ranking:</strong> Industry-standard relevance scoring with proper IDF calculation and document length normalization</li>
+  <li><strong>PostgreSQL-Native:</strong> Zero external dependencies, using built-in text search and JSONB</li>
+  <li><strong>Fuzzy Matching:</strong> Trigram-based typo correction with configurable similarity threshold</li>
+  <li><strong>Text Analysis:</strong> Complete pipeline with tokenization, stemming and stopword removal</li>
+  <li><strong>Incremental Updates:</strong> Efficient document re-indexing with proper term statistics maintenance</li>
+  <li><strong>Optimized Storage:</strong> JSONB term frequencies with GIN indexing for fast lookups</li>
+  <li><strong>Materialized Statistics:</strong> Pre-computed global metrics for efficient scoring</li>
+</ul>
+
+<p>To benchmark this I wrote a simple <a href="https://github.com/toranb/encoder-search/blob/main/beir.py">BEIR</a> script that showed a clear improvement in relevance ranking.</p>
+
+<div class="benchmarks">
+    <div class="metric-group">
+        <div class="metric-label">NDCG@10 (relevance)</div>
+        <div class="bars">
+            <div class="bar bm25" style="width: 100%;">BM25: 0.2940</div>
+        </div>
+        <div class="bars">
+            <div class="bar ilike" style="width: 37.6%;">ILIKE: 0.1105</div>
+        </div>
+        <div class="improvement">BM25 leads by +166.1%</div>
+    </div>
+
+    <div class="metric-group">
+        <div class="metric-label">Precision@10 (accuracy of the top 10 results)</div>
+        <div class="bars">
+            <div class="bar bm25" style="width: 100%;">BM25: 0.2806</div>
+        </div>
+        <div class="bars">
+            <div class="bar ilike" style="width: 62.3%;">ILIKE: 0.1747</div>
+        </div>
+        <div class="improvement">BM25 leads by +60.6%</div>
+    </div>
+
+    <div class="metric-group">
+        <div class="metric-label">Recall % (found relevant documents)</div>
+        <div class="bars">
+            <div class="bar bm25" style="width: 100%;">BM25: 66.7%</div>
+        </div>
+        <div class="bars">
+            <div class="bar ilike" style="width: 42.1%;">ILIKE: 28.1%</div>
+        </div>
+        <div class="improvement">BM25 leads by +38.6pp</div>
+    </div>
+</div>
+
+<p>The result is a fast, efficient, and typo-tolerant search engine built without any external dependencies. It was a fascinating journey into the mechanics of search, and it's incredibly satisfying to see it working so well. Hopefully, this sheds some light on how modern keyword search works and inspires you to see what you can build with the tools you already have.</p>
