@@ -4,9 +4,12 @@ title: "Writing the BERT Encoder with Nx"
 date:   2025-06-22 01:00:00
 categories: blog archive
 ---
-<p>I typically flip between the <a href="https://www.youversion.com/">YouVersion</a> and <a href="https://dwellapp.io/">Dwell</a> Bible apps, each with its own strengths. Dwell’s audio experience is beautiful and immersive—well worth the price—but its search feature leaves me stranded whenever I can’t remember the exact wording of a verse. YouVersion, on the other hand, nails it almost every time, even though it’s free.</p>
 
-<p>I assumed improving Dwell’s search would be a quick fix. It wasn’t. What started as a simple search tweak turned into the most technically demanding project of my career—one that eventually led me to build a <a href="https://github.com/toranb/encoder-search">BERT encoder</a> from scratch just to understand why true semantic search is so difficult.</p>
+<p>I typically flip between the <a href="https://www.youversion.com/">YouVersion</a> and <a href="https://dwellapp.io/">Dwell</a> Bible apps, each with its own strengths. Dwell's audio experience is beautiful and immersive—well worth the price—but its search feature leaves me stranded whenever I can't remember the exact wording of a verse. YouVersion, on the other hand, nails it almost every time, even though it's free.</p>
+
+<p>One evening I was searching for the verse about God giving us a new heart. I typed "give you a new heart" into Dwell and got nothing useful. The verse I wanted—Ezekiel 36:26—didn't even appear. YouVersion found it instantly.</p>
+
+<p>I assumed improving Dwell's search would be a quick fix. It wasn't. What started as a simple search tweak turned into the most technically demanding project of my career—one that eventually led me to build a <a href="https://github.com/toranb/encoder-search">BERT encoder</a> from scratch just to understand why semantic search is so difficult.</p>
 
 <img src='/content/images/2025/search_failure.png' alt='the search problem'/>
 
@@ -18,94 +21,175 @@ categories: blog archive
 
 <p>With the <a href="https://arxiv.org/abs/1810.04805">original BERT paper</a> in view I was equally inspired and determined to reproduce their success on a narrow and much smaller text corpus. I used the BERT tokenizer and much of the original research including 768 dimensions for the output vectors. One notable difference was my training sequence with a length of 104 tokens (context length). This worked well for my search use case because the longest New Testament verse is roughly between 100-110 tokens, and the average is much lower.</p>
 
-<h2>Fail Fast</h2>
+<p>What followed was months of debugging, dead ends, and hard-won lessons. Like all of my adventures, the mistakes were the most interesting part of the story.</p>
 
-<p>I documented the journey as I went and looking back I realized it was a series of mistakes / learnings. But like all of my adventures this was the most interesting part of the story so here are the more memorable notes and what I've learned since.</p>
+<h2>The First Wall: Padding Masks</h2>
 
-<h3>Start Small</h3>
+<p>The biggest trap I fell into early on was assuming the compiler would find bugs for me. I jumped straight into training runs with complex architectures, convinced that more layers meant better results. I should have started by trying to memorize 100 tokens over 10 epochs to validate simple base assumptions.</p>
 
-<p>The biggest trap I fell into early on was assuming the compiler would find bugs for me. I jumped straight into training runs with complex architectures, convinced that more layers meant better results. I was so optimistic that this would be like any other software hobby project I've done over the years. Unfortunately that familiar mindset would be shaken by the reality that comes in the details.</p>
+<p>For a while I did see training loss improve, but validation loss was inconsistent. I didn't train long enough to see the plateau, which gave me a false impression that my attention implementation was working. Eventually I found that learning a single verse was possible, but when I tried to learn 10 verses—with an overfitting, repetitive dataset just to prove it could work—everything fell apart.</p>
 
-<p>I should have started by trying to memorize 100 tokens over 10 epochs to validate simple base assumptions instead of sprinting ahead to add another layer, more attention heads, etc. There are no shortcuts—you need to verify your math step-by-step on a tiny dataset before scaling up.</p>
+<p>That's when I pulled back to inspect the math behind each component individually.</p>
 
-<p>I spent weeks debugging issues that would have been obvious with a simple setup. Start with one layer, confirm you can see simple mirroring and overfitting, then slowly add capacity. Longer term you'll get closer to generalization, but this burden of proof will provide a more stable foundation as you get started.</p>
+<p>I used <code>IO.inspect</code> to print out the vectors for a shorter verse. Because this was shorter, the last 20 tokens were visibly padding token IDs. From here I printed each component of attention—query, key, value projected—and found that I hadn't excluded padding positions from the attention calculation.</p>
 
-<h3>Variable Length</h3>
+<p>The attention mechanism was literally attending to padding tokens, learning patterns from nonsense data. This single masking issue was hiding behind what appeared to be architecture problems, leading me down countless wrong paths.</p>
 
-<p>After I had simple memorization working, I quickly fell into a performance issue that tormented me for weeks. What I wish I knew then is that variable length sequences require you add pad tokens. The trouble wasn't the variability but that I didn't update my attention mechanism to skip these low-value positions.</p>
+<p>The fix was an additive mask that sets padding positions to negative infinity before softmax, effectively zeroing them out:</p>
 
-<p>The attention mechanism was literally attending to padding tokens, learning patterns from nonsense data. This single masking issue was hiding behind what appeared to be architecture problems, leading me down countless wrong paths. Once I properly implemented padding masks, performance jumped dramatically.</p>
+<pre><code>defn self_attention(input, w_query, w_key, w_value, w_out, attention_mask) do
+  # ... projection code ...
 
-<h3>Gradient Clipping</h3>
+  attention_scores = Nx.dot(q, [3], [0, 1], k, [3], [0, 1])
+  scaling_divisor = Nx.sqrt(head_dim)
+  scaled_attention_scores = Nx.divide(attention_scores, scaling_divisor)
+
+  # The fix: -1.0e8 makes padding positions effectively zero after softmax
+  additive_mask = Nx.select(attention_mask, 0.0, -1.0e8)
+  masked_scores = Nx.add(scaled_attention_scores, additive_mask)
+
+  attention_weights = softmax(masked_scores)
+  # ... rest of attention ...
+end</code></pre>
+
+<p>Once I properly implemented padding masks, performance jumped dramatically. The learning: there are no shortcuts—you need to verify your math step-by-step on a tiny dataset before scaling up.</p>
+
+<h2>The Second Wall: Gradient Chaos</h2>
 
 <p>For the longest time, I never computed or printed my gradients to evaluate them. I was hypnotized by my training and validation loss curves, completely ignoring the underlying mathematics.</p>
 
-<p>I spent some time digging into the Polaris library so I could compute gradients, and with that additional information I was finally able to see that I had very large gradients during training, which gave me erratic and inconsistent results at best. From here, I read about gradient clipping and discovered how the original BERT team clipped at 1.0—which means they just scaled the updates down.</p>
+<p>The symptom was that validation loss didn't have a nice curve. It would improve, then jump around, never settling into the steady descent I expected. So much code had been written at this point, and much of it wasn't properly validated in terms of math.</p>
+
+<p>I spent some time digging into the <a href="https://github.com/elixir-nx/polaris">Polaris</a> library so I could compute gradients, and with that additional information I was finally able to see the problem: gradient explosion.</p>
+
+<pre><code>def diagnose_learning_issues(model_params, examples, base_key) do
+  preprocessed = Enum.take(examples, @batch_size)
+  blocksize = get_blocksize(preprocessed)
+
+  gradient_norms = Enum.map(preprocessed, fn {batch_id_list, tar_id, mask_pos} ->
+    input_ids = pad_tokens([batch_id_list], blocksize, @pad_token_id)
+    input_tensor = Nx.tensor(input_ids)
+    # ... tensor setup ...
+
+    gradient = get_gradients(model_params, input_tensor, target_tensor, mask_pos_tensor, base_key)
+    total_norm = calculate_gradient_norm(gradient) |> Nx.to_number()
+
+    Nx.backend_deallocate(gradient)
+    total_norm
+  end)
+
+  %{
+    mean_gradient_norm: Enum.sum(gradient_norms) / length(gradient_norms),
+    gradient_norms: gradient_norms
+  }
+end</code></pre>
+
+<p>Before epoch 6 or 8, the gradient norm would be something like 12. But as training continued I would see 18, then 20, then 33—and it never came down. I consulted with Gemini about this pattern, and you might say I took the LLM's word as gospel: this was a bad signal indicating erratic learning.</p>
+
+<p>From here, I read about gradient clipping and discovered how the original BERT team clipped at 1.0. The fix was straightforward with Polaris:</p>
+
+<pre><code>{init_fn, update_fn} =
+  Polaris.Updates.clip_by_global_norm(max_norm: 1.0)
+  |> Polaris.Updates.scale_by_adam()
+  |> Polaris.Updates.add_decayed_weights(decay: 0.01)
+  |> Polaris.Updates.scale_by_schedule(schedule_fn)
+
+init_optimizer_state = init_fn.(initial_params)</code></pre>
 
 <p>This single change transformed my erratic training into steady, predictable progress. The learning: your gradients are telling you a story. Listen to them.</p>
 
-<h3>Small Wins Compound</h3>
+<h2>The Third Wall: Memory Leaks</h2>
 
-<p>Several smaller changes had outsized impacts on performance:</p>
+<p>As I started to scale up my encoder, I found my RTX 4090 would run out of vRAM by epoch 8 or 10. CUDA out of memory. So I put together a Docker container and took it to the cloud with <a href="https://www.runpod.io/">RunPod</a> using my <a href="https://github.com/toranb/runpod-cuda12">runpod-cuda12 setup</a>.</p>
 
-<h4>Positional Encoding</h4>
+<p>I trained for 16 hours, but even the 80GB H100 ran out of vRAM—a clear signal that I was doing something wrong, not just hitting hardware limits.</p>
 
-<p>Early on, I had a hyperparameter nightmare trying to optimize positional embeddings. I later discovered I could use the more simplistic sinusoidal approach, which improved performance yet again while eliminating dozens of hyperparameters.</p>
+<p>I worked with Claude and Gemini to inspect my training loop with fresh eyes. Gemini signaled that I was likely holding vRAM between epochs. You might say I took the LLM's word as gospel again.</p>
 
-<h4>GeLU</h4>
+<p>The problem was that I had <code>Nx.backend_deallocate</code> calls, but not in the innermost loop. The first batch of inputs from each epoch would just accumulate without release. With each epoch, memory grew until everything fell over around epoch 8-10 locally.</p>
 
-<p>At some point along the way, I made the switch from <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html">ReLU</a> to <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.GELU.html">GeLU</a>, which had a noticeable performance increase. I didn't find examples of this implementation in the wild with Nx, so I had to hammer this out with help from Gemini. The smooth gradients of GeLU proved much more effective for my use case.</p>
+<p>After moving deallocation into the inner loop, I was able to cut my cloud spending and go back to training at home with just one more trick: I cracked open the Nx <code>types.ex</code> file in my deps directory and changed the default float from f32 to bf16. This was a direct hack because the configuration doesn't yet exist in Nx, but it allowed me to run without compromise in terms of layers, dimensionality, or attention heads.</p>
 
-<h3>Learning Rate</h3>
+<h2>The Architecture Shift: Pre-Layer Normalization</h2>
 
-<p>I spent countless hours doing training runs toward the end to find the sweet spot for learning rate. This depends so much on the size and diversity of your dataset, but it also played a crucial role as I scaled up the number of layers and attention heads.</p>
+<p>While training loss was improving, validation loss wasn't moving with my bigger dataset. After fixing the padding mask issue, I set my sights on this problem along with trying to dial in the number of layers and attention heads.</p>
 
-<p>Pro tip: stay patient. You will need to see a large number of epochs to properly validate your best learning rate. The interaction between learning rate and model complexity is non-obvious, and rushing this optimization cost me more GPU hours than any other single factor.</p>
+<p>I originally had post-layer normalization—the pattern from the original BERT paper where you normalize <em>after</em> the residual connection. After some chatting with Gemini about my architecture, it recommended I try pre-layer normalization instead.</p>
 
-<h3>Memory Leaks</h3>
+<p>The difference is subtle but important. Post-LN (original BERT):</p>
 
-<p>As I started to scale up my encoder, I found my RTX 4090 would run out of vRAM by epoch 8 or 10. So I put together a Docker container and took it to the cloud with <a href="https://www.runpod.io/">RunPod</a> using my <a href="https://github.com/toranb/runpod-cuda12">runpod-cuda12 setup</a>.</p>
+<pre><code># Post-LN: normalize AFTER residual add
+attn_out = self_attention(x, ...)
+add = residual_connection(x, attn_out)
+norm = layer_norm(add)</code></pre>
 
-<p>I trained for 16 hours but even the 80GB H100 ran out of vRAM —a clear signal that I was doing something wrong. That's when I realized I had failed to free up memory consistently. With each epoch, the first batch was held forever, which explains why epoch 8-10 fell over during my local training runs.</p>
+<p>Pre-LN (what I switched to):</p>
 
-<p>After this quick change, I was able to cut my cloud spending and go back to training at home with just one more trick. I cracked open the Nx types.ex file, in the deps directory, and changed the default float from f32 to bf16. This allowed me to run without further compromise in terms of layers, dimensionality, or attention heads.</p>
+<pre><code># Pre-LN: normalize BEFORE sublayer
+norm_attn = layer_norm(x)
+attn_out = self_attention(norm_attn, ...)
+add = residual_connection(x, attn_out)</code></pre>
 
-<h3>Adam</h3>
+<p>Why does this matter? In post-LN, gradients must flow through the layer normalization after the residual connection. As you stack layers—11 in my case—this creates a compounding effect where gradients can either explode or vanish by the time they reach the early layers.</p>
 
-<p>Early in my journey, switching from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a> made the biggest single performance improvement I experienced. I was completely stuck with a validation loss hovering around 2.0, but after making this shift I was eventually able to reach 1.29. This change was so dramatic it helped encourage me to keep going when progress felt impossible. The adaptive learning rates that Adam provides were perfect for the complex parameter space I was navigating.</p>
+<p>Pre-LN creates what I think of as a "gradient highway." By normalizing before each sublayer, the residual connection becomes a clean, unobstructed path from output back to input. The gradient can flow directly through the <code>x + sublayer_output</code> addition without passing through normalization.</p>
 
-<p>Shout out to Sean Moriarity for the <a href="https://github.com/elixir-nx/polaris">Polaris</a> library! This provided all the plumbing code so I could switch with ease.</p>
+<p>Think of it like this: in post-LN, every layer is a toll booth that modifies the gradient. In pre-LN, the main highway (residual path) is toll-free, and only the side roads (attention and FFN paths) go through normalization.</p>
 
-<h3>Warmup</h3>
+<p>The original BERT team used post-LN with 12 layers, but they had massive compute for hyperparameter tuning and careful initialization. For someone training on a 4090 in nights and weekends, pre-LN is more forgiving—you don't need to nail the learning rate and initialization as precisely. While using pre-LN seemed to work, I'll admit I still don't fully understand all the dynamics at play here.</p>
 
-<p>Without proper warmup and linear decay, I hit another significant performance wall. The original BERT team used a 10,000 step warmup, and understanding why this matters was crucial to unlocking my final performance tier.</p>
+<h2>The Turning Point: Adam</h2>
 
-<p>Warmup allows your model to ease into the optimization landscape rather than taking massive, destabilizing steps from the beginning. Combined with linear decay, this created the stable training dynamics I needed for consistent convergence.</p>
+<p>Early in my journey, I was completely stuck with a validation loss hovering around 2.0. I worked only a few hours a week in my nights and weekends, so "weeks of frustration" translated to maybe 20-30 actual hours of debugging spread over a month.</p>
 
-<h3>Dropout</h3>
+<p>An LLM suggested I try switching from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a>. This made the biggest single performance improvement I experienced. After making the switch, I was eventually able to reach 1.29 validation loss.</p>
 
-<p>I spent extensive time optimizing dropout for both my dataset and the complexity of my encoder. I did find the sweet spot in my final training run where validation loss and training loss were almost identical as the training loss plateaued.</p>
+<p>This change was so dramatic it helped encourage me to keep going when progress felt impossible. The adaptive learning rates that Adam provides were perfect for the complex parameter space I was navigating.</p>
 
-<p>Finding that 0.143 dropout rate required systematic experimentation, but the satisfaction of seeing perfect convergence made every hour worthwhile. Dropout needs retuning as your architecture complexity changes or you add/subtract from your dataset—there's no universal value.</p>
+<p>Shout out to Sean Moriarity for the <a href="https://github.com/elixir-nx/polaris">Polaris</a> library. It provided all the plumbing code so I could switch optimizers with ease.</p>
 
-<h2>Bigger Picture</h2>
+<p>Several smaller changes also had outsized impacts: switching from <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html">ReLU</a> to <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.GELU.html">GeLU</a> activation, using sinusoidal positional encoding instead of learned embeddings (eliminating dozens of hyperparameters), and implementing proper warmup with linear decay. The original BERT team used a 10,000 step warmup, and understanding why this matters was crucial—it allows the model to ease into the optimization landscape rather than taking massive, destabilizing steps from the beginning.</p>
 
-<h3>Dataset</h3>
+<h2>The Data Reckoning</h2>
 
 <p>More than anything, I spent months building, curating, and tuning my dataset. I knew I couldn't achieve the same size and diversity the original BERT team had, but I was pleasantly surprised with what I could accomplish with just under 400,000 unique training examples.</p>
 
-<p>The iterative process of dataset refinement taught me that data quality trumps quantity at smaller scales. Every hour spent cleaning and curating paid dividends in final model performance. If I had to synthesize what I would do differently, it comes down to this: look at the data more. I underestimated the time involved in data work, which has become a recurring theme throughout my machine learning journey.</p>
+<p>The trouble was I made several mistakes that cost me significant time:</p>
 
-<h3>Architecture</h3>
+<p><strong>False diversity.</strong> I wanted a diverse set of Bible text and found myself using different translations—NLT, NIV, ESV, NET. This seemed like a good idea, but I didn't actually look at the dataset closely. While subtle differences exist between translations, they share similar tokens and themes. They aren't radically different. I later learned I should have included genuinely different text like <em>Mere Christianity</em>—rich theological writing that isn't the original Bible text.</p>
 
-<p>Like all other hyperparameters, tuning the number of layers and attention heads takes considerable patience. You need to complete extensive training runs with fewer layers than you need and more layers than you need to find the sweet spot for both your dataset and the linguistic complexity you're trying to capture.</p>
+<p><strong>Quote noise.</strong> Biblical text has a lot of quotation marks, and I found this was distracting to the masked token prediction with my simplistic encoder. The model was learning patterns around quote boundaries rather than semantic meaning.</p>
 
-<p>I systematically tested different configurations, learning that my 11-layer, 12-head architecture hit the sweet spot between underfitting simple patterns and overfitting my biblical text domain. The 280 epochs would normally take 48-50 hours in total training time depending on my dataset, which meant each architectural experiment required significant commitment.</p>
+<p><strong>Lazy first pass.</strong> While I expanded to books over time, I didn't do my best work on the first pass. A lot of that text data was less than ideal until I circled back to do real cleaning—which only happened by actually reading the text in those contextualized chunks.</p>
+
+<p>If I had to synthesize what I would do differently, it comes down to this: look at the data more. I underestimated the time involved in data work, which has become a recurring theme throughout my machine learning journey.</p>
 
 <h2>The Payoff</h2>
 
-<p>At the end of my journey, I have an encoder that produces embeddings for biblical text that works exceptionally well for my search use case. I combined this with <a href="/blog/archive/2025/08/16/building-keyword-search-in-postgres/">a BM25 implementation</a> to produce a search experience that is truly useful for spelunking around the New Testament.</p>
+<p>Here's the twist I didn't expect: <a href="/blog/archive/2025/08/16/building-keyword-search-in-postgres/">BM25</a> was surprisingly powerful on its own.</p>
 
-<p>While I owe much of my understanding to the original BERT paper and various online resources, the deep learning that came from implementing everything myself proved invaluable. Each mistake along the way unlocked deeper learning and I'm grateful in heinsight.</p>
+<p>That original search—"give you a new heart"—landed great Ezekiel results with just BM25. No embeddings required. The benchmark results were striking:</p>
+
+<pre><code>================================================================================
+BENCHMARK RESULTS COMPARISON
+================================================================================
+Metric                    | BM25            | ILIKE
+--------------------------------------------------------------------------------
+NDCG@10 (relevance)       | 0.2940          | 0.1105
+Precision@10              | 0.2806          | 0.1747
+Recall % (found relevant) | 66.7            | 28.1
+================================================================================</code></pre>
+
+<p>BM25 provided 166% better relevance ranking than simple text matching. For most of my search use case, this was enough.</p>
+
+<p>But the encoder still adds value. For thematic queries—"salvation by grace theme" or "fruit of the spirit"—the hybrid approach with embeddings helps surface verses that don't contain the exact keywords. I built a comprehensive evaluation covering keyword retrieval, thematic clustering, and distractor tests to measure this. The encoder wasn't fully optimized, but it moved the needle on complex queries.</p>
+
+<p>I set out to build semantic search and discovered that sometimes the "simpler" approach wins for most cases. The hybrid still helps at the margins.</p>
+
+<h2>Build It Yourself</h2>
+
+<p>While I owe much of my understanding to the original BERT paper and various online resources, the deep learning that came from implementing everything myself proved invaluable. Each mistake along the way unlocked deeper understanding, and I'm grateful in hindsight.</p>
 
 <p>The journey taught me that transformers aren't magic—they're sophisticated but understandable mathematical constructs. And sometimes, the best way to truly understand something is to build it yourself, one mistake at a time.</p>
+
+<p>You can find the source code from my adventure on <a href="https://github.com/toranb/encoder-search">github</a>.</p>
