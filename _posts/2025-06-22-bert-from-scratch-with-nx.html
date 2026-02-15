@@ -15,7 +15,7 @@ categories: blog archive
 
 <h2>The Turning Point: Adam</h2>
 
-<p>Before any of that, I was stuck on a more fundamental problem. For weeks my validation loss hovered around 2.0, refusing to budge. I worked only a few hours a week in my nights and weekends, so "weeks of frustration" translated to maybe 20-30 actual hours of debugging spread over a month.</p>
+<p>I barely had a working training loop when I was humbled by a fundamental problem. For weeks my validation loss hovered around 2.0, refusing to budge. I worked only a few hours a week in my nights and weekends, so "weeks of frustration" translated to maybe 20-30 actual hours of debugging spread over a month.</p>
 
 <p>I switched from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a>, and it was the biggest single improvement I saw up to this point. After that change, I was able to reach 1.29 validation loss within 100 epochs using a very early dataset at the time.</p>
 
