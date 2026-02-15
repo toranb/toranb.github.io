@@ -17,11 +17,11 @@ categories: blog archive
 
 <p>Before any of that, I was stuck on a more fundamental problem. For weeks my validation loss hovered around 2.0, refusing to budge. I worked only a few hours a week in my nights and weekends, so "weeks of frustration" translated to maybe 20-30 actual hours of debugging spread over a month.</p>
 
-<p>I switched from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a>, and it was the biggest single improvement I saw. After the change, I eventually reached 1.29 validation loss.</p>
+<p>I switched from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a>, and it was the biggest single improvement I saw up to this point. After that change, I was able to reach 1.29 validation loss within 100 epochs using a very early dataset at the time.</p>
 
 <p>Adam's adaptive learning rates made the search space tractable and gave me enough momentum to keep going. Shout out to Sean Moriarity for the <a href="https://github.com/elixir-nx/polaris">Polaris</a> library—it made optimizer swaps trivial.</p>
 
-<p>Several smaller changes also had outsized impacts: switching from <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html">ReLU</a> to <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.GELU.html">GeLU</a> activation, using sinusoidal positional encoding instead of learned embeddings (eliminating dozens of hyperparameters), and implementing proper warmup with linear decay. The original BERT team used a 10,000 step warmup, and understanding why this matters was crucial—it allows the model to ease into the optimization landscape rather than taking massive, destabilizing steps from the beginning.</p>
+<p>About this same time several smaller changes also had outsized impacts: switching from <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html">ReLU</a> to <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.GELU.html">GeLU</a> activation, using sinusoidal positional encoding instead of learned embeddings and implementing proper warmup with linear decay. The original BERT team used a 10,000 step warmup, and understanding why this matters was crucial—it allows the model to ease into the optimization landscape rather than taking massive, destabilizing steps from the beginning.</p>
 
 <p>What followed was months of debugging, dead ends, and hard-won lessons. Like all of my adventures, the mistakes were the most interesting part of the story.</p>
 
@@ -33,9 +33,9 @@ categories: blog archive
 
 <p>That's when I pulled back to inspect the math behind each component individually.</p>
 
-<p>I used <code>IO.inspect</code> to print out the vectors for a shorter verse. The last 20 tokens were clearly padding IDs. I traced query, key, and value projections and realized I wasn't excluding padding positions from attention.</p>
+<p>I used IO.inspect to print out the vectors for a shorter verse. The last 20 tokens were clearly padding IDs. I traced query, key, and value projections and realized I wasn't excluding padding positions from attention.</p>
 
-<p>The model was learning from padding. That single masking error was hiding behind what looked like architecture problems and sent me down the wrong paths.</p>
+<p>The model was learning from padding. That single masking error was hiding behind what looked like architecture problems and sent me down more than a few dead ends.</p>
 
 <p>The fix was an additive mask that sets padding positions to negative infinity before softmax, effectively zeroing them out:</p>
 
@@ -66,35 +66,9 @@ categories: blog archive
 
 <p>For the longest time, I never computed or printed my gradients to evaluate them. I was hypnotized by my training and validation loss curves, completely ignoring the underlying mathematics.</p>
 
-<p>The symptom was that validation loss didn't have a nice curve. It would improve, then jump around, never settling into the steady descent I expected. So much code had been written at this point, and much of it wasn't properly validated in terms of math.</p>
+<p>The symptom was that validation loss didn't have a nice curve. It would improve, then jump around, never settling into the steady descent I expected. So much code had been written at this point, and much of it wasn't properly validated.</p>
 
 <p>I spent some time digging into the <a href="https://github.com/elixir-nx/polaris">Polaris</a> library so I could compute gradients, and with that additional information I was finally able to see the problem: gradient explosion.</p>
-
-<div class="highlight" data-language="elixir">
-  <pre class="language-elixir">
-    <code class="language-elixir">def diagnose_learning_issues(model_params, examples, base_key) do</code>
-    <code class="language-elixir">  preprocessed = Enum.take(examples, @batch_size)</code>
-    <code class="language-elixir">  blocksize = get_blocksize(preprocessed)</code>
-    <code class="language-elixir"></code>
-    <code class="language-elixir">  gradient_norms = Enum.map(preprocessed, fn {batch_id_list, tar_id, mask_pos} -></code>
-    <code class="language-elixir">    input_ids = pad_tokens([batch_id_list], blocksize, @pad_token_id)</code>
-    <code class="language-elixir">    input_tensor = Nx.tensor(input_ids)</code>
-    <code class="language-elixir">    # ... tensor setup ...</code>
-    <code class="language-elixir"></code>
-    <code class="language-elixir">    gradient = get_gradients(model_params, input_tensor, target_tensor, mask_pos_tensor, base_key)</code>
-    <code class="language-elixir">    total_norm = calculate_gradient_norm(gradient) |> Nx.to_number()</code>
-    <code class="language-elixir"></code>
-    <code class="language-elixir">    Nx.backend_deallocate(gradient)</code>
-    <code class="language-elixir">    total_norm</code>
-    <code class="language-elixir">  end)</code>
-    <code class="language-elixir"></code>
-    <code class="language-elixir">  %{</code>
-    <code class="language-elixir">    mean_gradient_norm: Enum.sum(gradient_norms) / length(gradient_norms),</code>
-    <code class="language-elixir">    gradient_norms: gradient_norms</code>
-    <code class="language-elixir">  }</code>
-    <code class="language-elixir">end</code>
-  </pre>
-</div>
 
 <p>Before epoch 6 or 8, the gradient norm would be something like 12. But as training continued I would see 18, then 20, then 33—and it never came down. I consulted with Gemini about this pattern, and you might say I took the LLM's word as gospel: this was a bad signal indicating erratic learning.</p>
 
@@ -118,15 +92,15 @@ categories: blog archive
 
 <p>As I started to scale up my encoder, my RTX 4090 ran out of vRAM by epoch 8 or 10. I moved to the cloud with <a href="https://www.runpod.io/">RunPod</a> using my <a href="https://github.com/toranb/runpod-cuda12">runpod-cuda12 setup</a>, and even an 80GB H100 failed after 16 hours. That was the clue: this wasn't a hardware limit—it was a leak.</p>
 
-<p>The issue was simple. I had <code>Nx.backend_deallocate</code> calls, but not in the innermost loop. The first batch of each epoch accumulated without release. Memory grew every epoch until the run collapsed around epoch 8-10.</p>
+<p>The issue was simple. I had Nx.backend_deallocate calls, but not in the innermost loop. The first batch of each epoch accumulated without release. Memory grew every epoch until the run collapsed around epoch 8-10.</p>
 
-<p>After moving deallocation into the inner loop, I was able to cut my cloud spending and go back to training at home with just one more trick: I cracked open the Nx <code>types.ex</code> file in my deps directory and changed the default float from f32 to bf16. This is still a direct hack—as of this writing, the configuration doesn't yet exist in Nx—but it allowed me to run without compromise in terms of layers, dimensionality, or attention heads.</p>
+<p>After moving deallocation into the inner loop, I was able to cut my cloud spending and go back to training at home with just one more trick: I cracked open the Nx types.ex file in my deps directory and changed the default float from f32 to bf16. This is still a direct hack—as of this writing, the configuration doesn't yet exist in Nx—but it allowed me to run without compromise in terms of layers, dimensionality, or attention heads.</p>
 
 <h2>The Architecture Shift: Pre-Layer Normalization</h2>
 
 <p>While training loss was improving, validation loss wasn't moving with my bigger dataset. After fixing the padding mask issue, I set my sights on this problem along with trying to dial in the number of layers and attention heads.</p>
 
-<p>I originally had post-layer normalization—the pattern from the original BERT paper where you normalize <em>after</em> the residual connection. After some chatting with Gemini about my architecture, it recommended I try pre-layer normalization instead.</p>
+<p>I originally had post-layer normalization—the pattern from the original BERT paper where you normalize after the residual connection. After some chatting with Claude about my architecture, it recommended I try pre-layer normalization instead.</p>
 
 <p>The difference is subtle but important. Post-LN (original BERT):</p>
 
@@ -150,9 +124,9 @@ categories: blog archive
   </pre>
 </div>
 
-<p>Why does this matter? In post-LN, gradients must flow through normalization after the residual add. As you stack layers—11 in my case—that compounding effect can either explode or vanish before it reaches early layers.</p>
+<p>Why does this matter? In post-LN, gradients must flow through normalization after the residual add. As you stack layers, 12 in my case, that compounding effect can either explode or vanish before it reaches early layers.</p>
 
-<p>Pre-LN keeps the residual path clean. The gradient can flow directly through <code>x + sublayer_output</code> without passing through normalization, while attention and FFN paths still get normalized.</p>
+<p>Pre-LN keeps the residual path clean. The gradient can flow directly through x + sublayer_output without passing through normalization, while attention and FFN paths still get normalized.</p>
 
 <img src='/content/images/2025/preln.png' alt='Diagram comparing the gradient flow in Post-LN versus Pre-LN transformer blocks'/>
 
@@ -160,7 +134,7 @@ categories: blog archive
 
 <h2>The Recipe Ceiling</h2>
 
-<p>After seven training runs and months of tuning, my validation loss was stuck around 1.6. I'd tried everything I could think of: adjusting dropout rates, tweaking learning rates, adding a 12th layer, increasing weight decay. Nothing broke through the floor. I was convinced I'd hit a data ceiling—that 400,000 training examples simply weren't enough.</p>
+<p>After countless training runs and months of tuning the encoder, validation loss was stuck around 1.6. I'd tried everything I could think of: adjusting dropout rates, tweaking learning rates, adding layers or attention head dimensions, increasing weight decay. Nothing broke through the floor. I was convinced I'd hit a data ceiling—that 400,000 training examples simply weren't enough.</p>
 
 <p>Then I pulled in a fresh pair of eyes for a detailed code review, stepping through each component of the training loop. Within hours, two foundational bugs surfaced that had been compounding since my first training run.</p>
 
@@ -195,13 +169,11 @@ categories: blog archive
 
 <p>By epoch 8, Run 8 already beat the best validation loss across all seven previous runs. By epoch 12, it reached 1.124—a 29% improvement over a ceiling I'd spent months trying to break through. The overfitting I'd been fighting wasn't a data ceiling at all. It was a recipe ceiling.</p>
 
-<p>Training is still in progress as I write this, but the trajectory suggests that by epoch 30 or 40 this encoder will reach performance I never thought possible with this dataset—and without the overfitting that plagued every previous run.</p>
-
 <h2>The Missing Projection: Weight Tying</h2>
 
-<p>With my loss curves looking better than ever, I thought I was finally at the promised land. Unfortunately, my evals showed a lack of depth because a critical detail was missed yet again.</p>
+<p>With my loss curves looking better than ever, I thought I was finally at the end of my journey. Unfortunately, my evals showed a lack of depth because of another critical detail I skipped over early on.</p>
 
-<p>At some point I came to grips with the reality that I couldn't train weights from scratch like the team behind BERT—I didn't have a dataset anywhere near 3 billion tokens. So instead I gave myself a jump start by borrowing the initial weights from all 12 layers of BERT-base. The trouble was that I forgot to include the vocab projection weights, so the final MLM head failed to project my learned geometry into the proper vocabulary when it counted most.</p>
+<p>At some point I came to grips with the reality that I couldn't train weights from scratch like the team behind BERT—I didn't have a dataset anywhere near 3 billion tokens. So instead I gave myself a jump start by borrowing the initial weights from all 12 layers of BERT-base. The trouble was that I forgot to include the vocab projection weights, so the final MLM head failed to project my learned geometry into the proper vocabulary.</p>
 
 <p>My evaluation suite told the whole story. The encoder clearly understood theology—75% accuracy on contrastive tests—but couldn't predict the right vocabulary words at masked positions:</p>
 
@@ -227,9 +199,9 @@ categories: blog archive
   </pre>
 </div>
 
-<p>The <code>out_w</code> parameter disappears entirely. The embedding matrix serves double duty, and every gradient that updates the embedding for "grace" simultaneously updates how the model predicts "grace" at masked positions. Without weight tying, I was asking a random matrix to decode a learned representation space—hoping that 768 x 30,522 parameters would independently converge to match the encoder's geometry. They never did.</p>
+<p>The out_w parameter disappears entirely. The embedding matrix serves double duty, and every gradient that updates the embedding for "grace" simultaneously updates how the model predicts "grace" at masked positions. Without weight tying, I was asking a random matrix to decode a learned representation space—hoping that 768 x 30,522 parameters would independently converge to match the encoder's geometry. They never did.</p>
 
-<p>This also cut ~23 million trainable parameters, which meant less memory and smaller optimizer state. More importantly, it eliminated a failure mode by construction: if the encoder knows what "grace" means, it can now predict "grace" at a masked position, because the same vector represents both.</p>
+<p>This also cut ~23 million trainable parameters, which meant less memory and smaller optimizer state. More importantly, it eliminated a failure mode: if the encoder knows what "grace" means, it could now predict "grace" at a masked position, because the same vector represents both.</p>
 
 <h2>Aligning for Search: Contrastive Training</h2>
 
@@ -239,35 +211,19 @@ categories: blog archive
 
 <p>The approach works by encoding both sides of a pair through the same encoder, mean-pooling the token outputs into a single sentence vector (with pad masking so padding doesn't count), and then L2-normalizing so cosine similarity becomes a simple dot product. For a batch of 64 pairs, this builds a 64x64 similarity matrix where the diagonal entries are the correct matches and everything off-diagonal is an implicit negative:</p>
 
-<div class="highlight" data-language="elixir">
-  <pre class="language-elixir">
-    <code class="language-elixir"># Encode both sides through the same encoder</code>
-    <code class="language-elixir">anchor_hidden = encoder_forward(params, anchor_ids, keys, training: training)</code>
-    <code class="language-elixir">positive_hidden = encoder_forward(params, positive_ids, keys, training: training)</code>
-    <code class="language-elixir"></code>
-    <code class="language-elixir"># Mean pool and normalize to sentence embeddings</code>
-    <code class="language-elixir">anchor_emb = mean_pool(anchor_hidden, anchor_mask) |> l2_normalize()</code>
-    <code class="language-elixir">positive_emb = mean_pool(positive_hidden, positive_mask) |> l2_normalize()</code>
-    <code class="language-elixir"></code>
-    <code class="language-elixir"># Similarity matrix: correct pairs on the diagonal</code>
-    <code class="language-elixir">similarity = Nx.dot(anchor_emb, [1], positive_emb, [1])</code>
-    <code class="language-elixir">logits = Nx.divide(similarity, @temperature)</code>
-  </pre>
-</div>
+<p>While this was the simplest post-training and least error prone step throughout, it still came with some valuable learnings. The one that stuck with me is the key difference in the loss functions. In this training run the model is no longer predicting individual tokens. It's answering: "which sentence out of these 64 (batch size) is the true partner?"</p>
 
-<p>The loss is InfoNCE—softmax cross-entropy over each row of the similarity matrix, where the label is the diagonal index. With a temperature of 0.07, the softmax becomes sharply peaked, forcing tight alignment for the true pair and strong separation from negatives. The key difference from MLM is that the model is no longer predicting individual tokens. It's answering: "which sentence out of these 64 is the true partner?"</p>
-
-<p>Crucially, the MLM output head isn't used at all during this phase—only the encoder weights are updated, driven by sentence-level similarity errors rather than token prediction errors. This fine-tuning step took the encoder from understanding words in context to understanding that two differently worded verses about the same concept should live in the same neighborhood of embedding space.</p>
+<p>This fine-tuning step took the encoder from understanding words in context to understanding that two differently worded verses about the same concept should live in the same neighborhood of embedding space.</p>
 
 <h2>The Last Mile: Query-to-Verse Alignment</h2>
 
-<p>With contrastive training proving itself in evals, I had an encoder that grouped similar verses together. But there was still a gap between how the encoder organized scripture and how a person actually searches. People don't type verses—they type questions and phrases shaped by their own vocabulary, which often doesn't overlap with the biblical text at all.</p>
+<p>After contrastive training, I had an encoder that grouped similar verses together but there was still a gap between how the encoder organized scripture and how a person actually searches. People usually search with short phrases or even questions shaped by their own vocabulary and experience with other software, which often doesn't overlap with the biblical text at all.</p>
 
-<p>To close that gap, I generated a dataset of 2,000 high-quality query-to-verse mappings. Each pair linked a natural search phrase to the verse it was really asking about. For example, "assurance of salvation" mapped to Romans 8:1—"there is therefore now no condemnation for those who are in Christ Jesus." The verse never mentions the word "salvation," but it speaks directly to that theology.</p>
+<p>To close that gap, I generated a dataset of 1,400 high-quality query-to-verse mappings. Each pair linked a natural search phrase to the verse it was really asking about. For example, "assurance of salvation" mapped to Romans 8:1—"there is therefore now no condemnation for those who are in Christ Jesus." The verse never mentions the word "salvation," but it speaks directly to that theology.</p>
 
-<p>The training used the same contrastive loss as before, but with a fundamentally different dataset. Instead of teaching the encoder that two translations of the same verse should be neighbors, I was teaching it that a human search query and its best answer should be neighbors. This bent the geometry one final time—pulling the embedding space toward how people actually look for scripture, not just how scripture relates to itself.</p>
+<p>The training used the same contrastive loss as before, but with a fundamentally different dataset. Instead of teaching the encoder that two translations of the same verse should be neighbors, I was teaching it that a human search query and its best answer should be neighbors. This bent the geometry one final time —pulling the embedding space toward how people actually look for scripture, not just how scripture relates to itself.</p>
 
-<p>This was the smallest dataset of the three training phases, but arguably the most targeted. The 2,000 pairs acted as precise instructions: when someone asks about "forgiveness after failure," the encoder should point toward the prodigal son, not just verses that happen to contain the word "forgiveness." Quality mattered far more than quantity here, and getting the mappings right required genuine theological care.</p>
+<p>This was the smallest dataset of the three training phases, but arguably the most targeted. The 1,400 pairs acted as precise instructions: when someone asks about "forgiveness after failure," the encoder should point toward the prodigal son, not just verses that happen to contain the word "forgiveness." Quality mattered far more than quantity here, requiring loads of synthetic data engineering and genuine theological care to validate the mappings before training.</p>
 
 <h2>The Missing Baseline: BM25</h2>
 
@@ -295,17 +251,17 @@ categories: blog archive
 
 <p>But BM25 and semantic search fail in complementary ways, which is what makes combining them so effective. BM25 excels when the user's words overlap with the text: it handles exact phrases, proper nouns, and specific references with precision that embeddings can't match. The encoder excels when they don't overlap: thematic queries like "assurance of salvation" or "fruit of the spirit" surface verses that speak to the concept without containing the exact keywords. BM25 is also immune to the geometric distortions that can plague embeddings—if the word is there, it's there.</p>
 
-<p>The challenge with combining these two signals is that their scores live on completely different scales—BM25 scores are unbounded (often 10.0–40.0+) while cosine similarity is capped at 0.0–1.0. A naive weighted sum would require careful normalization that's notoriously difficult to tune. Instead, I used Reciprocal Rank Fusion (RRF), which sidesteps the problem entirely by ignoring raw scores and working only with rank positions. Each document gets a score of <code>1 / (k + rank)</code> from each result list, and if it appears in both, the scores are summed. This means a document ranked highly by both BM25 and the encoder rises to the top without any score normalization at all.</p>
+<p>The challenge with combining these two signals is that their scores live on completely different scales—BM25 scores are unbounded (often 10.0–40.0+) while cosine similarity is capped at 0.0–1.0. A naive weighted sum would require careful normalization that's notoriously difficult to tune. Instead, I used Reciprocal Rank Fusion (RRF), which sidesteps the problem entirely by ignoring raw scores and working only with rank positions. Each document gets a score of 1 / (k + rank) from each result list, and if it appears in both, the scores are summed. This means a document ranked highly by both BM25 and the encoder rises to the top without any score normalization at all.</p>
 
 <p>The keyword signal anchors results for literal queries while the encoder lifts thematic results that pure text matching would miss. Starting with BM25 as the baseline would have given me a strong search experience much earlier and a clearer benchmark for measuring what the encoder actually added.</p>
 
 <h2>The Data Reckoning</h2>
 
-<p>More than anything, I spent months building, curating, and tuning my dataset. I knew I couldn't achieve the same size and diversity the original BERT team had, but I was pleasantly surprised with what I could accomplish with just under 400,000 unique training examples.</p>
+<p>More than anything, I spent months building, curating, and tuning my dataset. I knew I couldn't achieve the same size and diversity the original BERT team had, but I was pleasantly surprised with what I could accomplish with just under 500,000 unique training examples.</p>
 
 <p>The trouble was I made several mistakes that cost me significant time:</p>
 
-<p><strong>False diversity.</strong> I wanted a diverse set of Bible text and found myself using different translations—NLT, NIV, ESV, NET. This seemed like a good idea, but I didn't actually look at the dataset closely. While subtle differences exist between translations, they share similar tokens and themes. They aren't radically different. I later learned I should have included genuinely different text like <em>Mere Christianity</em>—rich theological writing that isn't the original Bible text.</p>
+<p><strong>False diversity.</strong> I wanted a diverse set of Bible text and found myself using different translations—NLT, NIV, ESV, NET. This seemed like a good idea, but I didn't actually look at the dataset closely. While subtle differences exist between translations, they share similar tokens and themes. They aren't radically different. I later learned I should have included genuinely different text like Mere Christianity, rich theological writing that isn't the original Bible text.</p>
 
 <p><strong>Quote noise.</strong> Biblical text has a lot of quotation marks, and I found this was distracting to the masked token prediction with my simplistic encoder. The model was learning patterns around quote boundaries rather than semantic meaning.</p>
 
