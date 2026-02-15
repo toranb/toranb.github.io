@@ -15,15 +15,9 @@ categories: blog archive
 
 <h2>The Turning Point: Adam</h2>
 
-<p>I barely had a working training loop when I was humbled by a fundamental problem. For weeks my validation loss hovered around 2.0, refusing to budge. I worked only a few hours a week in my nights and weekends, so "weeks of frustration" translated to maybe 20-30 actual hours of debugging spread over a month.</p>
+<p>I barely had a working training loop when I accepted that this project wouldn't come together quickly. Nothing meaningful ever does. My loss was stuck at 2.0 and going nowhere. And while early wins like moving from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a> did get things moving, that progress only revealed the volume of problems hiding underneath.</p>
 
-<p>I switched from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a>, and it was the biggest single improvement I saw up to this point. After that change, I was able to reach 1.29 validation loss within 100 epochs using a very early dataset at the time.</p>
-
-<p>Adam's adaptive learning rates made the search space tractable and gave me enough momentum to keep going. Shout out to Sean Moriarity for the <a href="https://github.com/elixir-nx/polaris">Polaris</a> library—it made optimizer swaps trivial.</p>
-
-<p>About this same time several smaller changes also had outsized impacts: switching from <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.ReLU.html">ReLU</a> to <a href="https://docs.pytorch.org/docs/stable/generated/torch.nn.GELU.html">GeLU</a> activation, using sinusoidal positional encoding instead of learned embeddings and implementing proper warmup with linear decay. The original BERT team used a 10,000 step warmup, and understanding why this matters was crucial—it allows the model to ease into the optimization landscape rather than taking massive, destabilizing steps from the beginning.</p>
-
-<p>What followed was months of debugging, dead ends, and hard-won lessons. Like all of my adventures, the mistakes were the most interesting part of the story.</p>
+<p>What followed was months of exploration, discovery, dead ends, and hard-won lessons. Like all of my adventures, the mistakes were the most interesting part of the story.</p>
 
 <h2>The First Wall: Padding Masks</h2>
 
