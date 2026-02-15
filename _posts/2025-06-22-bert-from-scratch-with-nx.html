@@ -9,13 +9,7 @@ categories: blog archive
 
 <h2>The Vision and the Naivety</h2>
 
-<p>My original goal was ambitious: write an encoder from the ground up, train it on biblical text using Masked Language Modeling, and build a hybrid search for the New Testament. I wanted to understand embeddings at the deepest level, and this project was the proving ground.</p>
-
-<p>With the <a href="https://arxiv.org/abs/1810.04805">original BERT paper</a> in hand, I set out to reproduce their success on a much smaller corpus. I used the BERT tokenizer, 768-dimensional output vectors, and a context length of 104 tokens—enough to fit the longest New Testament verse. I was equally inspired and determined. I was also wildly underestimating what lay ahead.</p>
-
-<h2>The Turning Point: Adam</h2>
-
-<p>I barely had a working training loop when I accepted that this project wouldn't come together quickly. Nothing meaningful ever does. My loss was stuck at 2.0 and going nowhere. And while early wins like moving from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a> did get things moving, that progress only revealed the volume of problems hiding underneath.</p>
+<p>My original goal was ambitious: write an encoder from the ground up, train it on biblical text using Masked Language Modeling, and build a hybrid search for the New Testament. I wanted to understand embeddings at the deepest level, and this project was the proving ground. With the <a href="https://arxiv.org/abs/1810.04805">original BERT paper</a> in hand I set out to reproduce their success on a much smaller corpus—and I was wildly underestimating what lay ahead. Nothing about this would come together quickly, and early wins like moving from SGD to the <a href="https://docs.pytorch.org/docs/stable/generated/torch.optim.Adam.html">Adam optimizer</a> only revealed the volume of problems hiding underneath.</p>
 
 <p>What followed was months of exploration, discovery, dead ends, and hard-won lessons. Like all of my adventures, the mistakes were the most interesting part of the story.</p>
 
