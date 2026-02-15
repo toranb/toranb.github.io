@@ -223,31 +223,11 @@ categories: blog archive
 
 <p>If I had to do it all over again, I would have started with <a href="/blog/archive/2025/08/16/building-keyword-search-in-postgres/">BM25</a> as my baseline from day one—not bolted it on toward the end as an afterthought. Keyword search isn't just a fallback. It's a genuinely powerful complement to semantic search, and understanding why made the final hybrid experience far better than either approach alone.</p>
 
-<p>BM25 is an evolution of TF-IDF that adds two key refinements. First, term frequency saturation: the difference between a word appearing zero times and once is enormous, but the difference between 20 and 21 appearances is negligible. BM25 provides a tunable parameter (<code>k1</code>) that controls how quickly frequency scores flatten out. Second, document length normalization: longer documents naturally contain more term matches, so BM25 uses a parameter (<code>b</code>) to penalize length and keep shorter, more focused results competitive.</p>
+<p>BM25 and semantic search fail in complementary ways. BM25 excels when the user's words overlap with the text—exact phrases, proper nouns, specific references. The encoder excels when they don't: thematic queries like "assurance of salvation" or "fruit of the spirit" surface verses that speak to the concept without containing the exact keywords. The keyword signal anchors results for literal queries while the encoder lifts thematic results that pure text matching would miss.</p>
 
-<p>The practical effect is striking. I benchmarked BM25 against simple ILIKE text matching on my verse corpus:</p>
+<p>The challenge with combining them is that their scores live on completely different scales, so a naive weighted sum is notoriously difficult to tune. Reciprocal Rank Fusion sidesteps the problem entirely by ignoring raw scores and working only with rank positions—a document ranked highly by both rises to the top without any normalization at all.</p>
 
-<div class="highlight" data-language="elixir">
-  <pre class="language-elixir">
-    <code class="language-elixir">================================================================================</code>
-    <code class="language-elixir">BENCHMARK RESULTS COMPARISON</code>
-    <code class="language-elixir">================================================================================</code>
-    <code class="language-elixir">Metric                    | BM25            | ILIKE</code>
-    <code class="language-elixir">--------------------------------------------------------------------------------</code>
-    <code class="language-elixir">NDCG@10 (relevance)       | 0.2940          | 0.1105</code>
-    <code class="language-elixir">Precision@10              | 0.2806          | 0.1747</code>
-    <code class="language-elixir">Recall % (found relevant) | 66.7            | 28.1</code>
-    <code class="language-elixir">================================================================================</code>
-  </pre>
-</div>
-
-<p>BM25 provided 166% better relevance ranking and more than doubled recall compared to simple text matching. For keyword-heavy queries—"give you a new heart," "do not be anxious"—BM25 found exactly what I was looking for with no embeddings required.</p>
-
-<p>But BM25 and semantic search fail in complementary ways, which is what makes combining them so effective. BM25 excels when the user's words overlap with the text: it handles exact phrases, proper nouns, and specific references with precision that embeddings can't match. The encoder excels when they don't overlap: thematic queries like "assurance of salvation" or "fruit of the spirit" surface verses that speak to the concept without containing the exact keywords. BM25 is also immune to the geometric distortions that can plague embeddings—if the word is there, it's there.</p>
-
-<p>The challenge with combining these two signals is that their scores live on completely different scales—BM25 scores are unbounded (often 10.0–40.0+) while cosine similarity is capped at 0.0–1.0. A naive weighted sum would require careful normalization that's notoriously difficult to tune. Instead, I used Reciprocal Rank Fusion (RRF), which sidesteps the problem entirely by ignoring raw scores and working only with rank positions. Each document gets a score of 1 / (k + rank) from each result list, and if it appears in both, the scores are summed. This means a document ranked highly by both BM25 and the encoder rises to the top without any score normalization at all.</p>
-
-<p>The keyword signal anchors results for literal queries while the encoder lifts thematic results that pure text matching would miss. Starting with BM25 as the baseline would have given me a strong search experience much earlier and a clearer benchmark for measuring what the encoder actually added.</p>
+<p>Starting with BM25 as the baseline would have given me a strong search experience much earlier and a clearer benchmark for measuring what the encoder actually added.</p>
 
 <h2>The Data Reckoning</h2>
 
