@@ -1,0 +1,146 @@
+---
+layout: post
+title: "Less Magic More Engineering"
+date:   2026-04-19 01:00:00
+categories: blog archive
+---
+<p>Early in my career, I followed a Python programmer named Gary Bernhardt. Some of you might know him from the popular WAT talk that made data structures look like an afterthought in JavaScript.</p>
+
+<p>I had the pleasure of watching Gary live code as part of "birds of a feather" one night at Pycon 2012 and I was never the same. As most early career programmers do I put Gary on a pedestal. If I'm honest, I wanted to be exceptional like Gary.</p>
+
+<p>It's difficult to articulate but watching Gary work was like watching someone play chess three moves ahead, in a terminal, using vim. He wasn't just solving problems, he could see through them to something concrete that was just waiting to be revealed.</p>
+
+<img src='/content/images/2026/gary.png' />
+
+<p>But Gary would probably be the first to tell you: you don't become Gary Bernhardt overnight. It's not a single insight. It's a progression. Deliberate practice, hard work, and a series of compounding steps, each one building on the last.</p>
+
+<p>I've been searching for the right frame to describe that progression in the context of where we are right now as engineers. And I keep landing on something Kent Beck said years ago:</p>
+
+<blockquote><p>Make it work. Make it right. Make it fast.</p></blockquote>
+
+<p>History doesn't repeat, but it often rhymes I'm told. So I want to walk you through how this old mantra maps to something new, a progression I believe every engineer building in the agentic era needs to internalize.</p>
+
+<h2 class="step-title">Make it work</h2>
+
+<p>This first section is foundational and without it we can't build toward the harness or further into agentic workflows. It all starts with precision.</p>
+
+<p>I want to talk about tokens, but not the way you might expect. Not about context window size or how many dollars you're burning each session. When I say cost here, I mean something different. I'm talking about attention, specifically the relationship tokens have with other tokens in context.</p>
+
+<p>The word Apple is ambigious. It lives in two worlds simultaneously. Without context, a model holds it loosely somewhere between the fruit aisle and silicon valley. That all changes the moment you add context. When you do this it rotates the geometry and the word takes on a specific meaning.</p>
+
+<p>Say "you are a chef." Apple shifts. It slopes toward fruit. The model becomes more certain. Say "you are a venture capitalist." The same word slopes toward business or tech companies.</p>
+
+<p>Now imagine a session that's hours long. Sprawling notes from your thoughts along with the agents thinking tokens. Jargon from three different codebases. Half-finished thoughts. What does Apple look like then?</p>
+
+<p>That's the key insight: irrelevant tokens don't just take up space. In the best case they dilute meaning. In the worst case they make the model less certain, less confident, less precise. And precision is everything.</p>
+
+<img src='/content/images/2026/apple_images.png' />
+
+<p>This isn't abstract. Here's a practical example. When you're working in the terminal and passing a curl request to Claude, you might be handing over a full authorization header with a 500-character bearer token embedded directly in the command. It looks like noise because by some definition it is noise.
+
+<p>You needed to authorize the request but you don't need to dump the entire string into the context. You could shrink that by introducing an environment variable. Same capability, dramatically less noise. This is context engineering in the small. And while this optimization might seem excessive, thinking with precision at the onset will pay dividends.</p>
+
+<h3>Skills, Tools and CLAUDE.md</h3>
+
+<p>Three things you need to have your head around before we move forward.</p>
+
+<p>Skills are encoded expertise. Think of Neo getting Kung Fu downloaded in The Matrix. A skill encapsulates a repetitive task, a set of pitfalls, or domain knowledge that isn't public and injects it on demand without dumping everything into the context window. Anthropic's design here is subtle but powerful: skills use front matter to let the agent search for them rather than pulling in the whole file. Precision by design.</p>
+
+<p>Tools are the bridge to the outside world. One thing worth knowing: MCPs (Model Context Protocol servers) are often verbose. There's a real handshake cost when compared to the equivalent CLI tool. If a service offers both an MCP and a CLI with equivalent capabilities, the CLI might actually serve you better.</p>
+
+<p>Your CLAUDE.md is the persistent instruction layer, always in context. Everything in there should be rowing in the same direction. Don't let it become a graveyard of random notes and when a new frontier model is released be sure to review this to see if you can cut it down.</p>
+
+<h3>Explore → Converge → Execute</h3>
+
+<p>Software has two phases: uphill, where everything is uncertain, and downhill, where you're executing. The common trap is trying to use a single session for both.</p>
+
+<p>Instead, start a session just to gain understanding. No output pressure. "Claude, is this even possible? Read the docs. What are the tradeoffs?" The goal here is to transform ambiguity to clarity.</p>
+
+<p>Once you have your bearings ask Claude to generate the next prompt for you. A clear, well-scoped starting point for a new session, carrying forward everything you've learned with none of the mess.</p>
+
+<p>Fresh session. Focused. With your plan, your skills, and your tools all aligned for the task ahead. This is how you stay precise through the entire arc of a problem.</p>
+
+<h2 class="step-title">Make it right</h2>
+
+<p>When new technology appears, there are two ways to incorporate it. The first is a point solution: how does this new thing fit into what I already have? Semantic search along side your keyword search is a great point solution for example. Real value, low disruption.</p>
+
+<p>The second is both more disruptive and more valuable: how do we redesign the entire process? The book <a href="https://www.amazon.com/Power-Prediction-Disruptive-Artificial-Intelligence/dp/1647824192">Power and Prediction</a> makes this point by describing how the traditional factory could be redesigned when electricity came on the scene because they didn't need to be so tightly coupled to steam power and all that goes with it.</p>
+
+<p>That second point is a great way to conceptualize harness engineering. It's a radical shift in how you approach the problem but when embraced the gains are often exponential.</p>
+
+<p>But how did that phrase harness engineering get into our vernacular? I'm sure it was part of the dialog well before Nov 2025 but <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">this</a> blog post from Anthropic seems to be the most cited for the shift. Before I get ahead of myself, lets look back at the last three years to see the progression more clearly.</p>
+
+<p>When ChatGPT arrived, it was nothing more than a chat window. It was fun. Sometimes useful. Then Copilot appeared inside VS Code, and we thought, okay, this is just a smarter autocomplete. Along with some improvements to chat it was closer to my code so terms like context engineering starting to carry more weight.</p>
+
+<p>Then last summer, <a href="https://www.anthropic.com/product/claude-code">Claude Code</a> appeared almost out of nowhere. Something qualitatively different happened. It wasn't just a better chat experience or another leap in model intelligence. Anthropic had stitched together the model, the file system, and tool calling into a single coherent experience. That's a harness. And the engineers who felt the difference knew it immediately, even if they couldn't put their finger on it.</p>
+
+<img src='/content/images/2026/agentsprog.png' />
+
+<h3>Trust is the unlock</h3>
+
+<p>As I used Claude Code more, something happened that I wasn't expecting: I started to trust it. I noticed little to no hallucinations and with tools like AskUserQuestion I could even prompt the agent to ask me questions when the objective was vague.</p>
+
+<p>This seems odd at first because trust is not something you tend to give out quickly. Trust is something you earn and often it requires real relationship with ups and downs. Earning trust is difficult and time consuming but once you have it everything changes.</p>
+<p>This shows up at work because teams move at the speed of trust. If you've ever been on a team that's worked together for years, you know what that advantage feels like. You stop second-guessing every decision. You move faster. You take more risks in the best way possible.</p>
+
+<p>We're going to need to build that kind of trust with agents. And it doesn't come from writing a "trust skill." It doesn't come from a single clever prompt. It comes from closing the loop.</p>
+
+<h3>Closing the Loop</h3>
+
+<p>Imagine a junior engineer in that first week on the job. You tell them: insert a new user. A thoughtful engineer might ask: "how do I know when I'm done exactly?"</p>
+
+<p>We need to build that same expectation into our agents for them to be successful. Not just a task to be completed, but access to verify the task is done with some definition.</p>
+<p>In the database example: give Claude access to the running PSQL instance. Let it write the insert. Let it write a query to confirm the task is complete and working as designed. The agent actually wants to work like this, there's a reward signal baked into these frontier models that fires when they close a loop. They're not just tolerating the verification step. They're optimized for it.</p>
+
+<p>The harness is the structure, the foundational software that makes this possible. The tools. The access. The feedback signal. All wired together so the agent can thrive.</p>
+
+<h3>What This Looks Like at Scale</h3>
+
+<p>I was preparing to leave for vacation a few months back. I had a machine learning pre-training job to run, historically a two or three day task. Normally I'd kick it off and evaluate the results when I got back.</p>
+
+<p>Instead I thought: "what if Claude could close the loop while I'm gone? this way I could evaluate each to learn what hyperparameters are best, allowing me to run many experiments instead of just the single fire and forget I had in mind originally."</p>
+
+<p>I gave it access to stdout and logs. I gave it access to two key metrics, training loss and validation loss. Then I wrote a prompt the generally said something like:</p>
+
+<blockquote><p>Evaluate the metrics at the end of each run. Adjust the hyperparameters. Start the next run. Keep doing this until I get home.</p></blockquote>
+
+<p>I came back to a full summary across multiple training runs. Each one informed by the previous. Not a final product but I had a clear picture of where to go next, all without me hovering at the terminal.</p>
+
+<p>That's not automation. That's an agentic workflow with a closed loop. That's harness engineering.</p>
+
+<h2 class="step-title">Make it fast</h2>
+
+<p>A few months ago I was building something new at work. We're trying to accelerate how customers build on our platform so I asked the question "can we generate a set of skills that would help a Python developer who doesn't know our SDK hit the ground running?"</p>
+
+<p>The problem: I needed to know which skills to build. What were partners actually building?</p>
+
+<p>Here's the pipeline I ran, and notice that almost every step was a long-horizon task, not a hand-held prompt:</p>
+
+<ol class="numbered-list">
+  <li><strong>Query Jira for storyboards</strong> query for documents with a Jira skill using a simple JQL query</li>
+  <li><strong>Download and parse the PDFs</strong> each Jira ticket had a PDF attachment, so extract the text</li>
+  <li><strong>Analyze for signal using TF-IDF</strong> the statistical analysis surfaced which features and patterns appeared most frequently across all submissions</li>
+  <li><strong>Scan the SDK source code</strong> search the Python code to find the relevant modules and group them</li>
+  <li><strong>Generate the skills</strong> from those python modules generate the actual skill files to bootstrap this work</li>
+</ol>
+
+<p>Total runtime: roughly 40–45 minutes. I opened another terminal. Started a different workstream and let the agent get to work.</p>
+
+<p>I didn't babysit the pipeline. That's the transition. That's what agentic engineering actually looks like in practice.</p>
+
+<h3>The Real Shift: Tasks vs. Outcomes</h3>
+
+<ul class="bullet-list">
+  <li><strong>Old behavior (2023):</strong> Back-and-forth prompting. Small prompts, constant attention, you in the loop on every decision. "Where does the semicolon go? What should this function be called?"</li>
+  <li><strong>New behavior (now):</strong> Declarative. Long-horizon. Almost like writing a SQL statement — you express what you want at a high level, and trust the system to figure out the execution path.</li>
+</ul>
+
+<p>The difference isn't just efficiency. It's the level at which you're thinking.</p>
+
+<p>When you stop micromanaging tasks and start declaring outcomes, you've been elevated. Your value isn't in the keystrokes anymore. It's in the judgment calls — the ones that require understanding the problem, the business, the customer. The things that only experience can see.</p>
+
+<p>Keep in mind this transformation doesn't happen overnight, it's a progression. And like Gary Bernhardt thinking three moves ahead in a terminal, it takes deliberate practice to get there.</p>
+
+<p>The good news: the progression is tractable, the steps are learnable, and the engineers who internalize it will find themselves working in a way that most people haven't experienced yet.</p>
+
+<p>Start with context engineering, close the loop and work toward outcomes centered on the problem.</p>
