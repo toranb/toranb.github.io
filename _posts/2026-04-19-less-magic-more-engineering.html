@@ -18,7 +18,7 @@ categories: blog archive
 
 <blockquote><p>Make it work. Make it right. Make it fast.</p></blockquote>
 
-<p>History doesn't repeat, but it often rhymes I'm told. So I want to walk you through how this old mantra maps to something new, a progression I believe every engineer building in the agentic era needs to internalize.</p>
+<p>History doesn't repeat, but it often rhymes, I'm told. So I want to walk you through how this old mantra maps to something new, a progression I believe every engineer building in the agentic era needs to internalize.</p>
 
 <h2 class="step-title">Make it work</h2>
 
@@ -26,7 +26,7 @@ categories: blog archive
 
 <p>I want to talk about tokens, but not the way you might expect. Not about context window size or how many dollars you're burning each session. When I say cost here, I mean something different. I'm talking about attention, specifically the relationship tokens have with other tokens in context.</p>
 
-<p>The word Apple is ambigious. It lives in two worlds simultaneously. Without context, a model holds it loosely somewhere between the fruit aisle and silicon valley. That all changes the moment you add context. When you do this it rotates the geometry and the word takes on a specific meaning.</p>
+<p>The word Apple is ambiguous. It lives in two worlds simultaneously. Without context, a model holds it loosely somewhere between the fruit aisle and silicon valley. That all changes the moment you add context. When you do this, it rotates the geometry and the word takes on a specific meaning.</p>
 
 <p>Say "you are a chef." Apple shifts. It slopes toward fruit. The model becomes more certain. Say "you are a venture capitalist." The same word slopes toward business or tech companies.</p>
 
@@ -48,7 +48,7 @@ categories: blog archive
 
 <p>Tools are the bridge to the outside world. One thing worth knowing: MCPs (Model Context Protocol servers) are often verbose. There's a real handshake cost when compared to the equivalent CLI tool. If a service offers both an MCP and a CLI with equivalent capabilities, the CLI might actually serve you better.</p>
 
-<p>Your CLAUDE.md is the persistent instruction layer, always in context. Everything in there should be rowing in the same direction. Don't let it become a graveyard of random notes and when a new frontier model is released be sure to review this to see if you can cut it down.</p>
+<p>Your CLAUDE.md is the persistent instruction layer, always in context. Everything in there should be rowing in the same direction. Don't let it become a graveyard of random notes and when a new frontier model is released, be sure to review this to see if you can cut it down.</p>
 
 <h3>Explore → Converge → Execute</h3>
 
@@ -56,7 +56,7 @@ categories: blog archive
 
 <p>Instead, start a session just to gain understanding. No output pressure. "Claude, is this even possible? Read the docs. What are the tradeoffs?" The goal here is to transform ambiguity to clarity.</p>
 
-<p>Once you have your bearings ask Claude to generate the next prompt for you. A clear, well-scoped starting point for a new session, carrying forward everything you've learned with none of the mess.</p>
+<p>Once you have your bearings, ask Claude to generate the next prompt for you. A clear, well-scoped starting point for a new session, carrying forward everything you've learned with none of the mess.</p>
 
 <p>Fresh session. Focused. With your plan, your skills, and your tools all aligned for the task ahead. This is how you stay precise through the entire arc of a problem.</p>
 
@@ -68,7 +68,7 @@ categories: blog archive
 
 <p>That second point is a great way to conceptualize harness engineering. It's a radical shift in how you approach the problem but when embraced the gains are often exponential.</p>
 
-<p>But how did that phrase harness engineering get into our vernacular? I'm sure it was part of the dialog well before Nov 2025 but <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">this</a> blog post from Anthropic seems to be the most cited for the shift. Before I get ahead of myself, lets look back at the last three years to see the progression more clearly.</p>
+<p>But how did that phrase harness engineering get into our vernacular? I'm sure it was part of the dialog well before Nov 2025, but <a href="https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents">this</a> blog post from Anthropic seems to be the most cited for the shift. Before I get ahead of myself, let's look back at the last three years to see the progression more clearly.</p>
 
 <p>When ChatGPT arrived, it was nothing more than a chat window. It was fun. Sometimes useful. Then Copilot appeared inside VS Code, and we thought, okay, this is just a smarter autocomplete. Along with some improvements to chat it was closer to my code so terms like context engineering starting to carry more weight.</p>
 
@@ -80,7 +80,7 @@ categories: blog archive
 
 <p>As I used Claude Code more, something happened that I wasn't expecting: I started to trust it. I noticed little to no hallucinations and with tools like AskUserQuestion I could even prompt the agent to ask me questions when the objective was vague.</p>
 
-<p>This seems odd at first because trust is not something you tend to give out quickly. Trust is something you earn and often it requires real relationship with ups and downs. Earning trust is difficult and time consuming but once you have it everything changes.</p>
+<p>This seems odd at first because trust is not something you tend to give out quickly. Trust is something you earn and often it requires real relationship with ups and downs. Earning trust is difficult and time-consuming but once you have it everything changes.</p>
 <p>This shows up at work because teams move at the speed of trust. If you've ever been on a team that's worked together for years, you know what that advantage feels like. You stop second-guessing every decision. You move faster. You take more risks in the best way possible.</p>
 
 <p>We're going to need to build that kind of trust with agents. And it doesn't come from writing a "trust skill." It doesn't come from a single clever prompt. It comes from closing the loop.</p>
@@ -100,28 +100,28 @@ categories: blog archive
 
 <p>Instead I thought: "what if Claude could close the loop while I'm gone? this way I could evaluate each to learn what hyperparameters are best, allowing me to run many experiments instead of just the single fire and forget I had in mind originally."</p>
 
-<p>I gave it access to stdout and logs. I gave it access to two key metrics, training loss and validation loss. Then I wrote a prompt the generally said something like:</p>
+<p>I gave it access to stdout and logs. I gave it access to two key metrics, training loss and validation loss. Then I wrote a prompt that generally said something like:</p>
 
 <blockquote><p>Evaluate the metrics at the end of each run. Adjust the hyperparameters. Start the next run. Keep doing this until I get home.</p></blockquote>
 
-<p>I came back to a full summary across multiple training runs. Each one informed by the previous. Not a final product but I had a clear picture of where to go next, all without me hovering at the terminal.</p>
+<p>I came back to a full summary across multiple training runs. Each one informed by the previous. Not a final product, but I had a clear picture of where to go next, all without me hovering at the terminal.</p>
 
 <p>That's not automation. That's an agentic workflow with a closed loop. That's harness engineering.</p>
 
 <h2 class="step-title">Make it fast</h2>
 
-<p>A few months ago I was building something new at work. We're trying to accelerate how customers build on our platform so I asked the question "can we generate a set of skills that would help a Python developer who doesn't know our SDK hit the ground running?"</p>
+<p>A few months ago I was building something new at work. We're trying to accelerate how customers build on our platform, so I asked the question "can we generate a set of skills that would help a Python developer who doesn't know our SDK hit the ground running?"</p>
 
 <p>The problem: I needed to know which skills to build. What were partners actually building?</p>
 
 <p>Here's the pipeline I ran, and notice that almost every step was a long-horizon task, not a hand-held prompt:</p>
 
 <ol class="numbered-list">
-  <li><strong>Query Jira for storyboards</strong> query for documents with a Jira skill using a simple JQL query</li>
-  <li><strong>Download and parse the PDFs</strong> each Jira ticket had a PDF attachment, so extract the text</li>
-  <li><strong>Analyze for signal using TF-IDF</strong> the statistical analysis surfaced which features and patterns appeared most frequently across all submissions</li>
-  <li><strong>Scan the SDK source code</strong> search the Python code to find the relevant modules and group them</li>
-  <li><strong>Generate the skills</strong> from those python modules generate the actual skill files to bootstrap this work</li>
+  <li><strong>Query Jira for storyboards</strong> &mdash; query for documents with a Jira skill using a simple JQL query</li>
+  <li><strong>Download and parse the PDFs</strong> &mdash; each Jira ticket had a PDF attachment, so extract the text</li>
+  <li><strong>Analyze for signal using TF-IDF</strong> &mdash; the statistical analysis surfaced which features and patterns appeared most frequently across all submissions</li>
+  <li><strong>Scan the SDK source code</strong> &mdash; search the Python code to find the relevant modules and group them</li>
+  <li><strong>Generate the skills</strong> &mdash; from those Python modules generate the actual skill files to bootstrap this work</li>
 </ol>
 
 <p>Total runtime: roughly 40–45 minutes. I opened another terminal. Started a different workstream and let the agent get to work.</p>
